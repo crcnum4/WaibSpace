@@ -12,6 +12,7 @@ import {
   ModelProviderRegistry,
   AnthropicProvider,
 } from "@waibspace/model-provider";
+import { MemoryStore } from "@waibspace/memory";
 import { startServer } from "./server";
 import { broadcast } from "./ws";
 
@@ -84,8 +85,11 @@ bus.on("surface.composed", (event: WaibEvent) => {
   broadcast(message);
 });
 
-// ---------- 7. Start HTTP/WebSocket server ----------
-const server = startServer({ eventBus: bus, orchestrator });
+// ---------- 7. Memory Store ----------
+const memoryStore = new MemoryStore(undefined, bus);
+
+// ---------- 8. Start HTTP/WebSocket server ----------
+const server = startServer({ eventBus: bus, orchestrator, memoryStore });
 
 const PORT = Number(process.env.PORT) || 3001;
 console.log(`[backend] WaibSpace backend started`);
