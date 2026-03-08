@@ -6,5 +6,8 @@
   "types": "src/index.ts",
   "dependencies": {
     "@waibspace/types": "workspace:*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
   }
 }

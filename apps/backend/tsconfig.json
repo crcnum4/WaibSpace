@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/types" },
+    { "path": "../../packages/event-bus" },
+    { "path": "../../packages/orchestrator" },
+    { "path": "../../packages/agents" },
+    { "path": "../../packages/connectors" },
+    { "path": "../../packages/policy" },
+    { "path": "../../packages/memory" },
+    { "path": "../../packages/surfaces" },
+    { "path": "../../packages/model-provider" }
+  ]
+}

@@ -7,5 +7,8 @@
   "dependencies": {
     "@waibspace/types": "workspace:*",
     "@waibspace/ui-renderer-contract": "workspace:*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
   }
 }
