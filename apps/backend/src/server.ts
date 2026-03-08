@@ -39,7 +39,7 @@ export function startServer(deps: ServerDeps) {
   const server = Bun.serve<WebSocketData>({
     port: PORT,
 
-    fetch(req, server) {
+    async fetch(req, server) {
       const url = new URL(req.url);
 
       // CORS preflight
