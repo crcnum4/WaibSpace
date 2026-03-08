@@ -10,3 +10,7 @@ export {
   DataRetrievalAgent,
   type DataRetrievalOutput,
 } from "./data-retrieval";
+export {
+  MemoryRetrievalAgent,
+  type MemoryRetrievalOutput,
+} from "./memory-retrieval";

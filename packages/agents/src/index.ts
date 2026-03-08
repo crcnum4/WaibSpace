@@ -29,6 +29,8 @@ export {
   type FinalizedPlan,
   DataRetrievalAgent,
   type DataRetrievalOutput,
+  MemoryRetrievalAgent,
+  type MemoryRetrievalOutput,
 } from "./context";
 export {
   InboxSurfaceAgent,
