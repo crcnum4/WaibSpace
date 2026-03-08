@@ -1,10 +1,32 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, Link, useLocation } from "react-router-dom";
 
 export default function Layout() {
+  const location = useLocation();
+
   return (
     <div className="layout">
       <header className="layout-header">
-        <span className="logo">WaibSpace</span>
+        <Link to="/" className="logo">WaibSpace</Link>
+        <nav className="layout-nav">
+          <Link
+            to="/"
+            className={`nav-link ${location.pathname === "/" ? "active" : ""}`}
+          >
+            Home
+          </Link>
+          <Link
+            to="/tasks"
+            className={`nav-link ${location.pathname === "/tasks" ? "active" : ""}`}
+          >
+            Tasks
+          </Link>
+          <Link
+            to="/settings"
+            className={`nav-link ${location.pathname === "/settings" ? "active" : ""}`}
+          >
+            Settings
+          </Link>
+        </nav>
       </header>
 
       <main className="layout-main">
