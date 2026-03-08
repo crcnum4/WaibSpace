@@ -1,1 +1,1 @@
-// packages/memory
+export { MemoryStore } from "./memory-store";

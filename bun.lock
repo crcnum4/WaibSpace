@@ -76,6 +76,7 @@
       "name": "@waibspace/memory",
       "version": "0.0.1",
       "dependencies": {
+        "@waibspace/event-bus": "workspace:*",
         "@waibspace/types": "workspace:*",
       },
     },
