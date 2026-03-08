@@ -14,3 +14,9 @@ export {
   type CalendarEvent,
   type FreeSlot,
 } from "./google-calendar";
+export {
+  WebFetchConnector,
+  extractReadableContent,
+  RateLimiter,
+} from "./web-fetch";
+export type { ExtractedContent } from "./web-fetch";
