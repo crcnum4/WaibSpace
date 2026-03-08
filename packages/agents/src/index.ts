@@ -8,3 +8,9 @@ export {
   URLIntentParserAgent,
   type URLIntentParsed,
 } from "./perception";
+export {
+  IntentAgent,
+  type IntentClassification,
+  ConfidenceScorerAgent,
+  type ConfidenceAdjustment,
+} from "./reasoning";
