@@ -34,10 +34,13 @@ export class Orchestrator {
     let priorOutputs: AgentOutput[] = [];
     const phaseResults: Array<{
       category: AgentCategory;
+      startMs: number;
+      endMs: number;
       outputs: AgentOutput[];
     }> = [];
 
     for (const phase of plan.phases) {
+      const phaseStartMs = Date.now();
       const input = { event, priorOutputs };
       const context = {
         traceId: event.traceId,
@@ -69,7 +72,13 @@ export class Orchestrator {
         )
         .map((r) => r.value);
 
-      phaseResults.push({ category: phase.category, outputs: phaseOutputs });
+      const phaseEndMs = Date.now();
+      phaseResults.push({
+        category: phase.category,
+        startMs: phaseStartMs,
+        endMs: phaseEndMs,
+        outputs: phaseOutputs,
+      });
 
       // Accumulate outputs for the next phase
       priorOutputs = [...priorOutputs, ...phaseOutputs];
