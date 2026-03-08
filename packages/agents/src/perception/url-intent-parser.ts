@@ -92,9 +92,9 @@ export class URLIntentParserAgent extends BaseAgent {
     // Strip query string and fragment
     pathPart = pathPart.split("?")[0].split("#")[0];
 
-    // Split path into segments, splitting on / and -
+    // Split path into segments, splitting on /, -, and _
     const pathSegments = pathPart
-      .split(/[/\-]/)
+      .split(/[/\-_]/)
       .map((s) => decodeURIComponent(s).trim())
       .filter(Boolean);
 

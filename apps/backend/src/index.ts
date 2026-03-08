@@ -28,16 +28,16 @@ import {
   ActionExecutorAgent,
 } from "@waibspace/agents";
 import {
-  ModelProviderRegistry,
-  AnthropicProvider,
-} from "@waibspace/model-provider";
-import {
   ConnectorRegistry,
   GmailConnector,
   GoogleCalendarConnector,
   WebFetchConnector,
 } from "@waibspace/connectors";
 import { PolicyEngine, DEFAULT_POLICY_RULES } from "@waibspace/policy";
+import {
+  ModelProviderRegistry,
+  AnthropicProvider,
+} from "@waibspace/model-provider";
 import { MemoryStore, MemoryUpdatePipeline } from "@waibspace/memory";
 import { BackgroundTaskScheduler, MVP_BACKGROUND_TASKS } from "./background";
 import { startServer } from "./server";
