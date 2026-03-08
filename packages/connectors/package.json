@@ -5,6 +5,7 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "dependencies": {
+    "@waibspace/policy": "workspace:*",
     "@waibspace/types": "workspace:*"
   },
   "scripts": {
