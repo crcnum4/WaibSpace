@@ -1,17 +1,15 @@
-import React from "react";
+import { Outlet } from "react-router-dom";
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
-export default function Layout({ children }: LayoutProps) {
+export default function Layout() {
   return (
     <div className="layout">
       <header className="layout-header">
         <span className="logo">WaibSpace</span>
       </header>
 
-      <main className="layout-main">{children}</main>
+      <main className="layout-main">
+        <Outlet />
+      </main>
 
       <footer className="layout-footer">
         <input
