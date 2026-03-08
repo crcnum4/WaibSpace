@@ -8,6 +8,7 @@
     "@waibspace/types": "workspace:*",
     "@waibspace/event-bus": "workspace:*",
     "@waibspace/model-provider": "workspace:*",
+    "@waibspace/memory": "workspace:*",
     "@waibspace/connectors": "workspace:*",
     "@waibspace/surfaces": "workspace:*",
     "@waibspace/ui-renderer-contract": "workspace:*"

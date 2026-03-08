@@ -9,6 +9,7 @@
     { "path": "../types" },
     { "path": "../event-bus" },
     { "path": "../model-provider" },
+    { "path": "../memory" },
     { "path": "../connectors" },
     { "path": "../surfaces" },
     { "path": "../ui-renderer-contract" }
