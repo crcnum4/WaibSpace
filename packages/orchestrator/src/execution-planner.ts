@@ -13,6 +13,60 @@ export interface ExecutionPhase {
 }
 
 /**
+ * Agents within the same category that must run sequentially
+ * because they depend on each other's outputs.
+ *
+ * Each entry defines a category and ordered groups of agent IDs.
+ * Agents in the same group run in parallel; groups run sequentially.
+ */
+interface AgentOrdering {
+  category: AgentCategory;
+  groups: string[][];
+}
+
+/**
+ * For event types that require sequential execution within a category,
+ * define the agent ordering explicitly.
+ */
+const AGENT_ORDERINGS: Record<string, AgentOrdering[]> = {
+  "user.intent.url_received": [
+    {
+      category: "context",
+      groups: [
+        ["context.planner"],
+        ["context.connector-selection"],
+        ["context.data-retrieval"],
+      ],
+    },
+    {
+      category: "ui",
+      groups: [
+        ["ui.discovery-surface"],
+        ["layout-composer"],
+      ],
+    },
+  ],
+  "user.message.received": [
+    {
+      category: "context",
+      groups: [
+        ["context.planner"],
+        ["context.connector-selection"],
+        ["context.data-retrieval"],
+      ],
+    },
+    {
+      category: "ui",
+      groups: [
+        // All surface agents run in parallel, then layout composer
+        ["ui.inbox-surface", "ui.calendar-surface", "ui.discovery-surface"],
+        ["layout-composer"],
+      ],
+    },
+  ],
+};
+
+/**
  * Define the pipeline order based on event type.
  */
 function getPipelineForEvent(eventType: string): AgentCategory[] {
@@ -37,7 +91,11 @@ function getPipelineForEvent(eventType: string): AgentCategory[] {
 
 /**
  * Build an execution plan based on event type and registered agents.
- * Each phase contains all agents registered under that category.
+ *
+ * For categories that have explicit agent orderings, the category is split
+ * into sequential sub-phases. Otherwise, all agents in the category run
+ * in a single parallel phase.
+ *
  * Phases with no agents are omitted.
  */
 export function buildExecutionPlan(
@@ -45,16 +103,54 @@ export function buildExecutionPlan(
   registry: AgentRegistry,
 ): ExecutionPlan {
   const categories = getPipelineForEvent(eventType);
+  const orderings = AGENT_ORDERINGS[eventType];
 
   const phases: ExecutionPhase[] = [];
+
   for (const category of categories) {
-    const agents = registry.getByCategory(category);
-    if (agents.length > 0) {
-      phases.push({
-        id: `phase-${category}`,
-        category,
-        agents,
-      });
+    const ordering = orderings?.find((o) => o.category === category);
+
+    if (ordering) {
+      // Split this category into sequential sub-phases
+      let subIndex = 0;
+      for (const group of ordering.groups) {
+        const agents = group
+          .map((id) => registry.getById(id))
+          .filter((a): a is Agent => a !== undefined);
+
+        if (agents.length > 0) {
+          phases.push({
+            id: `phase-${category}-${subIndex}`,
+            category,
+            agents,
+          });
+          subIndex++;
+        }
+      }
+
+      // Also include any agents in this category NOT mentioned in the ordering
+      const mentionedIds = new Set(ordering.groups.flat());
+      const remainingAgents = registry
+        .getByCategory(category)
+        .filter((a) => !mentionedIds.has(a.id));
+
+      if (remainingAgents.length > 0) {
+        phases.push({
+          id: `phase-${category}-remaining`,
+          category,
+          agents: remainingAgents,
+        });
+      }
+    } else {
+      // Default: all agents in the category run in parallel
+      const agents = registry.getByCategory(category);
+      if (agents.length > 0) {
+        phases.push({
+          id: `phase-${category}`,
+          category,
+          agents,
+        });
+      }
     }
   }
 

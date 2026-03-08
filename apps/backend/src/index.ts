@@ -7,7 +7,17 @@ import {
   URLIntentParserAgent,
   IntentAgent,
   ConfidenceScorerAgent,
+  ContextPlannerAgent,
+  ConnectorSelectionAgent,
+  DataRetrievalAgent,
+  DiscoverySurfaceAgent,
+  LayoutComposerAgent,
+  ProvenanceAnnotatorAgent,
 } from "@waibspace/agents";
+import {
+  ConnectorRegistry,
+  WebFetchConnector,
+} from "@waibspace/connectors";
 import {
   ModelProviderRegistry,
   AnthropicProvider,
@@ -24,12 +34,33 @@ const bus = new EventBus();
 const modelRegistry = new ModelProviderRegistry();
 modelRegistry.register(new AnthropicProvider());
 
+// ---------- 2b. Connector Registry ----------
+const connectorRegistry = new ConnectorRegistry();
+const webFetchConnector = new WebFetchConnector("web-fetch", "WebFetch");
+await webFetchConnector.connect();
+connectorRegistry.register(webFetchConnector);
+
+console.log(
+  `[backend] Registered ${connectorRegistry.getAll().length} connector(s): ${connectorRegistry.getAll().map((c) => c.id).join(", ")}`,
+);
+
 // ---------- 3. Agent Registry ----------
 const agentRegistry = new AgentRegistry();
+// Perception
 agentRegistry.register(new InputNormalizerAgent());
 agentRegistry.register(new URLIntentParserAgent());
+// Reasoning
 agentRegistry.register(new IntentAgent());
 agentRegistry.register(new ConfidenceScorerAgent());
+// Context
+agentRegistry.register(new ContextPlannerAgent());
+agentRegistry.register(new ConnectorSelectionAgent());
+agentRegistry.register(new DataRetrievalAgent());
+// UI
+agentRegistry.register(new DiscoverySurfaceAgent());
+agentRegistry.register(new LayoutComposerAgent());
+// Safety
+agentRegistry.register(new ProvenanceAnnotatorAgent());
 
 console.log(
   `[backend] Registered ${agentRegistry.getAll().length} agents: ${agentRegistry.getAll().map((a) => a.id).join(", ")}`,
@@ -44,6 +75,7 @@ memoryStore.startAutoSave();
 const orchestrator = new Orchestrator(bus, agentRegistry, {
   modelProvider: modelRegistry,
   memoryStore,
+  connectorRegistry,
 });
 
 // ---------- 6. Memory Update Pipeline ----------
