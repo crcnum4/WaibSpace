@@ -94,6 +94,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@waibspace/agents": "workspace:*",
+        "@waibspace/connectors": "workspace:*",
         "@waibspace/event-bus": "workspace:*",
         "@waibspace/memory": "workspace:*",
         "@waibspace/policy": "workspace:*",
