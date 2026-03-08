@@ -48,7 +48,13 @@ const bus = new EventBus();
 
 // ---------- 2. Model Provider ----------
 const modelRegistry = new ModelProviderRegistry();
-modelRegistry.register(new AnthropicProvider());
+const anthropicProvider = new AnthropicProvider();
+modelRegistry.register(anthropicProvider);
+
+// Pre-warm the Anthropic API connection (non-blocking)
+anthropicProvider.warmUp().catch(() => {
+  // Errors already logged inside warmUp()
+});
 
 // ---------- 3. Connector Registry ----------
 const connectorRegistry = new ConnectorRegistry();

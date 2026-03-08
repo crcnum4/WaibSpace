@@ -9,6 +9,24 @@ export interface ModelRoleConfig {
   uiGeneration: { provider: string; model: string };
 }
 
+/**
+ * Default model configuration optimized for latency vs. quality tradeoffs:
+ *
+ * - reasoning (sonnet): Used by context-planner for complex planning tasks.
+ *   Needs higher capability for multi-step reasoning about data sources.
+ *
+ * - classification (haiku): Used by intent-agent for intent classification.
+ *   Haiku is fast enough for structured classification and keeps latency low.
+ *
+ * - summarization (haiku): Used by inbox-surface, calendar-surface, discovery-surface.
+ *   These run in parallel so fast model helps meet the 3s target.
+ *
+ * - uiGeneration (sonnet): Used by layout-composer for complex UI composition.
+ *   Needs higher capability to produce well-structured layouts.
+ *
+ * Simple agents like confidence-scorer and provenance-annotator don't use LLM calls
+ * (they use heuristic/rule-based logic), so no model config needed for them.
+ */
 export const DEFAULT_MODEL_CONFIG: ModelRoleConfig = {
   reasoning: { provider: "anthropic", model: "claude-sonnet-4-6" },
   classification: {
