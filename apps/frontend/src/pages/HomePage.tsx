@@ -64,6 +64,19 @@ export default function HomePage() {
       surfaceType: string,
       context?: unknown,
     ) => {
+      // Approval surfaces: emit approval.response instead of user.interaction
+      if (
+        surfaceType === "approval" &&
+        (interaction === "approve" || interaction === "deny")
+      ) {
+        send("approval.response", {
+          approvalId: target,
+          approved: interaction === "approve",
+        });
+        return;
+      }
+
+      // Email send-reply: emit with full context for policy evaluation
       send("user.interaction", {
         interaction,
         target,

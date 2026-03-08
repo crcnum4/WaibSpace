@@ -14,3 +14,4 @@ export {
   MemoryRetrievalAgent,
   type MemoryRetrievalOutput,
 } from "./memory-retrieval";
+export { PolicyGateAgent } from "./policy-gate";

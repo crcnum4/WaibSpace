@@ -21,19 +21,14 @@ export function ApprovalSurface({
   const data = spec.data as ApprovalSurfaceData;
 
   const handleApprove = () => {
-    onInteraction("approve", data.approvalId);
-    const approveAction = spec.actions.find(
-      (a) => a.actionType === "approve" || a.label.toLowerCase().includes("approve"),
-    );
-    if (approveAction) onAction(approveAction);
+    // Emit approval.response via the onInteraction callback
+    // The HomePage will detect the "approve" interaction on an approval surface
+    // and send an approval.response message
+    onInteraction("approve", data.approvalId, { approved: true });
   };
 
   const handleDeny = () => {
-    onInteraction("deny", data.approvalId);
-    const denyAction = spec.actions.find(
-      (a) => a.actionType === "deny" || a.label.toLowerCase().includes("deny"),
-    );
-    if (denyAction) onAction(denyAction);
+    onInteraction("deny", data.approvalId, { approved: false });
   };
 
   return (

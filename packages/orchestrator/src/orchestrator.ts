@@ -4,6 +4,7 @@ import { executeAgent } from "@waibspace/agents";
 import type { ModelProviderRegistry } from "@waibspace/model-provider";
 import type { MemoryStore } from "@waibspace/memory";
 import type { ConnectorRegistry } from "@waibspace/connectors";
+import type { PolicyEngine } from "@waibspace/policy";
 import { AgentRegistry } from "./agent-registry";
 import { buildExecutionPlan } from "./execution-planner";
 import { createPipelineTrace, logTrace } from "./trace";
@@ -13,6 +14,7 @@ export interface OrchestratorOptions {
   modelProvider?: ModelProviderRegistry;
   memoryStore?: MemoryStore;
   connectorRegistry?: ConnectorRegistry;
+  policyEngine?: PolicyEngine;
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -47,6 +49,9 @@ export class Orchestrator {
           ...(this.options?.connectorRegistry
             ? { connectorRegistry: this.options.connectorRegistry }
             : {}),
+          ...(this.options?.policyEngine
+            ? { policyEngine: this.options.policyEngine }
+            : {}),
         },
       };
 
@@ -72,22 +77,24 @@ export class Orchestrator {
 
     const endMs = Date.now();
 
-    // If any UI agent outputs exist, emit a surface.composed event
-    const uiOutputs = priorOutputs.filter((o) => o.category === "ui");
-    if (uiOutputs.length > 0) {
-      // Check if LayoutComposerAgent produced a ComposedLayout directly
-      let composedPayload: unknown;
-      const layoutOutput = uiOutputs.find((o) => {
-        const out = o.output as Record<string, unknown> | undefined;
-        return out && "surfaces" in out && "layout" in out && "traceId" in out;
-      });
+    // If LayoutComposerAgent produced a ComposedLayout, use that directly.
+    // Otherwise fall back to raw surface outputs.
+    const surfaceOutputs = priorOutputs.filter(
+      (o) => o.category === "ui" || o.category === "execution",
+    );
+    if (surfaceOutputs.length > 0) {
+      // Check if LayoutComposerAgent produced a ComposedLayout
+      const layoutOutput = surfaceOutputs.find(
+        (o) => o.agentId === "layout-composer" && o.output,
+      );
 
+      let composedPayload: unknown;
       if (layoutOutput) {
-        // Use the ComposedLayout directly from the layout composer
+        // LayoutComposerAgent output is already a ComposedLayout
         composedPayload = layoutOutput.output;
       } else {
-        // Fallback: wrap raw UI outputs
-        composedPayload = { surfaces: uiOutputs.map((o) => o.output) };
+        // Fallback: wrap raw outputs
+        composedPayload = { surfaces: surfaceOutputs.map((o) => o.output) };
       }
 
       const composedEvent = createEvent(
