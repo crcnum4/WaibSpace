@@ -33,4 +33,6 @@ export {
   CalendarSurfaceAgent,
   DiscoverySurfaceAgent,
   ApprovalSurfaceAgent,
+  LayoutComposerAgent,
+  extractSurfaces,
 } from "./ui";
