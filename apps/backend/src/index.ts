@@ -32,6 +32,7 @@ import {
   GmailConnector,
   GoogleCalendarConnector,
   WebFetchConnector,
+  MCPServerRegistry,
 } from "@waibspace/connectors";
 import { PolicyEngine, DEFAULT_POLICY_RULES } from "@waibspace/policy";
 import {
@@ -107,6 +108,33 @@ console.log(
 // ---------- 4. Policy Engine ----------
 const policyEngine = new PolicyEngine(DEFAULT_POLICY_RULES);
 console.log(`[backend] Policy engine initialized with ${policyEngine.getRules().length} rules`);
+
+// ---------- 4b. MCP Server Registry ----------
+const mcpRegistry = new MCPServerRegistry(policyEngine);
+const MCP_SERVERS_PATH = "./data/mcp-servers.json";
+await mcpRegistry.load(MCP_SERVERS_PATH);
+
+// Auto-connect enabled servers and register their connectors
+for (const server of mcpRegistry.getServers()) {
+  if (server.config.enabled !== false) {
+    try {
+      await mcpRegistry.connectServer(server.config.id);
+      const connector = mcpRegistry.getConnector(server.config.id);
+      if (connector) {
+        connectorRegistry.register(connector);
+      }
+      console.log(`[backend] MCP server "${server.config.name}" connected`);
+    } catch (err) {
+      console.warn(
+        `[backend] MCP server "${server.config.name}" failed to connect:`,
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
+}
+console.log(
+  `[backend] MCP registry: ${mcpRegistry.getServers().length} server(s), ${mcpRegistry.getAllTools().length} tool(s)`,
+);
 
 // ---------- 5. Agent Registry ----------
 const agentRegistry = new AgentRegistry();
@@ -218,7 +246,7 @@ bus.on("surface.composed", (event: WaibEvent) => {
 });
 
 // ---------- 12. Start HTTP/WebSocket server ----------
-const server = startServer({ eventBus: bus, orchestrator, memoryStore, scheduler });
+const server = startServer({ eventBus: bus, orchestrator, memoryStore, scheduler, mcpRegistry });
 
 const PORT = Number(process.env.PORT) || 3001;
 console.log(`[backend] WaibSpace backend started`);

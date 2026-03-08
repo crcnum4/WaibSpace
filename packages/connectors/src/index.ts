@@ -29,5 +29,5 @@ export {
   RateLimiter,
 } from "./web-fetch";
 export type { ExtractedContent } from "./web-fetch";
-export { MCPConnector } from "./mcp";
+export { MCPConnector, MCPServerRegistry } from "./mcp";
 export type { MCPServerConfig, MCPToolInfo } from "./mcp";
