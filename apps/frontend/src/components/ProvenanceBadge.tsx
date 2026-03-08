@@ -32,7 +32,7 @@ export function ProvenanceBadge({
 
   return (
     <div
-      className="provenance-badge"
+      className={`provenance-badge trust-${provenance.trustLevel}`}
       onClick={() => setExpanded(!expanded)}
       role="button"
       tabIndex={0}
