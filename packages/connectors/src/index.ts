@@ -29,3 +29,4 @@ export {
   RateLimiter,
 } from "./web-fetch";
 export type { ExtractedContent } from "./web-fetch";
+export { MCPConnector } from "./mcp";
