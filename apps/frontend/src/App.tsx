@@ -1,10 +1,6 @@
-import React from "react";
-import Layout from "./components/Layout";
+import { RouterProvider } from "react-router-dom";
+import { router } from "./router";
 
 export default function App() {
-  return (
-    <Layout>
-      <h1>WaibSpace</h1>
-    </Layout>
-  );
+  return <RouterProvider router={router} />;
 }
