@@ -17,12 +17,14 @@ export default function HomePage() {
   const [layout, setLayout] = useState<ComposedLayout | null>(null);
   const [agents, setAgents] = useState<AgentStatusType[]>([]);
   const [hasRequestedAmbient, setHasRequestedAmbient] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Request ambient state on initial connection
   useEffect(() => {
     if (status === "connected" && !hasRequestedAmbient) {
       send("user.message", { text: "show ambient state" });
       setHasRequestedAmbient(true);
+      setIsLoading(true);
     }
   }, [status, hasRequestedAmbient, send]);
 
@@ -32,6 +34,7 @@ export default function HomePage() {
     switch (lastMessage.type) {
       case "surface.update":
         setLayout(lastMessage.payload as ComposedLayout);
+        setIsLoading(false);
         break;
       case "status": {
         const statusPayload = lastMessage.payload as {
@@ -39,6 +42,14 @@ export default function HomePage() {
           agents: AgentStatusType[];
         };
         setAgents(statusPayload.agents);
+
+        // If any agents are running, we are still loading
+        const anyRunning = statusPayload.agents.some(
+          (a) => a.state === "running",
+        );
+        if (!anyRunning && statusPayload.agents.length > 0) {
+          // All agents done — loading will clear when surface.update arrives
+        }
         break;
       }
     }
@@ -92,6 +103,7 @@ export default function HomePage() {
   const handleSend = useCallback(
     (text: string) => {
       send("user.message", { text });
+      setIsLoading(true);
     },
     [send],
   );
@@ -115,11 +127,12 @@ export default function HomePage() {
       </div>
 
       <div className="home-content">
-        {hasSurfaces ? (
+        {hasSurfaces || isLoading ? (
           <SurfaceRenderer
             layout={layout}
             onAction={handleAction}
             onInteraction={handleInteraction}
+            isLoading={isLoading}
           />
         ) : (
           <WelcomeState onSuggest={handleSend} />
