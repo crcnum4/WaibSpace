@@ -1,1 +1,4 @@
-// packages/agents
+export { type Agent, type AgentInput, type AgentContext } from "./types";
+export { BaseAgent } from "./base-agent";
+export { executeAgent, type ExecutionOptions } from "./execution-harness";
+export { AGENT_CATEGORIES } from "./categories";
