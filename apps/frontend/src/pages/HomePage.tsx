@@ -11,7 +11,7 @@ import { ChatInput } from "../components/ChatInput";
 import { WelcomeState } from "../components/WelcomeState";
 import { ErrorSurface } from "../components/ErrorSurface";
 
-const WS_URL = `ws://${window.location.hostname}:${import.meta.env.VITE_WS_PORT || 3001}`;
+const WS_URL = `ws://${window.location.hostname}:${import.meta.env.VITE_WS_PORT || 3001}/ws`;
 
 export default function HomePage() {
   const { send, lastMessage, status } = useWebSocket(WS_URL);

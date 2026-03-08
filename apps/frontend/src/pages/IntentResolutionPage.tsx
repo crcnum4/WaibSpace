@@ -9,7 +9,7 @@ import { useWebSocket } from "../hooks/useWebSocket";
 import { SurfaceRenderer } from "../components/SurfaceRenderer";
 import { AgentStatus } from "../components/AgentStatus";
 
-const WS_URL = `ws://${window.location.hostname}:${import.meta.env.VITE_WS_PORT || 3001}`;
+const WS_URL = `ws://${window.location.hostname}:${import.meta.env.VITE_WS_PORT || 3001}/ws`;
 
 export default function IntentResolutionPage() {
   const location = useLocation();
