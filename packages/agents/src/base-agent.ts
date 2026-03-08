@@ -3,6 +3,11 @@ import type {
   AgentOutput,
   ProvenanceMetadata,
 } from "@waibspace/types";
+import type {
+  Message,
+  CompletionResponse,
+  ModelRoleConfig,
+} from "@waibspace/model-provider";
 import type { Agent, AgentInput, AgentContext } from "./types";
 
 export abstract class BaseAgent implements Agent {
@@ -50,6 +55,44 @@ export abstract class BaseAgent implements Agent {
       },
       timing: { startMs: 0, endMs: 0, durationMs: 0 },
     };
+  }
+
+  /**
+   * Send a completion request using the model provider configured for a given role.
+   * Requires `context.modelProvider` to be set.
+   */
+  protected async complete(
+    context: AgentContext,
+    role: keyof ModelRoleConfig,
+    messages: Message[],
+    system?: string,
+  ): Promise<CompletionResponse> {
+    if (!context.modelProvider)
+      throw new Error("No model provider in context");
+    const { provider, model } = context.modelProvider.getForRole(role);
+    return provider.complete({ model, messages, system });
+  }
+
+  /**
+   * Send a structured completion request that returns a typed response.
+   * Requires `context.modelProvider` to be set.
+   */
+  protected async completeStructured<T>(
+    context: AgentContext,
+    role: keyof ModelRoleConfig,
+    messages: Message[],
+    responseSchema: Record<string, unknown>,
+    system?: string,
+  ): Promise<T> {
+    if (!context.modelProvider)
+      throw new Error("No model provider in context");
+    const { provider, model } = context.modelProvider.getForRole(role);
+    return provider.completeStructured<T>({
+      model,
+      messages,
+      responseSchema,
+      system,
+    });
   }
 
   protected log(message: string, data?: unknown): void {
