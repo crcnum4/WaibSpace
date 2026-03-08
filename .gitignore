@@ -26,3 +26,11 @@ dist/
 
 # TypeScript build info
 *.tsbuildinfo
+
+# Claude Code
+.claude/
+
+# Non-Bun lockfiles
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
