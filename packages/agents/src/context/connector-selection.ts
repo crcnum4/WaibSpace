@@ -1,5 +1,6 @@
 import type { AgentOutput } from "@waibspace/types";
 import type { ConnectorRegistry } from "@waibspace/connectors";
+import type { MCPToolInfo } from "@waibspace/connectors";
 import { BaseAgent } from "../base-agent";
 import type { AgentInput, AgentContext } from "../types";
 import type { DataSourcePlan } from "./context-planner";
@@ -56,8 +57,27 @@ export class ConnectorSelectionAgent extends BaseAgent {
 
     for (const source of dataSourcePlan.dataSources) {
       const connector = registry.get(source.connectorId);
-      const available = connector !== undefined && connector.isConnected();
+      let available = connector !== undefined && connector.isConnected();
       const trustLevel = connector?.trustLevel ?? "untrusted";
+
+      // For MCP connectors, verify the requested tool is actually discovered
+      if (available && connector?.type === "mcp") {
+        const mcpConn = connector as unknown as {
+          getDiscoveredTools(): MCPToolInfo[];
+        };
+        if (typeof mcpConn.getDiscoveredTools === "function") {
+          const tools = mcpConn.getDiscoveredTools();
+          const toolExists = tools.some((t) => t.name === source.operation);
+          if (!toolExists) {
+            this.log("MCP tool not found on connector", {
+              connectorId: source.connectorId,
+              tool: source.operation,
+              availableTools: tools.map((t) => t.name),
+            });
+            available = false;
+          }
+        }
+      }
 
       if (!available) {
         unavailableConnectors.push(source.connectorId);
