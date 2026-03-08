@@ -6,4 +6,5 @@ export type {
   CalendarSurfaceData,
   DiscoverySurfaceData,
   ApprovalSurfaceData,
+  ConnectionGuideSurfaceData,
 } from "./surface-data";

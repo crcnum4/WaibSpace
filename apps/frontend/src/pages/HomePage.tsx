@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import type {
   ComposedLayout,
   AgentStatus as AgentStatusType,
@@ -15,6 +16,7 @@ const WS_URL = `ws://${window.location.hostname}:${import.meta.env.VITE_WS_PORT 
 
 export default function HomePage() {
   const { send, lastMessage, status } = useWebSocket(WS_URL);
+  const location = useLocation();
   const [layout, setLayout] = useState<ComposedLayout | null>(null);
   const [agents, setAgents] = useState<AgentStatusType[]>([]);
   const [hasRequestedAmbient, setHasRequestedAmbient] = useState(false);
@@ -29,6 +31,30 @@ export default function HomePage() {
       setIsLoading(true);
     }
   }, [status, hasRequestedAmbient, send]);
+
+  // Handle messages from the global input bar
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const text = (e as CustomEvent).detail as string;
+      if (text && status === "connected") {
+        send("user.message", { text });
+        setIsLoading(true);
+      }
+    };
+    window.addEventListener("waibspace:global-message", handler);
+    return () => window.removeEventListener("waibspace:global-message", handler);
+  }, [send, status]);
+
+  // Handle pending message from navigation (global bar on other pages)
+  useEffect(() => {
+    const state = location.state as { pendingMessage?: string } | null;
+    if (state?.pendingMessage && status === "connected") {
+      send("user.message", { text: state.pendingMessage });
+      setIsLoading(true);
+      // Clear the state so it doesn't re-send on re-render
+      window.history.replaceState({}, "");
+    }
+  }, [location.state, status, send]);
 
   useEffect(() => {
     if (!lastMessage) return;
@@ -163,7 +189,7 @@ export default function HomePage() {
       </div>
 
       <div className="home-chat">
-        <ChatInput onSend={handleSend} />
+        <ChatInput onSend={handleSend} placeholder="Ask WaibSpace anything..." />
       </div>
     </div>
   );

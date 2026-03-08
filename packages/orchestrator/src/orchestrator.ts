@@ -5,6 +5,7 @@ import type { ModelProviderRegistry } from "@waibspace/model-provider";
 import type { MemoryStore } from "@waibspace/memory";
 import type { ConnectorRegistry } from "@waibspace/connectors";
 import type { PolicyEngine } from "@waibspace/policy";
+import type { WaibDatabase } from "@waibspace/db";
 import { AgentRegistry } from "./agent-registry";
 import { buildExecutionPlan } from "./execution-planner";
 import { createPipelineTrace, logTrace } from "./trace";
@@ -15,9 +16,10 @@ export interface OrchestratorOptions {
   memoryStore?: MemoryStore;
   connectorRegistry?: ConnectorRegistry;
   policyEngine?: PolicyEngine;
+  db?: WaibDatabase;
 }
 
-const DEFAULT_TIMEOUT_MS = 10_000;
+const DEFAULT_TIMEOUT_MS = 30_000;
 
 export class Orchestrator {
   constructor(
@@ -26,11 +28,42 @@ export class Orchestrator {
     private options?: OrchestratorOptions,
   ) {}
 
+  private logToDb(
+    eventType: string,
+    source: string,
+    traceId: string,
+    payload: unknown,
+    level: "info" | "warn" | "error" = "info",
+  ): void {
+    try {
+      this.options?.db?.logEvent({
+        id: `${traceId}-${source}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        eventType,
+        source,
+        traceId,
+        payload,
+        level,
+        createdAt: Date.now(),
+      });
+    } catch {
+      // DB logging should never break the pipeline
+    }
+  }
+
   async processEvent(event: WaibEvent): Promise<void> {
     const startMs = Date.now();
     const plan = buildExecutionPlan(event.type, this.registry);
     const timeoutMs = this.options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     const traceId = event.traceId;
+
+    this.logToDb("pipeline.start", "orchestrator", traceId, {
+      eventType: event.type,
+      payload: event.payload,
+      phases: plan.phases.map((p) => ({
+        category: p.category,
+        agents: p.agents.map((a) => a.id),
+      })),
+    });
 
     let priorOutputs: AgentOutput[] = [];
     const phaseResults: Array<{
@@ -85,9 +118,26 @@ export class Orchestrator {
               error: errorMsg,
               phase: phase.category,
             });
+            this.logToDb("agent.error", agent.id, traceId, {
+              phase: phase.category,
+              error: errorMsg,
+              durationMs: result.value.timing?.durationMs,
+            }, "error");
             console.error(
               `[Orchestrator] [trace:${traceId}] Agent ${agent.id} returned error in phase "${phase.category}": ${errorMsg}`,
             );
+          } else {
+            // Log successful agent completion with output summary
+            // Include full output for context agents (planner, connector-selection, data-retrieval)
+            const isContextAgent = phase.category === "context";
+            this.logToDb("agent.complete", agent.id, traceId, {
+              phase: phase.category,
+              confidence: result.value.confidence,
+              durationMs: result.value.timing?.durationMs,
+              hasOutput: result.value.output != null,
+              outputKeys: output && typeof output === "object" ? Object.keys(output) : [],
+              ...(isContextAgent ? { output: result.value.output } : {}),
+            }, "info");
           }
         } else {
           // Agent threw an unhandled rejection (should be rare since executeAgent catches)
@@ -100,6 +150,10 @@ export class Orchestrator {
             error: errorMsg,
             phase: phase.category,
           });
+          this.logToDb("agent.crash", agent.id, traceId, {
+            phase: phase.category,
+            error: errorMsg,
+          }, "error");
           console.error(
             `[Orchestrator] [trace:${traceId}] Agent ${agent.id} crashed in phase "${phase.category}": ${errorMsg}`,
           );
@@ -192,6 +246,14 @@ export class Orchestrator {
       phaseResults,
     );
     logTrace(trace);
+
+    this.logToDb("pipeline.complete", "orchestrator", traceId, {
+      eventType: event.type,
+      durationMs: endMs - startMs,
+      totalErrors: errors.length,
+      errors: errors.length > 0 ? errors : undefined,
+      surfaceCount: surfaceOutputs.length,
+    }, errors.length > 0 ? "warn" : "info");
 
     if (errors.length > 0) {
       console.warn(

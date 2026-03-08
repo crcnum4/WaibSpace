@@ -31,3 +31,5 @@ export {
 export type { ExtractedContent } from "./web-fetch";
 export { MCPConnector, MCPServerRegistry } from "./mcp";
 export type { MCPServerConfig, MCPToolInfo } from "./mcp";
+export { MCP_SERVER_CATALOG, findTemplate, searchCatalog } from "./mcp";
+export type { MCPServerTemplate, MCPCredentialSpec } from "./mcp";

@@ -2,7 +2,10 @@ import type { EventBus } from "@waibspace/event-bus";
 import type { Orchestrator } from "@waibspace/orchestrator";
 import type { BackgroundTaskScheduler } from "./background";
 import type { MemoryStore } from "@waibspace/memory";
-import type { MCPServerRegistry } from "@waibspace/connectors";
+import type { WaibDatabase } from "@waibspace/db";
+import type { MCPServerRegistry, MCPServerConfig } from "@waibspace/connectors";
+import { findTemplate, MCP_SERVER_CATALOG } from "@waibspace/connectors";
+import type { ConnectorRegistry } from "@waibspace/connectors";
 import {
   createWebSocketHandlers,
   type WebSocketData,
@@ -29,6 +32,8 @@ export interface ServerDeps {
   scheduler?: BackgroundTaskScheduler;
   memoryStore?: MemoryStore;
   mcpRegistry?: MCPServerRegistry;
+  connectorRegistry?: ConnectorRegistry;
+  db?: WaibDatabase;
 }
 
 const startTime = Date.now();
@@ -185,6 +190,122 @@ export function startServer(deps: ServerDeps) {
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           return jsonResponse({ error: message }, 404);
+        }
+      }
+
+      // GET /api/logs?limit=50&level=error — query event logs
+      if (url.pathname === "/api/logs" && req.method === "GET") {
+        if (!deps.db) {
+          return jsonResponse({ error: "Database not available" }, 503);
+        }
+        const limit = Number(url.searchParams.get("limit") ?? "50");
+        const level = url.searchParams.get("level") ?? undefined;
+        const traceId = url.searchParams.get("trace") ?? undefined;
+
+        let rows;
+        if (traceId) {
+          rows = deps.db.getEventsByTrace(traceId);
+        } else {
+          rows = deps.db.getRecentEvents(limit, level);
+        }
+
+        return jsonResponse(
+          rows.map((r) => ({
+            ...r,
+            payload: JSON.parse(r.payload),
+          })),
+        );
+      }
+
+      // GET /api/mcp/catalog — list available MCP server templates
+      if (url.pathname === "/api/mcp/catalog" && req.method === "GET") {
+        return jsonResponse(
+          MCP_SERVER_CATALOG.map((t) => ({
+            id: t.id,
+            name: t.name,
+            description: t.description,
+            icon: t.icon,
+            categories: t.categories,
+            credentialCount: t.requiredCredentials.length,
+          })),
+        );
+      }
+
+      // POST /api/mcp/setup — set up an MCP server from catalog template
+      if (url.pathname === "/api/mcp/setup" && req.method === "POST") {
+        if (!deps.mcpRegistry) {
+          return jsonResponse({ error: "MCP registry not available" }, 503);
+        }
+        try {
+          const body = (await req.json()) as {
+            templateId: string;
+            credentials: Record<string, string>;
+          };
+          const { templateId, credentials } = body;
+
+          // Look up template
+          const template = findTemplate(templateId);
+          if (!template) {
+            return jsonResponse({ error: `Unknown service: ${templateId}` }, 400);
+          }
+
+          // Validate required credentials
+          for (const cred of template.requiredCredentials) {
+            if (!credentials[cred.key]) {
+              return jsonResponse(
+                { error: `Missing required credential: ${cred.label}` },
+                400,
+              );
+            }
+          }
+
+          // Build MCPServerConfig from template
+          const config: MCPServerConfig = {
+            id: `catalog-${template.id}`,
+            name: template.name,
+            transport: "stdio",
+            command: template.command,
+            args: [...template.args],
+            env: { ...(template.defaultEnv ?? {}), ...credentials },
+            trustLevel: template.trustLevel,
+            enabled: true,
+          };
+
+          // Remove existing server if reconnecting
+          try {
+            await deps.mcpRegistry.removeServer(config.id);
+          } catch {
+            // Not found — that's fine
+          }
+
+          // Add, connect, and register connector
+          deps.mcpRegistry.addServer(config);
+          await deps.mcpRegistry.connectServer(config.id);
+
+          if (deps.connectorRegistry) {
+            const connector = deps.mcpRegistry.getConnector(config.id);
+            if (connector) {
+              deps.connectorRegistry.register(connector);
+            }
+          }
+
+          // Persist
+          await deps.mcpRegistry.save();
+
+          // Return discovered tools
+          const tools = deps.mcpRegistry.getServerTools(config.id);
+          return jsonResponse({
+            ok: true,
+            id: config.id,
+            name: template.name,
+            tools: tools.map((t) => ({
+              name: t.name,
+              description: t.description,
+            })),
+          });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          return jsonResponse({ error: message }, 500);
         }
       }
 

@@ -94,9 +94,10 @@ export class DiscoverySurfaceAgent extends BaseAgent {
     const intentClassification = this.findIntentClassification(input);
 
     if (!retrievalOutput) {
-      throw new Error(
-        "DiscoverySurfaceAgent requires DataRetrievalOutput from prior outputs",
-      );
+      return this.createOutput(null, 0, {
+        dataState: "raw",
+        timestamp: startMs,
+      });
     }
 
     const webData = this.extractWebData(retrievalOutput);

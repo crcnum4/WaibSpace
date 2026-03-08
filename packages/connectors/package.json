@@ -5,6 +5,7 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "dependencies": {
+    "@waibspace/db": "workspace:*",
     "@waibspace/policy": "workspace:*",
     "@waibspace/types": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.12.1",

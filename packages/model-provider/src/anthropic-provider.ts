@@ -83,7 +83,7 @@ export class AnthropicProvider implements ModelProvider {
   async completeStructured<T>(
     request: StructuredCompletionRequest,
   ): Promise<T> {
-    const schemaInstruction = `\n\nRespond ONLY with valid JSON matching this schema:\n${JSON.stringify(request.responseSchema, null, 2)}`;
+    const schemaInstruction = `\n\nRespond ONLY with valid JSON matching this schema. Do NOT wrap in markdown fences. Output raw JSON only:\n${JSON.stringify(request.responseSchema, null, 2)}`;
 
     const systemPrompt = (request.system ?? "") + schemaInstruction;
 
@@ -92,6 +92,37 @@ export class AnthropicProvider implements ModelProvider {
       system: systemPrompt,
     });
 
-    return JSON.parse(response.content) as T;
+    return this.parseStructuredResponse<T>(response.content);
+  }
+
+  private parseStructuredResponse<T>(content: string): T {
+    // Try direct parse first
+    try {
+      return JSON.parse(content) as T;
+    } catch {
+      // Strip markdown fences if present
+      const fenceMatch = content.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+      if (fenceMatch) {
+        try {
+          return JSON.parse(fenceMatch[1]) as T;
+        } catch {
+          // fall through
+        }
+      }
+
+      // Try to find first { ... } or [ ... ] block
+      const jsonMatch = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+      if (jsonMatch) {
+        try {
+          return JSON.parse(jsonMatch[1]) as T;
+        } catch {
+          // fall through
+        }
+      }
+
+      throw new Error(
+        `Failed to parse structured response as JSON. Raw content: ${content.slice(0, 200)}`,
+      );
+    }
   }
 }

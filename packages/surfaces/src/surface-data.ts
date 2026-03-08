@@ -50,3 +50,30 @@ export interface ApprovalSurfaceData {
   context: unknown;
   consequences: string[];
 }
+
+export interface ConnectionGuideSurfaceData {
+  step: "browse" | "credentials" | "connecting" | "success" | "error";
+  message: string;
+  availableServices: Array<{
+    id: string;
+    name: string;
+    description: string;
+    icon: string;
+    categories: string[];
+  }>;
+  selectedService?: {
+    id: string;
+    name: string;
+    icon: string;
+    description: string;
+  };
+  credentialFields?: Array<{
+    key: string;
+    label: string;
+    helpText: string;
+    helpUrl?: string;
+    sensitive: boolean;
+  }>;
+  discoveredTools?: Array<{ name: string; description?: string }>;
+  errorDetail?: string;
+}

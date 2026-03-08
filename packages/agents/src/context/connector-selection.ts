@@ -33,9 +33,11 @@ export class ConnectorSelectionAgent extends BaseAgent {
     const startMs = Date.now();
 
     const dataSourcePlan = this.findDataSourcePlan(input);
-    if (!dataSourcePlan) {
-      throw new Error(
-        "ConnectorSelectionAgent requires DataSourcePlan from prior outputs",
+    if (!dataSourcePlan || dataSourcePlan.dataSources.length === 0) {
+      return this.createOutput(
+        { retrievals: [], unavailableConnectors: [] },
+        0,
+        { dataState: "raw", timestamp: startMs },
       );
     }
 

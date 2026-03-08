@@ -4,6 +4,7 @@ import { CalendarSurface } from "./CalendarSurface";
 import { DiscoverySurface } from "./DiscoverySurface";
 import { ApprovalSurface } from "./ApprovalSurface";
 import { GenericSurface } from "./GenericSurface";
+import { ConnectionGuideSurface } from "./ConnectionGuideSurface";
 
 export interface SurfaceProps {
   spec: SurfaceSpec;
@@ -20,4 +21,5 @@ export const surfaceComponents: Record<
   discovery: DiscoverySurface,
   approval: ApprovalSurface,
   generic: GenericSurface,
+  "connection-guide": ConnectionGuideSurface,
 };

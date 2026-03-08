@@ -78,21 +78,33 @@ export class InboxSurfaceAgent extends BaseAgent {
 
     const retrievalOutput = this.findDataRetrieval(input);
     if (!retrievalOutput) {
-      throw new Error(
-        "InboxSurfaceAgent requires DataRetrievalOutput from prior outputs",
-      );
+      return this.createOutput(null, 0, {
+        dataState: "raw",
+        timestamp: startMs,
+      });
     }
 
     const gmailData = this.extractGmailData(retrievalOutput);
     const calendarData = this.extractCalendarData(input);
 
+    // If no email data found, skip LLM call
+    if (!gmailData || (Array.isArray(gmailData) && gmailData.length === 0)) {
+      return this.createOutput(null, 0, {
+        dataState: "raw",
+        timestamp: startMs,
+      });
+    }
+
+    // Truncate email data to avoid hitting token limits
+    const truncatedData = this.truncateEmailData(gmailData);
+
     this.log("Building inbox surface", {
-      emailCount: Array.isArray(gmailData) ? gmailData.length : 0,
+      emailDataSize: JSON.stringify(truncatedData).length,
       hasCalendarContext: calendarData !== undefined,
     });
 
     const userMessage = JSON.stringify({
-      emails: gmailData,
+      emails: truncatedData,
       calendarContext: calendarData,
     });
 
@@ -155,12 +167,85 @@ export class InboxSurfaceAgent extends BaseAgent {
   }
 
   private extractGmailData(retrieval: DataRetrievalOutput): unknown {
-    const gmailResult = retrieval.results.find(
+    // Find email-related results from any connector (gmail, catalog-gmail, MCP mail, etc.)
+    const emailResults = retrieval.results.filter(
       (r) =>
         r.status === "fulfilled" &&
-        (r.connectorId === "gmail" || r.operation.includes("email")),
+        (r.connectorId.includes("gmail") ||
+          r.connectorId.includes("mail") ||
+          r.operation.includes("email") ||
+          r.operation.includes("message") ||
+          r.operation.includes("inbox")),
     );
-    return gmailResult?.data ?? [];
+
+    if (emailResults.length === 0) return [];
+
+    // MCP tools return [{type: "text", text: "..."}] — extract and parse the text content
+    const allData: unknown[] = [];
+    for (const result of emailResults) {
+      const parsed = this.parseMCPContent(result.data);
+      if (parsed !== undefined) {
+        allData.push(parsed);
+      } else {
+        allData.push(result.data);
+      }
+    }
+    return allData;
+  }
+
+  /**
+   * Parse MCP tool response format: [{type: "text", text: "...json..."}]
+   */
+  private parseMCPContent(data: unknown): unknown | undefined {
+    if (!Array.isArray(data)) return undefined;
+    const textBlock = data.find(
+      (item: unknown) =>
+        typeof item === "object" &&
+        item !== null &&
+        (item as Record<string, unknown>).type === "text",
+    );
+    if (!textBlock) return undefined;
+    const text = (textBlock as Record<string, unknown>).text;
+    if (typeof text !== "string") return undefined;
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text;
+    }
+  }
+
+  /**
+   * Truncate email data to keep the LLM prompt under token limits.
+   * Keeps at most 20 emails, truncates body text to 500 chars each.
+   */
+  private truncateEmailData(data: unknown): unknown {
+    const MAX_EMAILS = 20;
+    const MAX_BODY_LENGTH = 500;
+    const MAX_TOTAL_LENGTH = 50_000; // ~12k tokens
+
+    if (Array.isArray(data)) {
+      const truncated = data.slice(0, MAX_EMAILS).map((item: unknown) => {
+        if (typeof item === "object" && item !== null) {
+          const email = { ...(item as Record<string, unknown>) };
+          // Truncate common body fields
+          for (const key of ["text", "body", "snippet", "content", "html"]) {
+            if (typeof email[key] === "string" && (email[key] as string).length > MAX_BODY_LENGTH) {
+              email[key] = (email[key] as string).slice(0, MAX_BODY_LENGTH) + "...";
+            }
+          }
+          return email;
+        }
+        return item;
+      });
+      return truncated;
+    }
+
+    // If it's a single large string, truncate it
+    const str = JSON.stringify(data);
+    if (str.length > MAX_TOTAL_LENGTH) {
+      return JSON.parse(str.slice(0, MAX_TOTAL_LENGTH));
+    }
+    return data;
   }
 
   private extractCalendarData(input: AgentInput): unknown | undefined {

@@ -38,3 +38,4 @@ apps/backend/data/*
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+apps/backend/.env

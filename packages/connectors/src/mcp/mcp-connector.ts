@@ -123,7 +123,10 @@ export class MCPConnector extends BaseConnector {
       return new StdioClientTransport({
         command: this.serverConfig.command,
         args: this.serverConfig.args,
-        env: this.serverConfig.env,
+        env: {
+          ...process.env,
+          ...(this.serverConfig.env ?? {}),
+        } as Record<string, string>,
       });
     }
 
