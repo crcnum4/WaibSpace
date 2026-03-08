@@ -29,6 +29,7 @@
       "name": "@waibspace/frontend",
       "version": "0.0.1",
       "dependencies": {
+        "@waibspace/surfaces": "workspace:*",
         "@waibspace/types": "workspace:*",
         "@waibspace/ui-renderer-contract": "workspace:*",
         "react": "^19.2.4",
@@ -49,7 +50,9 @@
         "@waibspace/connectors": "workspace:*",
         "@waibspace/event-bus": "workspace:*",
         "@waibspace/model-provider": "workspace:*",
+        "@waibspace/surfaces": "workspace:*",
         "@waibspace/types": "workspace:*",
+        "@waibspace/ui-renderer-contract": "workspace:*",
       },
     },
     "packages/connectors": {
