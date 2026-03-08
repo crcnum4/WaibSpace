@@ -1,12 +1,14 @@
 import type { WaibEvent, AgentOutput, AgentCategory } from "@waibspace/types";
 import { EventBus, createEvent } from "@waibspace/event-bus";
 import { executeAgent } from "@waibspace/agents";
+import type { ModelProviderRegistry } from "@waibspace/model-provider";
 import { AgentRegistry } from "./agent-registry";
 import { buildExecutionPlan } from "./execution-planner";
 import { createPipelineTrace, logTrace } from "./trace";
 
 export interface OrchestratorOptions {
   timeoutMs?: number;
+  modelProvider?: ModelProviderRegistry;
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -31,7 +33,10 @@ export class Orchestrator {
 
     for (const phase of plan.phases) {
       const input = { event, priorOutputs };
-      const context = { traceId: event.traceId };
+      const context = {
+        traceId: event.traceId,
+        modelProvider: this.options?.modelProvider,
+      };
 
       // Execute all agents in this phase in parallel
       const results = await Promise.allSettled(
