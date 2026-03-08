@@ -1,0 +1,22 @@
+{
+  "name": "@waibspace/backend",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "start": "bun dist/index.js"
+  },
+  "dependencies": {
+    "@waibspace/types": "workspace:*",
+    "@waibspace/event-bus": "workspace:*",
+    "@waibspace/orchestrator": "workspace:*",
+    "@waibspace/agents": "workspace:*",
+    "@waibspace/connectors": "workspace:*",
+    "@waibspace/policy": "workspace:*",
+    "@waibspace/memory": "workspace:*",
+    "@waibspace/surfaces": "workspace:*",
+    "@waibspace/model-provider": "workspace:*"
+  }
+}

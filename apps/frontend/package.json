@@ -1,0 +1,14 @@
+{
+  "name": "@waibspace/frontend",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "bunx --bun vite",
+    "build": "bunx --bun vite build",
+    "preview": "bunx --bun vite preview"
+  },
+  "dependencies": {
+    "@waibspace/types": "workspace:*",
+    "@waibspace/ui-renderer-contract": "workspace:*"
+  }
+}
