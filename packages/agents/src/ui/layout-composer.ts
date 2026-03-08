@@ -27,8 +27,8 @@ export function extractSurfaces(outputs: AgentOutput[]): SurfaceSpec[] {
       continue;
     }
 
-    // Check nested `surface` or `spec` fields
-    for (const key of ["surface", "spec"] as const) {
+    // Check nested `surface`, `spec`, or `surfaceSpec` fields
+    for (const key of ["surface", "spec", "surfaceSpec"] as const) {
       const nested = value[key];
       if (nested && typeof nested === "object" && isSurfaceSpec(nested as Record<string, unknown>)) {
         surfaces.push(nested as unknown as SurfaceSpec);

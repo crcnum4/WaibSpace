@@ -200,13 +200,18 @@ export class DiscoverySurfaceAgent extends BaseAgent {
   }
 
   private extractWebData(retrieval: DataRetrievalOutput): unknown {
-    const webResult = retrieval.results.find(
+    const webResults = retrieval.results.filter(
       (r) =>
         r.status === "fulfilled" &&
         (r.connectorId === "web" ||
+          r.connectorId === "web-fetch" ||
           r.operation.includes("search") ||
-          r.operation.includes("web")),
+          r.operation.includes("web") ||
+          r.operation.includes("fetch")),
     );
-    return webResult?.data ?? [];
+    if (webResults.length === 0) return [];
+    // Return all web data if multiple results, or the single result's data
+    if (webResults.length === 1) return webResults[0].data;
+    return webResults.map((r) => r.data);
   }
 }

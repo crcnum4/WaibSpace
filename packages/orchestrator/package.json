@@ -8,6 +8,7 @@
     "@waibspace/types": "workspace:*",
     "@waibspace/event-bus": "workspace:*",
     "@waibspace/agents": "workspace:*",
+    "@waibspace/connectors": "workspace:*",
     "@waibspace/policy": "workspace:*",
     "@waibspace/memory": "workspace:*"
   },
