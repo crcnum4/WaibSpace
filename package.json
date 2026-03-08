@@ -1,0 +1,13 @@
+{
+  "name": "waibspace",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev:frontend": "bun --filter @waibspace/frontend dev",
+    "dev:backend": "bun --filter @waibspace/backend dev",
+    "build": "bun --filter '*' build",
+    "typecheck": "bun --filter '*' typecheck"
+  }
+}

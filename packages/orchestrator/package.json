@@ -1,0 +1,12 @@
+{
+  "name": "@waibspace/orchestrator",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@waibspace/types": "workspace:*",
+    "@waibspace/event-bus": "workspace:*",
+    "@waibspace/policy": "workspace:*"
+  }
+}
