@@ -107,7 +107,7 @@ bus.on("surface.composed", (event: WaibEvent) => {
 });
 
 // ---------- 10. Start HTTP/WebSocket server ----------
-const server = startServer({ eventBus: bus, orchestrator, memoryStore });
+const server = startServer({ eventBus: bus, orchestrator, memoryStore, scheduler });
 
 const PORT = Number(process.env.PORT) || 3001;
 console.log(`[backend] WaibSpace backend started`);

@@ -6,6 +6,7 @@ import CalendarPage from "../pages/CalendarPage";
 import SettingsPage from "../pages/SettingsPage";
 import ApprovalsPage from "../pages/ApprovalsPage";
 import IntentResolutionPage from "../pages/IntentResolutionPage";
+import TasksPage from "../pages/TasksPage";
 
 // Known routes
 const knownRoutes = [
@@ -14,6 +15,7 @@ const knownRoutes = [
   { path: "calendar", element: <CalendarPage /> },
   { path: "settings", element: <SettingsPage /> },
   { path: "approvals", element: <ApprovalsPage /> },
+  { path: "tasks", element: <TasksPage /> },
 ];
 
 // Catch-all: unknown paths become intent queries
