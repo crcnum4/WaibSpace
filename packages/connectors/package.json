@@ -8,7 +8,7 @@
     "@waibspace/policy": "workspace:*",
     "@waibspace/types": "workspace:*",
     "google-auth-library": "^9.15.1",
-    "googleapis": "^144.0.0"
+    "googleapis": "^171.4.0"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
