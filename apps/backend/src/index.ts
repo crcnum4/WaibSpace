@@ -12,6 +12,8 @@ import {
   ModelProviderRegistry,
   AnthropicProvider,
 } from "@waibspace/model-provider";
+import { MemoryStore, MemoryUpdatePipeline } from "@waibspace/memory";
+import { BackgroundTaskScheduler, MVP_BACKGROUND_TASKS } from "./background";
 import { startServer } from "./server";
 import { broadcast } from "./ws";
 
@@ -33,12 +35,32 @@ console.log(
   `[backend] Registered ${agentRegistry.getAll().length} agents: ${agentRegistry.getAll().map((a) => a.id).join(", ")}`,
 );
 
-// ---------- 4. Orchestrator ----------
+// ---------- 4. Memory Store ----------
+const memoryStore = new MemoryStore("./data/memory.json", bus);
+await memoryStore.load();
+memoryStore.startAutoSave();
+
+// ---------- 5. Orchestrator ----------
 const orchestrator = new Orchestrator(bus, agentRegistry, {
   modelProvider: modelRegistry,
+  memoryStore,
 });
 
-// ---------- 5. Route user events to orchestrator ----------
+// ---------- 6. Memory Update Pipeline ----------
+const memoryPipeline = new MemoryUpdatePipeline(memoryStore, bus);
+memoryPipeline.start();
+
+// ---------- 7. Background Task Scheduler ----------
+const scheduler = new BackgroundTaskScheduler(bus, orchestrator, memoryStore);
+for (const task of MVP_BACKGROUND_TASKS) {
+  scheduler.register(task);
+}
+scheduler.start();
+console.log(
+  `[backend] Registered ${MVP_BACKGROUND_TASKS.length} background tasks: ${MVP_BACKGROUND_TASKS.map((t) => t.id).join(", ")}`,
+);
+
+// ---------- 8. Route user events to orchestrator ----------
 const USER_EVENT_PATTERNS = [
   "user.*",
   "policy.approval.*",
@@ -72,7 +94,7 @@ for (const pattern of USER_EVENT_PATTERNS) {
   });
 }
 
-// ---------- 6. Broadcast composed surfaces to WebSocket clients ----------
+// ---------- 9. Broadcast composed surfaces to WebSocket clients ----------
 bus.on("surface.composed", (event: WaibEvent) => {
   const message: ServerMessage = {
     type: "surface.update",
@@ -84,7 +106,7 @@ bus.on("surface.composed", (event: WaibEvent) => {
   broadcast(message);
 });
 
-// ---------- 7. Start HTTP/WebSocket server ----------
+// ---------- 10. Start HTTP/WebSocket server ----------
 const server = startServer({ eventBus: bus, orchestrator });
 
 const PORT = Number(process.env.PORT) || 3001;

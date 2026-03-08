@@ -2,6 +2,7 @@ import type { WaibEvent, AgentOutput, AgentCategory } from "@waibspace/types";
 import { EventBus, createEvent } from "@waibspace/event-bus";
 import { executeAgent } from "@waibspace/agents";
 import type { ModelProviderRegistry } from "@waibspace/model-provider";
+import type { MemoryStore } from "@waibspace/memory";
 import { AgentRegistry } from "./agent-registry";
 import { buildExecutionPlan } from "./execution-planner";
 import { createPipelineTrace, logTrace } from "./trace";
@@ -9,6 +10,7 @@ import { createPipelineTrace, logTrace } from "./trace";
 export interface OrchestratorOptions {
   timeoutMs?: number;
   modelProvider?: ModelProviderRegistry;
+  memoryStore?: MemoryStore;
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -36,6 +38,11 @@ export class Orchestrator {
       const context = {
         traceId: event.traceId,
         modelProvider: this.options?.modelProvider,
+        config: {
+          ...(this.options?.memoryStore
+            ? { memoryStore: this.options.memoryStore }
+            : {}),
+        },
       };
 
       // Execute all agents in this phase in parallel
