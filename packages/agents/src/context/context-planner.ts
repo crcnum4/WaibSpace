@@ -1,4 +1,5 @@
 import type { AgentOutput } from "@waibspace/types";
+import type { ConnectorRegistry, MCPToolInfo } from "@waibspace/connectors";
 import { BaseAgent } from "../base-agent";
 import type { AgentInput, AgentContext } from "../types";
 import type { IntentClassification } from "../reasoning/intent-agent";
@@ -14,7 +15,7 @@ export interface DataSourcePlan {
   reasoning: string;
 }
 
-const SYSTEM_PROMPT = `You are a context planning agent for WaibSpace, an AI-powered personal assistant.
+const BASE_SYSTEM_PROMPT = `You are a context planning agent for WaibSpace, an AI-powered personal assistant.
 
 Given an intent classification, determine which data sources need to be queried to fulfill the user's request.
 
@@ -32,7 +33,9 @@ Available connectors and their operations:
 
 - **web-fetch**:
   - fetch-url: Fetch content from a URL. Params: url (string)
-  - search-site: Search a website. Params: query (string), site (string)
+  - search-site: Search a website. Params: query (string), site (string)`;
+
+const SYSTEM_PROMPT_SUFFIX = `
 
 For each data source needed, specify:
 - connectorId: which connector to use
@@ -93,6 +96,10 @@ export class ContextPlannerAgent extends BaseAgent {
       category: intentClassification.intentCategory,
     });
 
+    // Build system prompt with available MCP tools
+    const mcpToolsSection = this.buildMCPToolsPromptSection(context);
+    const systemPrompt = BASE_SYSTEM_PROMPT + mcpToolsSection + SYSTEM_PROMPT_SUFFIX;
+
     const userMessage = [
       `Intent: ${intentClassification.primaryIntent}`,
       `Category: ${intentClassification.intentCategory}`,
@@ -106,7 +113,7 @@ export class ContextPlannerAgent extends BaseAgent {
       "reasoning",
       [{ role: "user", content: userMessage }],
       DATA_SOURCE_PLAN_SCHEMA,
-      SYSTEM_PROMPT,
+      systemPrompt,
     );
 
     const endMs = Date.now();
@@ -137,5 +144,60 @@ export class ContextPlannerAgent extends BaseAgent {
       }
     }
     return undefined;
+  }
+
+  /**
+   * Build a prompt section describing available MCP tools by querying
+   * the ConnectorRegistry for MCP-type connectors.
+   */
+  private buildMCPToolsPromptSection(context: AgentContext): string {
+    const registry = context.config?.["connectorRegistry"] as
+      | ConnectorRegistry
+      | undefined;
+    if (!registry) {
+      return "";
+    }
+
+    const mcpConnectors = registry.getByType("mcp");
+    if (mcpConnectors.length === 0) {
+      return "";
+    }
+
+    const sections: string[] = [];
+    for (const connector of mcpConnectors) {
+      const mcpConn = connector as unknown as {
+        getDiscoveredTools(): MCPToolInfo[];
+      };
+      if (typeof mcpConn.getDiscoveredTools !== "function") {
+        continue;
+      }
+
+      const tools = mcpConn.getDiscoveredTools();
+      if (tools.length === 0) {
+        continue;
+      }
+
+      const toolLines = tools.map((tool) => {
+        const desc = tool.description ? `: ${tool.description}` : "";
+        const schema = tool.inputSchema
+          ? `. Params: ${JSON.stringify(tool.inputSchema)}`
+          : "";
+        return `  - ${tool.name}${desc}${schema}`;
+      });
+
+      sections.push(
+        `\n- **${connector.id}** (MCP):\n${toolLines.join("\n")}`,
+      );
+    }
+
+    if (sections.length === 0) {
+      return "";
+    }
+
+    this.log("Including MCP tools in planning prompt", {
+      mcpConnectors: sections.length,
+    });
+
+    return sections.join("");
   }
 }
