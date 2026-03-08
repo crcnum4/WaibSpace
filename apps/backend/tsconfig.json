@@ -14,6 +14,7 @@
     { "path": "../../packages/policy" },
     { "path": "../../packages/memory" },
     { "path": "../../packages/surfaces" },
-    { "path": "../../packages/model-provider" }
+    { "path": "../../packages/model-provider" },
+    { "path": "../../packages/ui-renderer-contract" }
   ]
 }

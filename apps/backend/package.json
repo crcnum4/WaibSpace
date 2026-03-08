@@ -18,6 +18,7 @@
     "@waibspace/policy": "workspace:*",
     "@waibspace/memory": "workspace:*",
     "@waibspace/surfaces": "workspace:*",
-    "@waibspace/model-provider": "workspace:*"
+    "@waibspace/model-provider": "workspace:*",
+    "@waibspace/ui-renderer-contract": "workspace:*"
   }
 }
