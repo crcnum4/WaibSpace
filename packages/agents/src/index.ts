@@ -13,6 +13,8 @@ export {
   type IntentClassification,
   ConfidenceScorerAgent,
   type ConfidenceAdjustment,
+  InteractionSemanticsAgent,
+  type InteractionInterpretation,
 } from "./reasoning";
 export {
   ProvenanceAnnotatorAgent,

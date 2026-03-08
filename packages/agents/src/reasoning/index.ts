@@ -3,3 +3,7 @@ export {
   ConfidenceScorerAgent,
   type ConfidenceAdjustment,
 } from "./confidence-scorer";
+export {
+  InteractionSemanticsAgent,
+  type InteractionInterpretation,
+} from "./interaction-semantics";
