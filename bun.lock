@@ -21,6 +21,7 @@
         "@waibspace/policy": "workspace:*",
         "@waibspace/surfaces": "workspace:*",
         "@waibspace/types": "workspace:*",
+        "@waibspace/ui-renderer-contract": "workspace:*",
       },
     },
     "apps/frontend": {
