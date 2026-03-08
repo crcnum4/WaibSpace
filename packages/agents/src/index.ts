@@ -20,3 +20,11 @@ export {
   type ProvenanceAnnotation,
   type ProvenanceAnnotationResult,
 } from "./safety";
+export {
+  ContextPlannerAgent,
+  type DataSourcePlan,
+  ConnectorSelectionAgent,
+  type FinalizedPlan,
+  DataRetrievalAgent,
+  type DataRetrievalOutput,
+} from "./context";
