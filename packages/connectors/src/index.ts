@@ -30,3 +30,4 @@ export {
 } from "./web-fetch";
 export type { ExtractedContent } from "./web-fetch";
 export { MCPConnector } from "./mcp";
+export type { MCPServerConfig, MCPToolInfo } from "./mcp";
