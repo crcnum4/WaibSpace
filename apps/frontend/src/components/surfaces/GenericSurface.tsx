@@ -1,10 +1,14 @@
 import type { SurfaceProps } from "./registry";
+import { ProvenanceBadge } from "../ProvenanceBadge";
 
 export function GenericSurface({ spec, onAction }: SurfaceProps) {
   return (
     <div className="surface generic-surface">
       <div className="surface-header">
-        <h3>{spec.title}</h3>
+        <div className="surface-header-top">
+          <h3>{spec.title}</h3>
+          <ProvenanceBadge provenance={spec.provenance} />
+        </div>
         {spec.summary && <p className="surface-summary">{spec.summary}</p>}
       </div>
       <div className="surface-content">
