@@ -4,6 +4,8 @@ import type { SurfaceAction } from "@waibspace/types";
 import { surfaceComponents } from "./surfaces/registry";
 import { GenericSurface } from "./surfaces/GenericSurface";
 import { SkeletonSurface } from "./surfaces/SkeletonSurface";
+import { ErrorSurface } from "./ErrorSurface";
+import { StaleIndicator } from "./StaleIndicator";
 
 interface SurfaceRendererProps {
   layout: ComposedLayout | null;
@@ -69,11 +71,28 @@ export function SurfaceRenderer({
   }
 
   if (!layout || layout.surfaces.length === 0) {
+    // If there are errors but no surfaces, show the error surface
+    if (layout?.errors && layout.errors.length > 0) {
+      return (
+        <div className="surface-grid">
+          <div className="surface-cell full">
+            <ErrorSurface errors={layout.errors} />
+          </div>
+        </div>
+      );
+    }
     return <div className="surface-empty">No surfaces to display</div>;
   }
 
+  const hasErrors = (layout.errors?.length ?? 0) > 0;
+
   return (
     <div className="surface-grid">
+      {hasErrors && layout.errors && (
+        <div className="surface-cell full">
+          <ErrorSurface errors={layout.errors} />
+        </div>
+      )}
       {layout.surfaces.map((surface, index) => {
         const directive = layout.layout.find(
           (d) => d.surfaceId === surface.surfaceId,
@@ -88,19 +107,27 @@ export function SurfaceRenderer({
             className={`surface-cell ${directive?.width || "full"} ${directive?.prominence || "standard"} ${isRevealed ? "surface-revealed" : "surface-entering"}`}
             style={{ order: directive?.position ?? index }}
           >
-            <Component
-              spec={surface}
-              onAction={onAction}
-              onInteraction={(interaction, target, context) =>
-                onInteraction(
-                  interaction,
-                  target,
-                  surface.surfaceId,
-                  surface.surfaceType,
-                  context,
-                )
-              }
-            />
+            <div className="surface-wrapper">
+              {hasErrors && (
+                <StaleIndicator
+                  timestamp={layout.timestamp}
+                  hasErrors={hasErrors}
+                />
+              )}
+              <Component
+                spec={surface}
+                onAction={onAction}
+                onInteraction={(interaction, target, context) =>
+                  onInteraction(
+                    interaction,
+                    target,
+                    surface.surfaceId,
+                    surface.surfaceType,
+                    context,
+                  )
+                }
+              />
+            </div>
           </div>
         );
       })}

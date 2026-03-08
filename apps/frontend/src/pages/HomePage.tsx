@@ -9,6 +9,7 @@ import { SurfaceRenderer } from "../components/SurfaceRenderer";
 import { AgentStatus } from "../components/AgentStatus";
 import { ChatInput } from "../components/ChatInput";
 import { WelcomeState } from "../components/WelcomeState";
+import { ErrorSurface } from "../components/ErrorSurface";
 
 const WS_URL = `ws://${window.location.hostname}:${import.meta.env.VITE_WS_PORT || 3001}`;
 
@@ -18,6 +19,7 @@ export default function HomePage() {
   const [agents, setAgents] = useState<AgentStatusType[]>([]);
   const [hasRequestedAmbient, setHasRequestedAmbient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Request ambient state on initial connection
   useEffect(() => {
@@ -35,6 +37,7 @@ export default function HomePage() {
       case "surface.update":
         setLayout(lastMessage.payload as ComposedLayout);
         setIsLoading(false);
+        setErrorMessage(null);
         break;
       case "status": {
         const statusPayload = lastMessage.payload as {
@@ -42,14 +45,14 @@ export default function HomePage() {
           agents: AgentStatusType[];
         };
         setAgents(statusPayload.agents);
-
-        // If any agents are running, we are still loading
-        const anyRunning = statusPayload.agents.some(
-          (a) => a.state === "running",
-        );
-        if (!anyRunning && statusPayload.agents.length > 0) {
-          // All agents done — loading will clear when surface.update arrives
-        }
+        break;
+      }
+      case "error": {
+        const errorPayload = lastMessage.payload as {
+          message: string;
+          code: string;
+        };
+        setErrorMessage(errorPayload.message);
         break;
       }
     }
@@ -112,6 +115,15 @@ export default function HomePage() {
 
   return (
     <div className="page home-page">
+      {status !== "connected" && (
+        <div className={`connection-banner ${status}`}>
+          <span className="connection-banner-icon">!</span>
+          {status === "connecting"
+            ? "Reconnecting to server..."
+            : "Connection lost. Attempting to reconnect..."}
+        </div>
+      )}
+
       <div className="home-status-bar">
         <span
           className={`connection-dot ${status === "connected" ? "connected" : status === "connecting" ? "connecting" : "disconnected"}`}
@@ -127,6 +139,17 @@ export default function HomePage() {
       </div>
 
       <div className="home-content">
+        {errorMessage && (
+          <ErrorSurface
+            errors={[
+              {
+                agentId: "system",
+                message: errorMessage,
+                phase: "orchestration",
+              },
+            ]}
+          />
+        )}
         {hasSurfaces || isLoading ? (
           <SurfaceRenderer
             layout={layout}

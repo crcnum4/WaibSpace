@@ -10,6 +10,7 @@ export class AnthropicProvider implements ModelProvider {
   id = "anthropic";
   name = "Anthropic";
   private client: Anthropic;
+  private _warmedUp = false;
 
   constructor(apiKey?: string) {
     this.client = new Anthropic({
@@ -17,7 +18,35 @@ export class AnthropicProvider implements ModelProvider {
     });
   }
 
+  /**
+   * Pre-warm the API connection by sending a minimal request.
+   * This resolves DNS, establishes TLS, and prepares the HTTP/2 connection
+   * so the first real request is faster.
+   */
+  async warmUp(): Promise<void> {
+    if (this._warmedUp) return;
+    const startMs = Date.now();
+    try {
+      await this.client.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1,
+        messages: [{ role: "user", content: "hi" }],
+      });
+      this._warmedUp = true;
+      console.log(
+        `[model-provider:anthropic] Connection pre-warmed in ${Date.now() - startMs}ms`,
+      );
+    } catch (error) {
+      // Non-fatal — connection will be established on first real request
+      console.warn(
+        `[model-provider:anthropic] Warm-up failed (${Date.now() - startMs}ms): ${error instanceof Error ? error.message : error}`,
+      );
+    }
+  }
+
   async complete(request: CompletionRequest): Promise<CompletionResponse> {
+    const startMs = Date.now();
+
     const response = await this.client.messages.create({
       model: request.model,
       max_tokens: request.maxTokens ?? 1024,
@@ -31,8 +60,14 @@ export class AnthropicProvider implements ModelProvider {
       })),
     });
 
+    const durationMs = Date.now() - startMs;
     const textContent = response.content.find((block) => block.type === "text");
     const content = textContent?.type === "text" ? textContent.text : "";
+
+    console.log(
+      `[model-provider:anthropic] ${request.model} complete: ${durationMs}ms ` +
+        `(in=${response.usage.input_tokens} out=${response.usage.output_tokens} tokens)`,
+    );
 
     return {
       content,

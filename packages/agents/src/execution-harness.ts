@@ -45,7 +45,7 @@ export async function executeAgent(
       error instanceof Error ? error.message : "Unknown error during agent execution";
 
     console.error(
-      `[executeAgent] Agent ${agent.id} (${agent.category}:${agent.name}) failed: ${message}`,
+      `[executeAgent] [trace:${context.traceId}] Agent ${agent.id} (${agent.category}:${agent.name}) failed after ${endMs - startMs}ms: ${message}`,
     );
 
     return {
