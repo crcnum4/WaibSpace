@@ -9,6 +9,10 @@ dist/
 .env.*
 !.env.example
 
+# Runtime data (memory persistence)
+apps/backend/data/*
+!apps/backend/data/.gitkeep
+
 # Logs
 *.log
 
