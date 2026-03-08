@@ -1,5 +1,6 @@
 import type { EventBus } from "@waibspace/event-bus";
 import type { Orchestrator } from "@waibspace/orchestrator";
+import type { BackgroundTaskScheduler } from "./background";
 import {
   createWebSocketHandlers,
   type WebSocketData,
@@ -23,6 +24,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 export interface ServerDeps {
   eventBus: EventBus;
   orchestrator: Orchestrator;
+  scheduler?: BackgroundTaskScheduler;
 }
 
 const startTime = Date.now();
@@ -59,6 +61,42 @@ export function startServer(deps: ServerDeps) {
           status: "ok",
           uptime: Date.now() - startTime,
         });
+      }
+
+      // Task management endpoints
+      if (url.pathname === "/api/tasks" && req.method === "GET") {
+        if (!deps.scheduler) {
+          return jsonResponse({ error: "Scheduler not available" }, 503);
+        }
+        return jsonResponse(deps.scheduler.getStatus());
+      }
+
+      if (url.pathname.match(/^\/api\/tasks\/(.+)\/toggle$/) && req.method === "POST") {
+        if (!deps.scheduler) {
+          return jsonResponse({ error: "Scheduler not available" }, 503);
+        }
+        const taskId = url.pathname.match(/^\/api\/tasks\/(.+)\/toggle$/)![1];
+        const tasks = deps.scheduler.getStatus();
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) {
+          return jsonResponse({ error: "Task not found" }, 404);
+        }
+        if (task.enabled) {
+          deps.scheduler.disable(taskId);
+        } else {
+          deps.scheduler.enable(taskId);
+        }
+        // Return updated task
+        const updated = deps.scheduler.getStatus().find(t => t.id === taskId);
+        return jsonResponse(updated);
+      }
+
+      if (url.pathname.match(/^\/api\/tasks\/(.+)\/history$/) && req.method === "GET") {
+        if (!deps.scheduler) {
+          return jsonResponse({ error: "Scheduler not available" }, 503);
+        }
+        const taskId = url.pathname.match(/^\/api\/tasks\/(.+)\/history$/)![1];
+        return jsonResponse(deps.scheduler.getHistory(taskId));
       }
 
       return jsonResponse({ error: "Not found" }, 404);
