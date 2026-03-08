@@ -49,6 +49,7 @@
       "dependencies": {
         "@waibspace/connectors": "workspace:*",
         "@waibspace/event-bus": "workspace:*",
+        "@waibspace/memory": "workspace:*",
         "@waibspace/model-provider": "workspace:*",
         "@waibspace/surfaces": "workspace:*",
         "@waibspace/types": "workspace:*",
@@ -94,6 +95,7 @@
       "dependencies": {
         "@waibspace/agents": "workspace:*",
         "@waibspace/event-bus": "workspace:*",
+        "@waibspace/memory": "workspace:*",
         "@waibspace/policy": "workspace:*",
         "@waibspace/types": "workspace:*",
       },
