@@ -8,6 +8,7 @@
   "references": [
     { "path": "../types" },
     { "path": "../event-bus" },
-    { "path": "../model-provider" }
+    { "path": "../model-provider" },
+    { "path": "../connectors" }
   ]
 }
