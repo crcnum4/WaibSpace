@@ -93,15 +93,19 @@ export function InboxSurface({ spec, onAction, onInteraction }: SurfaceProps) {
                 )}
                 <div className="inbox-actions">
                   <button
-                    className="action-btn risk-A"
+                    className="action-btn risk-C"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onInteraction("reply", email.id, {
+                      onInteraction("send-reply", email.id, {
                         text: replyTexts[email.id] ?? email.suggestedReply,
+                        emailId: email.id,
+                        from: email.from,
+                        subject: email.subject,
+                        actionType: "email.send",
                       });
                     }}
                   >
-                    Reply
+                    Send Reply
                   </button>
                   <button
                     className="action-btn risk-A"

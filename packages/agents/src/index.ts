@@ -31,6 +31,7 @@ export {
   type DataRetrievalOutput,
   MemoryRetrievalAgent,
   type MemoryRetrievalOutput,
+  PolicyGateAgent,
 } from "./context";
 export {
   InboxSurfaceAgent,
@@ -40,3 +41,4 @@ export {
   LayoutComposerAgent,
   extractSurfaces,
 } from "./ui";
+export { ActionExecutorAgent } from "./execution";

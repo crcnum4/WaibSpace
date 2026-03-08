@@ -77,9 +77,9 @@ export class ApprovalSurfaceAgent extends BaseAgent {
   private findPolicyDecision(
     input: AgentInput,
   ): PolicyDecision | undefined {
-    // Check prior outputs from safety agents
+    // Check prior outputs from safety or context agents (PolicyGateAgent is context category)
     for (const prior of input.priorOutputs) {
-      if (prior.category === "safety" && prior.output) {
+      if ((prior.category === "safety" || prior.category === "context") && prior.output) {
         const output = prior.output as Record<string, unknown>;
         if (
           "verdict" in output &&

@@ -24,7 +24,7 @@ function getPipelineForEvent(eventType: string): AgentCategory[] {
   }
 
   if (eventType.startsWith("user.interaction.")) {
-    return ["perception", "reasoning"];
+    return ["perception", "reasoning", "context", "ui", "safety"];
   }
 
   if (eventType === "policy.approval.response") {
