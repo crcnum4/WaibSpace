@@ -29,8 +29,6 @@ import {
 } from "@waibspace/agents";
 import {
   ConnectorRegistry,
-  GmailConnector,
-  GoogleCalendarConnector,
   WebFetchConnector,
   MCPServerRegistry,
 } from "@waibspace/connectors";
@@ -60,50 +58,11 @@ anthropicProvider.warmUp().catch(() => {
 // ---------- 3. Connector Registry ----------
 const connectorRegistry = new ConnectorRegistry();
 
-// Gmail connector — connect() handles missing credentials gracefully
-const gmailConnector = new GmailConnector();
-await gmailConnector.connect();
-connectorRegistry.register(gmailConnector);
-console.log(
-  `[backend] Gmail connector registered (${gmailConnector.isConnected() ? "connected" : "not configured"})`,
-);
-
-// Google Calendar connector — gracefully handles missing credentials
-const calClientId = process.env.GCAL_CLIENT_ID ?? "";
-const calClientSecret = process.env.GCAL_CLIENT_SECRET ?? "";
-const calRefreshToken = process.env.GCAL_REFRESH_TOKEN ?? "";
-
-if (calClientId && calClientSecret && calRefreshToken) {
-  const calendarConnector = new GoogleCalendarConnector({
-    clientId: calClientId,
-    clientSecret: calClientSecret,
-    redirectUri: process.env.GCAL_REDIRECT_URI ?? "http://localhost:3001/oauth/callback",
-    refreshToken: calRefreshToken,
-  });
-  try {
-    await calendarConnector.connect();
-    connectorRegistry.register(calendarConnector);
-    console.log("[backend] Google Calendar connector registered");
-  } catch (err) {
-    console.warn(
-      "[backend] Google Calendar connector not available:",
-      err instanceof Error ? err.message : err,
-    );
-    connectorRegistry.register(calendarConnector);
-  }
-} else {
-  console.warn("[backend] Google Calendar connector not configured (missing GCAL_* env vars)");
-}
-
 // WebFetch connector — always available (no credentials needed)
 const webFetchConnector = new WebFetchConnector("web-fetch", "Web Fetch");
 await webFetchConnector.connect();
 connectorRegistry.register(webFetchConnector);
 console.log("[backend] WebFetch connector registered");
-
-console.log(
-  `[backend] Connector registry: ${connectorRegistry.getAll().map((c: { id: string; isConnected: () => boolean }) => `${c.id}(${c.isConnected() ? "connected" : "disconnected"})`).join(", ")}`,
-);
 
 // ---------- 4. Policy Engine ----------
 const policyEngine = new PolicyEngine(DEFAULT_POLICY_RULES);
