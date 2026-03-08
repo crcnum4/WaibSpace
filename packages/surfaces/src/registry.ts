@@ -43,6 +43,7 @@ export function createDefaultRegistry(): SurfaceTypeRegistry {
     "context",
     "consequences",
   ]);
+  registry.register("connection-guide", ["step", "message", "availableServices"]);
   registry.register("generic", []);
   return registry;
 }

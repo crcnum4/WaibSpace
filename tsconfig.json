@@ -16,6 +16,7 @@
     { "path": "packages/memory" },
     { "path": "packages/surfaces" },
     { "path": "packages/model-provider" },
+    { "path": "packages/db" },
     { "path": "packages/ui-renderer-contract" },
     { "path": "apps/backend" },
     { "path": "apps/frontend" }

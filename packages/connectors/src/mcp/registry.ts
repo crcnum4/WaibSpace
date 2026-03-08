@@ -1,7 +1,10 @@
 import { MCPConnector } from "./mcp-connector";
 import type { MCPServerConfig, MCPToolInfo } from "./types";
 import type { PolicyEngine } from "@waibspace/policy";
+import type { WaibDatabase, MCPServerRow } from "@waibspace/db";
+import type { TrustLevel } from "@waibspace/types";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { existsSync, renameSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 /**
@@ -29,9 +32,11 @@ function classifyTool(toolName: string): { riskClass: "A" | "B" | "C"; autoAppro
 export class MCPServerRegistry {
   private servers = new Map<string, { config: MCPServerConfig; connector: MCPConnector }>();
   private policyEngine: PolicyEngine | undefined;
+  private db?: WaibDatabase;
 
-  constructor(policyEngine?: PolicyEngine) {
+  constructor(policyEngine?: PolicyEngine, db?: WaibDatabase) {
     this.policyEngine = policyEngine;
+    this.db = db;
   }
 
   /** Add a new server config (doesn't connect yet). */
@@ -109,15 +114,67 @@ export class MCPServerRegistry {
     return this.servers.get(id)?.connector;
   }
 
-  /** Persist server configs to a JSON file. */
-  async save(path: string): Promise<void> {
+  private configToRow(config: MCPServerConfig): MCPServerRow {
+    return {
+      id: config.id,
+      name: config.name,
+      transport: config.transport,
+      command: config.command ?? null,
+      args: config.args ? JSON.stringify(config.args) : null,
+      env: config.env ? JSON.stringify(config.env) : null,
+      url: config.url ?? null,
+      trust_level: config.trustLevel ?? "semi-trusted",
+      enabled: config.enabled !== false ? 1 : 0,
+      created_at: Date.now(),
+    };
+  }
+
+  private rowToConfig(row: MCPServerRow): MCPServerConfig {
+    return {
+      id: row.id,
+      name: row.name,
+      transport: row.transport as "stdio" | "sse",
+      command: row.command ?? undefined,
+      args: row.args ? JSON.parse(row.args) : undefined,
+      env: row.env ? JSON.parse(row.env) : undefined,
+      url: row.url ?? undefined,
+      trustLevel: (row.trust_level as TrustLevel) ?? "semi-trusted",
+      enabled: row.enabled === 1,
+    };
+  }
+
+  /** Persist server configs. When db is provided, saves to SQLite. Otherwise saves to JSON file. */
+  async save(path?: string): Promise<void> {
+    if (this.db) {
+      for (const { config } of this.servers.values()) {
+        this.db.saveMCPServer(this.configToRow(config));
+      }
+      return;
+    }
+
+    if (!path) return;
     const configs = Array.from(this.servers.values()).map(({ config }) => config);
     await mkdir(dirname(path), { recursive: true });
     await writeFile(path, JSON.stringify(configs, null, 2), "utf-8");
   }
 
-  /** Load server configs from a JSON file (adds servers but does not connect). */
-  async load(path: string): Promise<void> {
+  /** Load server configs. When db is provided, loads from SQLite. Otherwise loads from JSON file. */
+  async load(path?: string): Promise<void> {
+    if (this.db) {
+      // Migrate legacy JSON if it exists
+      this.migrateJsonIfNeeded();
+
+      const rows = this.db.getMCPServers();
+      for (const row of rows) {
+        const config = this.rowToConfig(row);
+        if (!this.servers.has(config.id)) {
+          this.addServer(config);
+        }
+      }
+      return;
+    }
+
+    if (!path) return;
     try {
       const raw = await readFile(path, "utf-8");
       const configs: MCPServerConfig[] = JSON.parse(raw);
@@ -128,6 +185,24 @@ export class MCPServerRegistry {
       }
     } catch {
       // File doesn't exist or is invalid — that's fine, start empty
+    }
+  }
+
+  /** Migrate legacy JSON file to SQLite if it exists. */
+  private migrateJsonIfNeeded(): void {
+    if (!this.db) return;
+    const jsonPath = "./data/mcp-servers.json";
+    if (existsSync(jsonPath)) {
+      try {
+        const configs: MCPServerConfig[] = JSON.parse(readFileSync(jsonPath, "utf-8"));
+        for (const config of configs) {
+          this.db.saveMCPServer(this.configToRow(config));
+        }
+        renameSync(jsonPath, jsonPath + ".migrated");
+        console.log(`[mcp-registry] Migrated ${configs.length} servers from JSON to SQLite`);
+      } catch {
+        // ignore migration errors
+      }
     }
   }
 

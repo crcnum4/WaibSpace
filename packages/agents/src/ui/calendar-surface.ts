@@ -107,9 +107,10 @@ export class CalendarSurfaceAgent extends BaseAgent {
 
     const retrievalOutput = this.findDataRetrieval(input);
     if (!retrievalOutput) {
-      throw new Error(
-        "CalendarSurfaceAgent requires DataRetrievalOutput from prior outputs",
-      );
+      return this.createOutput(null, 0, {
+        dataState: "raw",
+        timestamp: startMs,
+      });
     }
 
     const calendarData = this.extractCalendarData(retrievalOutput);

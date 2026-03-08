@@ -21,6 +21,7 @@ import {
   CalendarSurfaceAgent,
   DiscoverySurfaceAgent,
   ApprovalSurfaceAgent,
+  ConnectionSurfaceAgent,
   LayoutComposerAgent,
   // Safety agents
   ProvenanceAnnotatorAgent,
@@ -38,12 +39,17 @@ import {
   AnthropicProvider,
 } from "@waibspace/model-provider";
 import { MemoryStore, MemoryUpdatePipeline } from "@waibspace/memory";
+import { WaibDatabase } from "@waibspace/db";
 import { BackgroundTaskScheduler, MVP_BACKGROUND_TASKS } from "./background";
 import { startServer } from "./server";
 import { broadcast } from "./ws";
 
 // ---------- 1. Event Bus ----------
 const bus = new EventBus();
+
+// ---------- 1b. Database ----------
+const db = new WaibDatabase("./data/waibspace.db");
+console.log("[backend] SQLite database initialized");
 
 // ---------- 2. Model Provider ----------
 const modelRegistry = new ModelProviderRegistry();
@@ -69,9 +75,8 @@ const policyEngine = new PolicyEngine(DEFAULT_POLICY_RULES);
 console.log(`[backend] Policy engine initialized with ${policyEngine.getRules().length} rules`);
 
 // ---------- 4b. MCP Server Registry ----------
-const mcpRegistry = new MCPServerRegistry(policyEngine);
-const MCP_SERVERS_PATH = "./data/mcp-servers.json";
-await mcpRegistry.load(MCP_SERVERS_PATH);
+const mcpRegistry = new MCPServerRegistry(policyEngine, db);
+await mcpRegistry.load();
 
 // Auto-connect enabled servers and register their connectors
 for (const server of mcpRegistry.getServers()) {
@@ -119,6 +124,7 @@ agentRegistry.register(new InboxSurfaceAgent());
 agentRegistry.register(new CalendarSurfaceAgent());
 agentRegistry.register(new DiscoverySurfaceAgent());
 agentRegistry.register(new ApprovalSurfaceAgent());
+agentRegistry.register(new ConnectionSurfaceAgent());
 agentRegistry.register(new LayoutComposerAgent());
 
 // Safety agents
@@ -132,9 +138,7 @@ console.log(
 );
 
 // ---------- 6. Memory Store ----------
-const memoryStore = new MemoryStore("./data/memory.json", bus);
-await memoryStore.load();
-memoryStore.startAutoSave();
+const memoryStore = new MemoryStore(db, bus);
 
 // ---------- 7. Orchestrator ----------
 const orchestrator = new Orchestrator(bus, agentRegistry, {
@@ -142,6 +146,7 @@ const orchestrator = new Orchestrator(bus, agentRegistry, {
   memoryStore,
   connectorRegistry,
   policyEngine,
+  db,
 });
 
 // ---------- 8. Memory Update Pipeline ----------
@@ -205,7 +210,7 @@ bus.on("surface.composed", (event: WaibEvent) => {
 });
 
 // ---------- 12. Start HTTP/WebSocket server ----------
-const server = startServer({ eventBus: bus, orchestrator, memoryStore, scheduler, mcpRegistry });
+const server = startServer({ eventBus: bus, orchestrator, memoryStore, scheduler, mcpRegistry, connectorRegistry, db });
 
 const PORT = Number(process.env.PORT) || 3001;
 console.log(`[backend] WaibSpace backend started`);

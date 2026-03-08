@@ -5,6 +5,7 @@ import type {
   CalendarSurfaceData,
   DiscoverySurfaceData,
   ApprovalSurfaceData,
+  ConnectionGuideSurfaceData,
 } from "./surface-data";
 
 export class SurfaceFactory {
@@ -113,6 +114,26 @@ export class SurfaceFactory {
         freshness: "realtime",
         dataState: "raw",
       })
+      .build();
+  }
+
+  static connectionGuide(
+    data: ConnectionGuideSurfaceData,
+    provenance: ProvenanceMetadata
+  ): SurfaceSpec {
+    const title = data.selectedService
+      ? `Connect ${data.selectedService.name}`
+      : "Connect a Service";
+    return new SurfaceSpecBuilder("connection-guide")
+      .setTitle(title)
+      .setSummary(data.message)
+      .setPriority(90)
+      .setData(data)
+      .setLayout({
+        position: "primary",
+        prominence: "hero",
+      })
+      .setProvenance(provenance)
       .build();
   }
 

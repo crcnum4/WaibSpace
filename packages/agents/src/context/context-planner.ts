@@ -86,8 +86,10 @@ export class ContextPlannerAgent extends BaseAgent {
 
     const intentClassification = this.findIntentClassification(input);
     if (!intentClassification) {
-      throw new Error(
-        "ContextPlannerAgent requires IntentClassification from prior outputs",
+      return this.createOutput(
+        { dataSources: [], reasoning: "No intent classification available" },
+        0,
+        { dataState: "raw", timestamp: startMs },
       );
     }
 

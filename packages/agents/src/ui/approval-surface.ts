@@ -24,9 +24,10 @@ export class ApprovalSurfaceAgent extends BaseAgent {
 
     const policyDecision = this.findPolicyDecision(input);
     if (!policyDecision) {
-      throw new Error(
-        "ApprovalSurfaceAgent requires a PolicyDecision with approval_required verdict",
-      );
+      return this.createOutput(null, 0, {
+        dataState: "raw",
+        timestamp: startMs,
+      });
     }
 
     this.log("Building approval surface", {

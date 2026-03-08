@@ -20,12 +20,19 @@ Analyze the user's input and classify their intent. WaibSpace supports the follo
 - **Calendar management**: view upcoming events, check availability, schedule meetings
 - **Discovery**: find information, movies, restaurants, services, recommendations
 - **Task management**: create tasks, list tasks, complete/update tasks
+- **Service connection**: connect Gmail, connect Google Calendar, link accounts, set up integrations
 
 For each input, determine:
-1. The primary intent (e.g., "check_email", "find_movie", "schedule_meeting", "create_task")
-2. The intent category (one of: "email", "calendar", "discovery", "task", "general")
-3. Any entities mentioned (e.g., genre, date, time, person, subject)
-4. Which downstream agents should handle this (e.g., "context.email", "context.calendar", "ui.discovery")
+1. The primary intent (e.g., "check_email", "find_movie", "schedule_meeting", "create_task", "connect_service")
+2. The intent category (one of: "email", "calendar", "discovery", "task", "connection", "general")
+3. Any entities mentioned (e.g., genre, date, time, person, subject, service name)
+4. Which downstream agents should handle this (e.g., "context.email", "context.calendar", "ui.discovery", "ui.connection-surface")
+
+When the user wants to connect, link, or set up a service (Gmail, Calendar, email, etc.), classify as:
+- primaryIntent: "connect_service"
+- intentCategory: "connection"
+- entities: include "service" with the service name (e.g., "gmail", "calendar")
+- suggestedAgents: ["ui.connection-surface"]
 5. Your confidence level (0-1)
 6. A brief reasoning explanation
 

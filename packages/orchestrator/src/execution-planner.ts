@@ -59,7 +59,7 @@ const AGENT_ORDERINGS: Record<string, AgentOrdering[]> = {
       category: "ui",
       groups: [
         // All surface agents run in parallel, then layout composer
-        ["ui.inbox-surface", "ui.calendar-surface", "ui.discovery-surface"],
+        ["ui.inbox-surface", "ui.calendar-surface", "ui.discovery-surface", "ui.connection-surface"],
         ["layout-composer"],
       ],
     },

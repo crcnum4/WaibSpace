@@ -41,8 +41,10 @@ export class DataRetrievalAgent extends BaseAgent {
 
     const finalizedPlan = this.findFinalizedPlan(input);
     if (!finalizedPlan) {
-      throw new Error(
-        "DataRetrievalAgent requires FinalizedPlan from prior outputs",
+      return this.createOutput(
+        { results: [], totalAttempted: 0, totalSucceeded: 0, totalFailed: 0 },
+        0,
+        { dataState: "raw", timestamp: startMs },
       );
     }
 
@@ -82,7 +84,7 @@ export class DataRetrievalAgent extends BaseAgent {
         return {
           connectorId: retrieval.connectorId,
           operation: retrieval.operation,
-          data: response.data,
+          data: this.truncateData(response.data),
           provenance: response.provenance,
         };
       }),
@@ -152,6 +154,54 @@ export class DataRetrievalAgent extends BaseAgent {
         durationMs: endMs - startMs,
       },
     };
+  }
+
+  /**
+   * Truncate large data to prevent blowing up LLM token limits.
+   * MCP tools can return megabytes of data (e.g. all unseen emails).
+   * Cap at ~50KB which is roughly 12k tokens.
+   */
+  private truncateData(data: unknown): unknown {
+    const MAX_DATA_SIZE = 50_000;
+
+    // MCP tools return [{type: "text", text: "..."}] — truncate the text content
+    if (Array.isArray(data)) {
+      return data.map((item: unknown) => {
+        if (
+          typeof item === "object" &&
+          item !== null &&
+          (item as Record<string, unknown>).type === "text" &&
+          typeof (item as Record<string, unknown>).text === "string"
+        ) {
+          const text = (item as Record<string, string>).text;
+          if (text.length > MAX_DATA_SIZE) {
+            // Try to parse as JSON array and take first N items
+            try {
+              const parsed = JSON.parse(text);
+              if (Array.isArray(parsed)) {
+                let truncated = parsed.slice(0, 20);
+                let serialized = JSON.stringify(truncated);
+                while (serialized.length > MAX_DATA_SIZE && truncated.length > 1) {
+                  truncated = truncated.slice(0, Math.ceil(truncated.length / 2));
+                  serialized = JSON.stringify(truncated);
+                }
+                return { type: "text", text: serialized };
+              }
+            } catch {
+              // Not JSON, just truncate raw text
+            }
+            return { type: "text", text: text.slice(0, MAX_DATA_SIZE) + "\n...[truncated]" };
+          }
+        }
+        return item;
+      });
+    }
+
+    const str = JSON.stringify(data);
+    if (str.length > MAX_DATA_SIZE) {
+      return JSON.parse(str.slice(0, MAX_DATA_SIZE));
+    }
+    return data;
   }
 
   private findFinalizedPlan(

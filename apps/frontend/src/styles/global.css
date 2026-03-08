@@ -171,6 +171,33 @@ body {
   border-top: 1px solid var(--color-border);
 }
 
+.global-input-bar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.global-send-btn {
+  padding: 0.625rem 1.25rem;
+  background: var(--color-accent, #00c896);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.global-send-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.global-send-btn:not(:disabled):hover {
+  opacity: 0.85;
+}
+
 .input-bar {
   width: 100%;
   padding: 0.625rem var(--space-3);
@@ -2350,4 +2377,328 @@ body {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: var(--leading-relaxed);
+}
+
+/* ================================ */
+/* Connection Guide Surface         */
+/* ================================ */
+.connection-guide-surface {
+  max-width: 560px;
+}
+
+.connection-guide-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.connection-guide-message {
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  margin: 0;
+}
+
+/* Service list (browse step) */
+.connection-service-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.connection-service-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: left;
+  color: var(--color-text);
+  font-family: inherit;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.connection-service-card:hover {
+  border-color: var(--color-accent);
+  background: var(--color-surface-hover);
+}
+
+.connection-service-icon {
+  font-size: var(--text-2xl);
+  flex-shrink: 0;
+  width: 2rem;
+  text-align: center;
+}
+
+.connection-service-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.connection-service-name {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.connection-service-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+}
+
+.connection-service-arrow {
+  font-size: var(--text-lg);
+  color: var(--color-muted);
+  flex-shrink: 0;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.connection-service-card:hover .connection-service-arrow {
+  color: var(--color-accent);
+  transform: translateX(2px);
+}
+
+/* Credentials step */
+.connection-credentials-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.connection-selected-service {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.connection-credential-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.connection-credential-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.connection-credential-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.connection-credential-input {
+  padding: 0.625rem var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: var(--text-md);
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.connection-credential-input::placeholder {
+  color: var(--color-muted);
+}
+
+.connection-credential-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-subtle);
+}
+
+.connection-credential-help {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  line-height: var(--leading-relaxed);
+  margin: 0;
+}
+
+.connection-help-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: var(--weight-medium);
+}
+
+.connection-help-link:hover {
+  text-decoration: underline;
+}
+
+.connection-no-creds-message {
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: var(--space-4) 0;
+  margin: 0;
+}
+
+.connection-connect-btn {
+  padding: var(--space-3) var(--space-6);
+  border: none;
+  border-radius: var(--radius-md);
+  background: #00c896;
+  color: #fff;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.connection-connect-btn:hover {
+  background: #00b586;
+}
+
+.connection-connect-btn:active {
+  transform: scale(0.98);
+}
+
+/* Loading step */
+.connection-loading-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-8) 0;
+}
+
+.connection-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid var(--color-border-strong);
+  border-top-color: #00c896;
+  border-radius: 50%;
+  animation: connection-spin 0.8s linear infinite;
+}
+
+@keyframes connection-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.connection-loading-message {
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* Success step */
+.connection-success-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) 0;
+}
+
+.connection-success-icon {
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0, 200, 150, 0.15);
+  color: #00c896;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+}
+
+.connection-success-message {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.connection-tools-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.connection-tools-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.connection-tool-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.connection-tool-name {
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+
+.connection-tool-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* Error step */
+.connection-error-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6) 0;
+}
+
+.connection-error-message {
+  font-size: var(--text-md);
+  color: #ff5050;
+  text-align: center;
+  line-height: var(--leading-relaxed);
+  margin: 0;
+}
+
+.connection-retry-btn {
+  padding: var(--space-2) var(--space-5);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.connection-retry-btn:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
 }
