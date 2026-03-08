@@ -1,5 +1,6 @@
 import type { EventBus } from "@waibspace/event-bus";
 import type { Orchestrator } from "@waibspace/orchestrator";
+import type { MemoryStore } from "@waibspace/memory";
 import {
   createWebSocketHandlers,
   type WebSocketData,
@@ -23,12 +24,13 @@ function jsonResponse(body: unknown, status = 200): Response {
 export interface ServerDeps {
   eventBus: EventBus;
   orchestrator: Orchestrator;
+  memoryStore?: MemoryStore;
 }
 
 const startTime = Date.now();
 
 export function startServer(deps: ServerDeps) {
-  const wsHandlers = createWebSocketHandlers(deps.eventBus);
+  const wsHandlers = createWebSocketHandlers(deps.eventBus, deps.memoryStore);
 
   const server = Bun.serve<WebSocketData>({
     port: PORT,
