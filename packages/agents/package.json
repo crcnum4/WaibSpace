@@ -8,7 +8,8 @@
     "@waibspace/types": "workspace:*",
     "@waibspace/event-bus": "workspace:*",
     "@waibspace/model-provider": "workspace:*",
-    "@waibspace/connectors": "workspace:*"
+    "@waibspace/connectors": "workspace:*",
+    "@waibspace/surfaces": "workspace:*"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

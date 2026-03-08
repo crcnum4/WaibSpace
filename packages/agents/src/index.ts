@@ -28,3 +28,9 @@ export {
   DataRetrievalAgent,
   type DataRetrievalOutput,
 } from "./context";
+export {
+  InboxSurfaceAgent,
+  CalendarSurfaceAgent,
+  DiscoverySurfaceAgent,
+  ApprovalSurfaceAgent,
+} from "./ui";
