@@ -1,4 +1,9 @@
 import type { SurfaceSpec, SurfaceAction } from "@waibspace/types";
+import { InboxSurface } from "./InboxSurface";
+import { CalendarSurface } from "./CalendarSurface";
+import { DiscoverySurface } from "./DiscoverySurface";
+import { ApprovalSurface } from "./ApprovalSurface";
+import { GenericSurface } from "./GenericSurface";
 
 export interface SurfaceProps {
   spec: SurfaceSpec;
@@ -6,9 +11,13 @@ export interface SurfaceProps {
   onInteraction: (interaction: string, target: string, context?: unknown) => void;
 }
 
-// For now, all surface types use GenericSurface as placeholder
-// Real components will be built in P6-2
 export const surfaceComponents: Record<
   string,
   React.ComponentType<SurfaceProps>
-> = {};
+> = {
+  inbox: InboxSurface,
+  calendar: CalendarSurface,
+  discovery: DiscoverySurface,
+  approval: ApprovalSurface,
+  generic: GenericSurface,
+};

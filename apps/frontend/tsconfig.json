@@ -9,6 +9,7 @@
   },
   "include": ["src", "vite.config.ts"],
   "references": [
+    { "path": "../../packages/surfaces" },
     { "path": "../../packages/types" },
     { "path": "../../packages/ui-renderer-contract" }
   ]

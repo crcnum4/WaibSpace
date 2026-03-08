@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@waibspace/surfaces": "workspace:*",
     "@waibspace/types": "workspace:*",
     "@waibspace/ui-renderer-contract": "workspace:*",
     "react": "^19.2.4",
