@@ -30,6 +30,7 @@ export class Orchestrator {
     const startMs = Date.now();
     const plan = buildExecutionPlan(event.type, this.registry);
     const timeoutMs = this.options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const traceId = event.traceId;
 
     let priorOutputs: AgentOutput[] = [];
     const phaseResults: Array<{
@@ -38,12 +39,13 @@ export class Orchestrator {
       endMs: number;
       outputs: AgentOutput[];
     }> = [];
+    const errors: Array<{ agentId: string; error: string; phase: string }> = [];
 
     for (const phase of plan.phases) {
       const phaseStartMs = Date.now();
       const input = { event, priorOutputs };
       const context = {
-        traceId: event.traceId,
+        traceId,
         modelProvider: this.options?.modelProvider,
         config: {
           ...(this.options?.memoryStore
@@ -58,19 +60,51 @@ export class Orchestrator {
         },
       };
 
-      // Execute all agents in this phase in parallel
+      // Execute all agents in this phase in parallel with isolation
       const results = await Promise.allSettled(
         phase.agents.map((agent) =>
           executeAgent(agent, input, context, { timeoutMs }),
         ),
       );
 
-      const phaseOutputs: AgentOutput[] = results
-        .filter(
-          (r): r is PromiseFulfilledResult<AgentOutput> =>
-            r.status === "fulfilled",
-        )
-        .map((r) => r.value);
+      const phaseOutputs: AgentOutput[] = [];
+
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const agent = phase.agents[i];
+
+        if (result.status === "fulfilled") {
+          phaseOutputs.push(result.value);
+
+          // Track agent-level errors (returned as output.error)
+          const output = result.value.output as Record<string, unknown> | undefined;
+          if (output && typeof output === "object" && "error" in output) {
+            const errorMsg = String(output.error);
+            errors.push({
+              agentId: agent.id,
+              error: errorMsg,
+              phase: phase.category,
+            });
+            console.error(
+              `[Orchestrator] [trace:${traceId}] Agent ${agent.id} returned error in phase "${phase.category}": ${errorMsg}`,
+            );
+          }
+        } else {
+          // Agent threw an unhandled rejection (should be rare since executeAgent catches)
+          const errorMsg =
+            result.reason instanceof Error
+              ? result.reason.message
+              : String(result.reason);
+          errors.push({
+            agentId: agent.id,
+            error: errorMsg,
+            phase: phase.category,
+          });
+          console.error(
+            `[Orchestrator] [trace:${traceId}] Agent ${agent.id} crashed in phase "${phase.category}": ${errorMsg}`,
+          );
+        }
+      }
 
       const phaseEndMs = Date.now();
       phaseResults.push({
@@ -106,23 +140,63 @@ export class Orchestrator {
         composedPayload = { surfaces: surfaceOutputs.map((o) => o.output) };
       }
 
+      // Attach error info so the frontend can display partial-failure indicators
+      if (errors.length > 0) {
+        (composedPayload as Record<string, unknown>).errors = errors.map(
+          (e) => ({
+            agentId: e.agentId,
+            message: e.error,
+            phase: e.phase,
+          }),
+        );
+      }
+
       const composedEvent = createEvent(
         "surface.composed",
         composedPayload,
         "orchestrator",
-        event.traceId,
+        traceId,
       );
       this.eventBus.emit(composedEvent);
+    } else if (errors.length > 0) {
+      // No surfaces produced but there were errors - emit an error event
+      // so the frontend knows something went wrong
+      console.error(
+        `[Orchestrator] [trace:${traceId}] Pipeline produced no surfaces. ${errors.length} error(s) occurred.`,
+      );
+      const errorEvent = createEvent(
+        "surface.composed",
+        {
+          surfaces: [],
+          layout: [],
+          timestamp: Date.now(),
+          traceId,
+          errors: errors.map((e) => ({
+            agentId: e.agentId,
+            message: e.error,
+            phase: e.phase,
+          })),
+        },
+        "orchestrator",
+        traceId,
+      );
+      this.eventBus.emit(errorEvent);
     }
 
     // Log trace summary
     const trace = createPipelineTrace(
-      event.traceId,
+      traceId,
       event.type,
       startMs,
       endMs,
       phaseResults,
     );
     logTrace(trace);
+
+    if (errors.length > 0) {
+      console.warn(
+        `[Orchestrator] [trace:${traceId}] Completed with ${errors.length} error(s): ${errors.map((e) => e.agentId).join(", ")}`,
+      );
+    }
   }
 }
