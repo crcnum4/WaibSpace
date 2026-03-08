@@ -6,7 +6,8 @@
   "types": "src/index.ts",
   "dependencies": {
     "@waibspace/policy": "workspace:*",
-    "@waibspace/types": "workspace:*"
+    "@waibspace/types": "workspace:*",
+    "googleapis": "^171.4.0"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
