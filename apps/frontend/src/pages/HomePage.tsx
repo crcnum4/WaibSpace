@@ -18,6 +18,7 @@ export default function HomePage() {
   const [layout, setLayout] = useState<ComposedLayout | null>(null);
   const [agents, setAgents] = useState<AgentStatusType[]>([]);
   const [hasRequestedAmbient, setHasRequestedAmbient] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Request ambient state on initial connection
@@ -25,6 +26,7 @@ export default function HomePage() {
     if (status === "connected" && !hasRequestedAmbient) {
       send("user.message", { text: "show ambient state" });
       setHasRequestedAmbient(true);
+      setIsLoading(true);
     }
   }, [status, hasRequestedAmbient, send]);
 
@@ -34,7 +36,8 @@ export default function HomePage() {
     switch (lastMessage.type) {
       case "surface.update":
         setLayout(lastMessage.payload as ComposedLayout);
-        setErrorMessage(null); // Clear any previous standalone errors
+        setIsLoading(false);
+        setErrorMessage(null);
         break;
       case "status": {
         const statusPayload = lastMessage.payload as {
@@ -103,6 +106,7 @@ export default function HomePage() {
   const handleSend = useCallback(
     (text: string) => {
       send("user.message", { text });
+      setIsLoading(true);
     },
     [send],
   );
@@ -146,11 +150,12 @@ export default function HomePage() {
             ]}
           />
         )}
-        {hasSurfaces ? (
+        {hasSurfaces || isLoading ? (
           <SurfaceRenderer
             layout={layout}
             onAction={handleAction}
             onInteraction={handleInteraction}
+            isLoading={isLoading}
           />
         ) : (
           <WelcomeState onSuggest={handleSend} />
