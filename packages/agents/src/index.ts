@@ -28,4 +28,11 @@ export {
   DataRetrievalAgent,
   type DataRetrievalOutput,
 } from "./context";
-export { LayoutComposerAgent, extractSurfaces } from "./ui";
+export {
+  InboxSurfaceAgent,
+  CalendarSurfaceAgent,
+  DiscoverySurfaceAgent,
+  ApprovalSurfaceAgent,
+  LayoutComposerAgent,
+  extractSurfaces,
+} from "./ui";

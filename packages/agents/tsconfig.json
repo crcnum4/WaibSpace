@@ -10,6 +10,7 @@
     { "path": "../event-bus" },
     { "path": "../model-provider" },
     { "path": "../connectors" },
+    { "path": "../surfaces" },
     { "path": "../ui-renderer-contract" }
   ]
 }
