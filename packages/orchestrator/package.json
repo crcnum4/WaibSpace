@@ -7,6 +7,7 @@
   "dependencies": {
     "@waibspace/types": "workspace:*",
     "@waibspace/event-bus": "workspace:*",
+    "@waibspace/agents": "workspace:*",
     "@waibspace/policy": "workspace:*"
   },
   "scripts": {

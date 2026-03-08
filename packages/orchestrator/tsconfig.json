@@ -8,6 +8,7 @@
   "references": [
     { "path": "../types" },
     { "path": "../event-bus" },
+    { "path": "../agents" },
     { "path": "../policy" }
   ]
 }
