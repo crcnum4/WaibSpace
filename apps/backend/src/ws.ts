@@ -25,6 +25,24 @@ export function broadcast(message: ServerMessage): void {
 }
 
 /**
+ * Map ClientMessage types to WaibEvent types for the event bus.
+ */
+function mapClientMessageToEventType(msg: ClientMessage): string {
+  switch (msg.type) {
+    case "user.message":
+      return "user.message.received";
+    case "user.interaction": {
+      const interaction = msg.payload.interaction || "clicked";
+      return `user.interaction.${interaction}`;
+    }
+    case "user.intent.url":
+      return "user.intent.url_received";
+    case "approval.response":
+      return "policy.approval.response";
+  }
+}
+
+/**
  * Create Bun WebSocket handlers wired to the given EventBus.
  */
 export function createWebSocketHandlers(bus: EventBus) {
@@ -38,11 +56,13 @@ export function createWebSocketHandlers(bus: EventBus) {
 
     message(ws: ServerWebSocket<WebSocketData>, message: string | Buffer) {
       const raw = typeof message === "string" ? message : message.toString();
+      const traceId = createTraceId();
 
       let parsed: unknown;
       try {
         parsed = JSON.parse(raw);
       } catch {
+        console.error(`[ws] [trace:${traceId}] Invalid JSON from ${ws.data.connectionId}`);
         const errorMsg: ServerMessage = {
           type: "error",
           payload: { message: "Invalid JSON", code: "INVALID_JSON" },
@@ -52,6 +72,7 @@ export function createWebSocketHandlers(bus: EventBus) {
       }
 
       if (!isValidClientMessage(parsed)) {
+        console.error(`[ws] [trace:${traceId}] Invalid message format from ${ws.data.connectionId}`);
         const errorMsg: ServerMessage = {
           type: "error",
           payload: {
@@ -64,16 +85,18 @@ export function createWebSocketHandlers(bus: EventBus) {
       }
 
       const clientMsg = parsed as ClientMessage;
+      const eventType = mapClientMessageToEventType(clientMsg);
+
       console.log(
-        `[ws] message from ${ws.data.connectionId}: ${clientMsg.type}`,
+        `[ws] [trace:${traceId}] message from ${ws.data.connectionId}: ${clientMsg.type} -> ${eventType}`,
       );
 
-      // Map client message type to WaibEvent type and emit
+      // Create a WaibEvent and emit to the event bus
       const event = createEvent(
-        clientMsg.type,
+        eventType,
         clientMsg.payload,
         `ws:${ws.data.connectionId}`,
-        createTraceId(),
+        traceId,
       );
       bus.emit(event);
     },

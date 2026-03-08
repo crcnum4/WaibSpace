@@ -83,6 +83,7 @@
       "name": "@waibspace/orchestrator",
       "version": "0.0.1",
       "dependencies": {
+        "@waibspace/agents": "workspace:*",
         "@waibspace/event-bus": "workspace:*",
         "@waibspace/policy": "workspace:*",
         "@waibspace/types": "workspace:*",
