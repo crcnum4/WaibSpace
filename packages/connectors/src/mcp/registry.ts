@@ -1,11 +1,14 @@
 import { MCPConnector } from "./mcp-connector";
-import type { MCPServerConfig, MCPToolInfo } from "./types";
+import type { MCPServerConfig, MCPToolInfo, HealthCheckEntry, ConnectorHealthMetrics } from "./types";
 import type { PolicyEngine } from "@waibspace/policy";
 import type { WaibDatabase, MCPServerRow } from "@waibspace/db";
 import type { TrustLevel } from "@waibspace/types";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync, renameSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
+
+/** Maximum number of health check entries to retain per server. */
+const MAX_HEALTH_HISTORY = 50;
 
 /**
  * Classify an MCP tool name into a risk class for policy rule generation.
@@ -34,6 +37,17 @@ export class MCPServerRegistry {
   private connectionErrors = new Map<string, string>();
   private policyEngine: PolicyEngine | undefined;
   private db?: WaibDatabase;
+
+  /** Health-check history per server (ring buffer, newest first). */
+  private healthHistory = new Map<string, HealthCheckEntry[]>();
+  /** Timestamp when each server was connected in this session. */
+  private connectedSince = new Map<string, number>();
+  /** Total error count per server since tracking started. */
+  private errorCounts = new Map<string, number>();
+  /** Recent error messages per server (newest first, capped). */
+  private recentErrors = new Map<string, Array<{ timestamp: number; message: string }>>();
+  /** Handle for the periodic health-check interval. */
+  private healthInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(policyEngine?: PolicyEngine, db?: WaibDatabase) {
     this.policyEngine = policyEngine;
@@ -72,10 +86,12 @@ export class MCPServerRegistry {
       await entry.connector.connect();
       // Clear any previous connection error on success
       this.connectionErrors.delete(id);
+      this.connectedSince.set(id, Date.now());
       this.generatePolicyRules(id, entry.connector.getDiscoveredTools());
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.connectionErrors.set(id, message);
+      this.recordError(id, message);
       throw error;
     }
   }
@@ -88,6 +104,7 @@ export class MCPServerRegistry {
     }
     this.removePolicyRules(id);
     this.connectionErrors.delete(id);
+    this.connectedSince.delete(id);
     await entry.connector.disconnect();
   }
 
@@ -136,6 +153,111 @@ export class MCPServerRegistry {
   /** Get a connected MCPConnector by server ID. */
   getConnector(id: string): MCPConnector | undefined {
     return this.servers.get(id)?.connector;
+  }
+
+  // ---- Health monitoring ----
+
+  /** Record a health check result for a server. */
+  private recordHealthCheck(serverId: string, entry: HealthCheckEntry): void {
+    let history = this.healthHistory.get(serverId);
+    if (!history) {
+      history = [];
+      this.healthHistory.set(serverId, history);
+    }
+    history.unshift(entry);
+    if (history.length > MAX_HEALTH_HISTORY) {
+      history.length = MAX_HEALTH_HISTORY;
+    }
+    if (!entry.ok && entry.error) {
+      this.recordError(serverId, entry.error);
+    }
+  }
+
+  /** Record an error for a server. */
+  private recordError(serverId: string, message: string): void {
+    this.errorCounts.set(serverId, (this.errorCounts.get(serverId) ?? 0) + 1);
+    let errors = this.recentErrors.get(serverId);
+    if (!errors) {
+      errors = [];
+      this.recentErrors.set(serverId, errors);
+    }
+    errors.unshift({ timestamp: Date.now(), message });
+    if (errors.length > 20) {
+      errors.length = 20;
+    }
+  }
+
+  /** Run a health check (ping) on all connected servers and record results. */
+  async runHealthChecks(): Promise<void> {
+    const entries = Array.from(this.servers.entries());
+    await Promise.allSettled(
+      entries.map(async ([id, { connector }]) => {
+        if (!connector.isConnected()) {
+          this.recordHealthCheck(id, { timestamp: Date.now(), ok: false, error: "Not connected" });
+          return;
+        }
+        const result = await connector.ping();
+        if (result.ok) {
+          this.recordHealthCheck(id, { timestamp: Date.now(), ok: true, latencyMs: result.latencyMs });
+        } else {
+          this.recordHealthCheck(id, { timestamp: Date.now(), ok: false, error: result.error });
+        }
+      }),
+    );
+  }
+
+  /** Start periodic health checks at the given interval (default 30s). */
+  startHealthChecks(intervalMs = 30_000): void {
+    this.stopHealthChecks();
+    this.healthInterval = setInterval(() => {
+      this.runHealthChecks().catch(() => {});
+    }, intervalMs);
+    // Run an initial check immediately
+    this.runHealthChecks().catch(() => {});
+  }
+
+  /** Stop periodic health checks. */
+  stopHealthChecks(): void {
+    if (this.healthInterval) {
+      clearInterval(this.healthInterval);
+      this.healthInterval = null;
+    }
+  }
+
+  /** Get aggregated health metrics for all servers. */
+  getHealthMetrics(): ConnectorHealthMetrics[] {
+    return Array.from(this.servers.values()).map(({ config, connector }) => {
+      const id = config.id;
+      const history = this.healthHistory.get(id) ?? [];
+      const okChecks = history.filter((h) => h.ok);
+      const uptimePercent = history.length > 0 ? Math.round((okChecks.length / history.length) * 100) : 0;
+
+      const latencies = okChecks.filter((h) => h.latencyMs != null).map((h) => h.latencyMs!);
+      const latencyMs = latencies.length > 0 ? latencies[0] : null;
+      const avgLatencyMs = latencies.length > 0 ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : null;
+
+      const lastOk = okChecks[0];
+      const connSince = this.connectedSince.get(id);
+      const errors = this.recentErrors.get(id) ?? [];
+
+      return {
+        serverId: id,
+        serverName: config.name,
+        transport: config.transport,
+        connected: connector.isConnected(),
+        lastChecked: lastOk ? new Date(lastOk.timestamp).toISOString() : null,
+        connectedSince: connSince ? new Date(connSince).toISOString() : null,
+        uptimePercent,
+        latencyMs,
+        avgLatencyMs,
+        errorCount: this.errorCounts.get(id) ?? 0,
+        recentErrors: errors.map((e) => ({
+          timestamp: new Date(e.timestamp).toISOString(),
+          message: e.message,
+        })),
+        checkHistory: history.slice(0, 20),
+      };
+    });
   }
 
   private configToRow(config: MCPServerConfig): MCPServerRow {

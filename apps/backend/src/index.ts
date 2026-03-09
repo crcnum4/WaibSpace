@@ -128,6 +128,9 @@ log.info("MCP registry loaded", {
   toolCount: mcpRegistry.getAllTools().length,
 });
 
+// Start periodic health checks for connected MCP servers (every 30s)
+mcpRegistry.startHealthChecks(30_000);
+
 // ---------- 5. Agent Registry ----------
 const agentRegistry = new AgentRegistry();
 
@@ -282,6 +285,7 @@ log.info("WaibSpace backend started", { port: PORT });
 // ---------- 13. Graceful Shutdown ----------
 function handleShutdown(signal: string) {
   log.info("Shutting down", { signal });
+  mcpRegistry.stopHealthChecks();
   scheduler.stop();
   server.stop();
   log.info("Shutdown complete");

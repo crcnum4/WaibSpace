@@ -142,6 +142,23 @@ export function startServer(deps: ServerDeps) {
 
       // ---------- MCP Server Registry endpoints ----------
 
+      // GET /api/mcp/health — connector health metrics
+      if (url.pathname === "/api/mcp/health" && req.method === "GET") {
+        if (!deps.mcpRegistry) {
+          return jsonResponse({ error: "MCP registry not available" }, 503);
+        }
+        return jsonResponse(deps.mcpRegistry.getHealthMetrics());
+      }
+
+      // POST /api/mcp/health/check — trigger an immediate health check
+      if (url.pathname === "/api/mcp/health/check" && req.method === "POST") {
+        if (!deps.mcpRegistry) {
+          return jsonResponse({ error: "MCP registry not available" }, 503);
+        }
+        await deps.mcpRegistry.runHealthChecks();
+        return jsonResponse(deps.mcpRegistry.getHealthMetrics());
+      }
+
       // GET /api/mcp/servers — list all servers with status
       if (url.pathname === "/api/mcp/servers" && req.method === "GET") {
         if (!deps.mcpRegistry) {
