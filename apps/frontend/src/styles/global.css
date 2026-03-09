@@ -2881,6 +2881,8 @@ body {
 /* Container                     */
 /* ----------------------------- */
 .block-container {
+  display: flex;
+  flex-direction: column;
   border-radius: var(--radius-md);
   font-family: var(--font-sans);
   line-height: var(--leading-normal);
@@ -2890,6 +2892,9 @@ body {
 /* Row                           */
 /* ----------------------------- */
 .block-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   font-family: var(--font-sans);
   line-height: var(--leading-normal);
   flex-wrap: wrap;
@@ -2899,6 +2904,9 @@ body {
 /* Stack                         */
 /* ----------------------------- */
 .block-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   font-family: var(--font-sans);
   line-height: var(--leading-normal);
 }
@@ -2930,9 +2938,48 @@ body {
 /* Text                          */
 /* ----------------------------- */
 .block-text {
+  margin: 0;
   font-family: var(--font-sans);
+  color: var(--color-text);
+  line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.block-text--h1 {
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-bold);
+}
+
+.block-text--h2 {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-semibold);
+}
+
+.block-text--h3,
+.block-text--heading {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+}
+
+.block-text--body {
+  font-size: var(--text-base);
+  font-weight: var(--weight-normal);
+}
+
+.block-text--caption {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-normal);
+}
+
+.block-text--label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.block-text--bold {
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
 }
 
 /* ----------------------------- */
@@ -3011,6 +3058,9 @@ body {
 /* List                          */
 /* ----------------------------- */
 .block-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
   font-family: var(--font-sans);
 }
 
@@ -3018,6 +3068,9 @@ body {
 /* ListItem                      */
 /* ----------------------------- */
 .block-list-item {
+  padding: var(--block-item-padding, 8px 12px);
+  cursor: pointer;
+  border-radius: var(--radius-sm, 4px);
   font-family: var(--font-sans);
   border: 1px solid transparent;
   transition:

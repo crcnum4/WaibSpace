@@ -1,23 +1,23 @@
 import type { BlockProps } from "../../registry";
 
 export function Row({ block, children }: BlockProps) {
-  const { align = "center", justify = "flex-start", gap = "0" } =
-    block.props as {
-      align?: string;
-      justify?: string;
-      gap?: string;
-    };
+  const { align, justify, gap, className = "" } = block.props as {
+    align?: string;
+    justify?: string;
+    gap?: string;
+    className?: string;
+  };
+
+  // Only set inline styles for non-default prop values
+  const style: React.CSSProperties = {};
+  if (align) style.alignItems = align;
+  if (justify) style.justifyContent = justify;
+  if (gap) style.gap = gap;
 
   return (
     <div
-      className="block-row"
-      style={{
-        display: "flex",
-        flexDirection: "row",
-        alignItems: align,
-        justifyContent: justify,
-        gap,
-      }}
+      className={`block-row ${className}`.trim()}
+      style={Object.keys(style).length > 0 ? style : undefined}
     >
       {children}
     </div>
