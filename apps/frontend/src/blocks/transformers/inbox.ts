@@ -85,6 +85,10 @@ export function inboxToBlocks(spec: SurfaceSpec): ComponentBlock[] {
       if ("urgency" in email && email.urgency) {
         cardProps.urgency = email.urgency;
       }
+      // Attach sender profile if available
+      if ("senderProfile" in email && email.senderProfile) {
+        cardProps.senderProfile = email.senderProfile;
+      }
       children.push({
         id: `${sid}-email-${i}`,
         type: "GmailEmailCard",

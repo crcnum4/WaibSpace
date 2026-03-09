@@ -1,6 +1,18 @@
 import type { SurfaceAction, RiskClass } from "@waibspace/types";
 import type { ProvenanceMetadata } from "@waibspace/types";
 
+/** Lightweight sender profile summary attached to individual emails */
+export interface EmailSenderProfile {
+  email: string;
+  name: string;
+  initials: string;
+  avatarHue: number;
+  emailCount: number;
+  isVip: boolean;
+  vipReason?: string;
+  frequencyLabel: string;
+}
+
 export interface InboxSurfaceData {
   emails: Array<{
     id: string;
@@ -11,6 +23,8 @@ export interface InboxSurfaceData {
     isUnread: boolean;
     urgency?: "high" | "medium" | "low";
     suggestedReply?: string;
+    /** Sender profile built from interaction history */
+    senderProfile?: EmailSenderProfile;
   }>;
   totalCount: number;
   unreadCount: number;

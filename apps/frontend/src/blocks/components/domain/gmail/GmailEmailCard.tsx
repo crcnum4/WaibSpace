@@ -1,5 +1,16 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import type { BlockProps } from "../../../registry";
+
+interface SenderProfileProps {
+  email: string;
+  name: string;
+  initials: string;
+  avatarHue: number;
+  emailCount: number;
+  isVip: boolean;
+  vipReason?: string;
+  frequencyLabel: string;
+}
 
 interface GmailEmailCardProps {
   emailId: string;
@@ -12,6 +23,7 @@ interface GmailEmailCardProps {
   labels?: string[];
   urgency?: "high" | "medium" | "low";
   suggestedReply?: string;
+  senderProfile?: SenderProfileProps;
 }
 
 /**
@@ -45,11 +57,16 @@ export function GmailEmailCard({ block, onEvent }: BlockProps) {
     isUnread,
     labels = [],
     urgency,
+    senderProfile,
   } = block.props as GmailEmailCardProps;
 
-  const initials = getInitials(from);
-  const hue = senderHue(from);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  // Use sender profile data when available, fall back to local derivation
+  const initials = senderProfile?.initials ?? getInitials(from);
+  const hue = senderProfile?.avatarHue ?? senderHue(from);
   const avatarBg = `hsl(${hue}, 55%, 45%)`;
+  const isVip = senderProfile?.isVip ?? false;
 
   const hasImportant = labels.includes("IMPORTANT");
   const hasStarred = labels.includes("STARRED");
@@ -57,6 +74,7 @@ export function GmailEmailCard({ block, onEvent }: BlockProps) {
   const cardClass = [
     "gmail-email-card",
     isUnread ? "gmail-email-card--unread" : "",
+    isVip ? "gmail-email-card--vip" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -76,19 +94,36 @@ export function GmailEmailCard({ block, onEvent }: BlockProps) {
   }, [onEvent, threadId, emailId, subject, from]);
 
   return (
-    <div className={cardClass} role="listitem" tabIndex={0} aria-label={`${isUnread ? "Unread: " : ""}${subject || "No Subject"} from ${from}`} onClick={handleCardClick} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleCardClick(); }}>
+    <div className={cardClass} role="listitem" tabIndex={0} aria-label={`${isVip ? "VIP: " : ""}${isUnread ? "Unread: " : ""}${subject || "No Subject"} from ${from}`} onClick={handleCardClick} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleCardClick(); }}>
       <div
-        className="gmail-email-card__avatar"
+        className={`gmail-email-card__avatar${isVip ? " gmail-email-card__avatar--vip" : ""}`}
         style={{ backgroundColor: avatarBg }}
         aria-hidden="true"
+        onMouseEnter={() => senderProfile && setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
       >
         {initials}
+        {isVip && <span className="gmail-email-card__vip-badge" title="VIP sender">VIP</span>}
+        {showTooltip && senderProfile && (
+          <div className="gmail-email-card__sender-tooltip" role="tooltip">
+            <div className="gmail-email-card__sender-tooltip-name">{senderProfile.name}</div>
+            <div className="gmail-email-card__sender-tooltip-email">{senderProfile.email}</div>
+            <div className="gmail-email-card__sender-tooltip-freq">{senderProfile.frequencyLabel}</div>
+            <div className="gmail-email-card__sender-tooltip-count">{senderProfile.emailCount} email{senderProfile.emailCount !== 1 ? "s" : ""} total</div>
+            {senderProfile.isVip && senderProfile.vipReason && (
+              <div className="gmail-email-card__sender-tooltip-vip">{senderProfile.vipReason}</div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="gmail-email-card__content">
         <div className="gmail-email-card__subject">{subject || "No Subject"}</div>
         <div className="gmail-email-card__meta">
-          <span className="gmail-email-card__from">{from}</span>
+          <span className="gmail-email-card__from">
+            {from}
+            {isVip && <span className="gmail-email-card__vip-indicator"> (VIP)</span>}
+          </span>
           <span className="gmail-email-card__date">{date}</span>
         </div>
         <div className="gmail-email-card__snippet">{snippet}</div>
