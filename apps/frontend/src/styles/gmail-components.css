@@ -284,6 +284,122 @@
   gap: 8px;
 }
 
+/* ---- Drag-and-Drop Reorder ---- */
+
+.gmail-inbox-list__drag-item {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border-radius: var(--block-card-radius);
+  transition:
+    opacity var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+  cursor: grab;
+  position: relative;
+}
+
+.gmail-inbox-list__drag-item:active {
+  cursor: grabbing;
+}
+
+.gmail-inbox-list__drag-item--dragging {
+  opacity: 0.4;
+  transform: scale(0.98);
+}
+
+.gmail-inbox-list__drag-item--drop-target {
+  box-shadow: 0 -2px 0 0 var(--color-accent);
+}
+
+.gmail-inbox-list__drag-item--drag-active {
+  transition:
+    opacity var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform 0.15s ease;
+}
+
+.gmail-inbox-list__drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  flex-shrink: 0;
+  color: var(--color-muted);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  cursor: grab;
+}
+
+.gmail-inbox-list__drag-item:hover .gmail-inbox-list__drag-handle,
+.gmail-inbox-list__drag-item:focus-within .gmail-inbox-list__drag-handle {
+  opacity: 1;
+}
+
+.gmail-inbox-list__drag-handle:active {
+  cursor: grabbing;
+}
+
+.gmail-inbox-list__drag-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- Keyboard Reorder Buttons ---- */
+
+.gmail-inbox-list__reorder-btns {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex-shrink: 0;
+  padding: 0 var(--space-1);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.gmail-inbox-list__drag-item:hover .gmail-inbox-list__reorder-btns,
+.gmail-inbox-list__drag-item:focus-within .gmail-inbox-list__reorder-btns {
+  opacity: 1;
+}
+
+.gmail-inbox-list__reorder-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+  font-family: var(--font-sans);
+  line-height: 1;
+}
+
+.gmail-inbox-list__reorder-btn:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+  border-color: var(--color-text-secondary);
+}
+
+.gmail-inbox-list__reorder-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.gmail-inbox-list__reorder-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 /* ---- GmailInboxList Error State ---- */
 
 .gmail-inbox-list__error {
@@ -749,5 +865,13 @@
 
   .gmail-inbox-list__title {
     font-size: var(--text-lg);
+  }
+
+  .gmail-inbox-list__drag-handle {
+    display: none;
+  }
+
+  .gmail-inbox-list__reorder-btns {
+    opacity: 1;
   }
 }
