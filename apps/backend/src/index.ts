@@ -38,7 +38,7 @@ import {
   ModelProviderRegistry,
   AnthropicProvider,
 } from "@waibspace/model-provider";
-import { MemoryStore, MemoryUpdatePipeline } from "@waibspace/memory";
+import { MemoryStore, MemoryUpdatePipeline, ObservationProcessor } from "@waibspace/memory";
 import { WaibDatabase } from "@waibspace/db";
 import { BackgroundTaskScheduler, MVP_BACKGROUND_TASKS } from "./background";
 import { startServer } from "./server";
@@ -152,6 +152,10 @@ const orchestrator = new Orchestrator(bus, agentRegistry, {
 // ---------- 8. Memory Update Pipeline ----------
 const memoryPipeline = new MemoryUpdatePipeline(memoryStore, bus);
 memoryPipeline.start();
+
+// ---------- 8b. Observation Processor ----------
+const observationProcessor = new ObservationProcessor(memoryStore, bus);
+observationProcessor.start();
 
 // ---------- 9. Background Task Scheduler ----------
 const scheduler = new BackgroundTaskScheduler(bus, orchestrator, memoryStore);
