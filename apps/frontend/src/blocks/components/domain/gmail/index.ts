@@ -2,6 +2,7 @@ import { registerBlocks } from "../../../registry";
 import { GmailEmailCard } from "./GmailEmailCard";
 import { GmailInboxList } from "./GmailInboxList";
 import { GmailScanResult } from "./GmailScanResult";
+import { GmailThreadView } from "./GmailThreadView";
 
 /**
  * Register all Gmail domain block components.
@@ -37,6 +38,16 @@ export function registerGmailComponents(): void {
         category: "domain",
         source: "gmail.waib",
         description: "Summary card displayed after WaibScan analysis",
+      },
+    },
+    {
+      type: "GmailThreadView",
+      component: GmailThreadView,
+      registration: {
+        type: "GmailThreadView",
+        category: "domain",
+        source: "gmail.waib",
+        description: "Thread conversation view with expand/collapse message bubbles",
       },
     },
   ]);

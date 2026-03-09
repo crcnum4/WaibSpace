@@ -4,7 +4,10 @@ export type {
   EmailSummary,
   ListEmailsParams,
   GetEmailParams,
+  GetThreadParams,
   SearchEmailsParams,
   CreateDraftParams,
   SendEmailParams,
+  ThreadMessage,
+  ThreadData,
 } from "./types";
