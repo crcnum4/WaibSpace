@@ -2,6 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { BaseConnector } from "../base-connector";
+import { TtlCache } from "../cache";
 import type {
   ConnectorRequest,
   ConnectorResponse,
@@ -15,11 +16,21 @@ import {
   validateResponse,
 } from "./validation";
 
+/** Default prefixes that indicate a tool mutates state. */
+const DEFAULT_MUTATING_PREFIXES = [
+  "send", "create", "update", "delete", "remove", "patch", "put", "post",
+  "write", "set", "add", "insert", "modify",
+];
+
+const FIVE_MINUTES = 5 * 60 * 1000;
+
 export class MCPConnector extends BaseConnector {
   private client: Client | null = null;
   private transport: StdioClientTransport | SSEClientTransport | null = null;
   private discoveredTools: MCPToolInfo[] = [];
   private readonly serverConfig: MCPServerConfig;
+  private readonly cache: TtlCache | null;
+  private readonly mutatingPrefixes: string[];
 
   constructor(config: MCPServerConfig) {
     super({
@@ -36,6 +47,21 @@ export class MCPConnector extends BaseConnector {
       },
     });
     this.serverConfig = config;
+
+    // Initialise cache if enabled
+    const cacheConfig = config.cache;
+    if (cacheConfig?.enabled) {
+      this.cache = new TtlCache({
+        defaultTtlMs: cacheConfig.defaultTtlMs ?? FIVE_MINUTES,
+        maxEntries: cacheConfig.maxEntries ?? 500,
+        staleWhileRevalidate: cacheConfig.staleWhileRevalidate ?? false,
+      });
+      this.mutatingPrefixes =
+        cacheConfig.mutatingPrefixes ?? DEFAULT_MUTATING_PREFIXES;
+    } else {
+      this.cache = null;
+      this.mutatingPrefixes = [];
+    }
   }
 
   async connect(): Promise<void> {
@@ -196,7 +222,64 @@ export class MCPConnector extends BaseConnector {
     }
   }
 
+  /** Check whether a tool name looks like a mutating (write) operation. */
+  private isMutating(toolName: string): boolean {
+    const lower = toolName.toLowerCase();
+    return this.mutatingPrefixes.some(
+      (p) => lower.startsWith(p) || lower.includes(`_${p}`) || lower.includes(`-${p}`),
+    );
+  }
+
+  /** Resolve the TTL for a specific tool, falling back to the default. */
+  private toolTtl(toolName: string): number | undefined {
+    return this.serverConfig.cache?.toolTtlMs?.[toolName];
+  }
+
   private async invokeTool(
+    toolName: string,
+    args: Record<string, unknown>,
+  ): Promise<unknown> {
+    if (!this.client) {
+      throw new Error("MCP client is not connected");
+    }
+
+    // --- Cache: invalidate on mutating call ---
+    if (this.cache && this.isMutating(toolName)) {
+      const invalidated = this.cache.invalidateByPrefix(`${this.serverConfig.id}:`);
+      if (invalidated > 0) {
+        this.log(`Cache: invalidated ${invalidated} entries before mutating tool "${toolName}"`);
+      }
+    }
+
+    // --- Cache: check for cached response (read-only tools only) ---
+    if (this.cache && !this.isMutating(toolName)) {
+      const cacheKey = TtlCache.buildKey(this.serverConfig.id, toolName, args);
+      const revalidate = this.serverConfig.cache?.staleWhileRevalidate
+        ? () => this.callToolRaw(toolName, args)
+        : undefined;
+      const cached = this.cache.get(cacheKey, revalidate);
+      if (cached !== undefined) {
+        this.log(`Cache hit for "${toolName}"`);
+        return cached;
+      }
+    }
+
+    const content = await this.callToolRaw(toolName, args);
+
+    // --- Cache: store response for read-only tools ---
+    if (this.cache && !this.isMutating(toolName)) {
+      const cacheKey = TtlCache.buildKey(this.serverConfig.id, toolName, args);
+      this.cache.set(cacheKey, content, this.toolTtl(toolName));
+    }
+
+    return content;
+  }
+
+  /**
+   * Actually call the MCP tool (no caching). Extracted so `invokeTool`
+   * and stale-while-revalidate callbacks can share logic.
+   */
+  private async callToolRaw(
     toolName: string,
     args: Record<string, unknown>,
   ): Promise<unknown> {
