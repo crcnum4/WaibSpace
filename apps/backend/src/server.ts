@@ -180,6 +180,16 @@ export function startServer(deps: ServerDeps) {
         }
       }
 
+      // POST /api/mcp/servers/:id/test — ping a connected server
+      const testMatch = url.pathname.match(/^\/api\/mcp\/servers\/([^/]+)\/test$/);
+      if (testMatch && req.method === "POST") {
+        if (!deps.mcpRegistry) {
+          return jsonResponse({ error: "MCP registry not available" }, 503);
+        }
+        const result = await deps.mcpRegistry.testServer(testMatch[1]);
+        return jsonResponse(result, result.ok ? 200 : 502);
+      }
+
       // GET /api/mcp/servers/:id/tools — list tools for a server
       const toolsMatch = url.pathname.match(/^\/api\/mcp\/servers\/([^/]+)\/tools$/);
       if (toolsMatch && req.method === "GET") {

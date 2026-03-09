@@ -121,6 +121,18 @@ export class MCPServerRegistry {
     return tools;
   }
 
+  /** Ping a connected server and return latency info. */
+  async testServer(id: string): Promise<{ ok: true; latencyMs: number; toolCount: number } | { ok: false; error: string }> {
+    const entry = this.servers.get(id);
+    if (!entry) {
+      return { ok: false, error: `MCP server "${id}" not found` };
+    }
+    if (!entry.connector.isConnected()) {
+      return { ok: false, error: "Server is not connected" };
+    }
+    return entry.connector.ping();
+  }
+
   /** Get a connected MCPConnector by server ID. */
   getConnector(id: string): MCPConnector | undefined {
     return this.servers.get(id)?.connector;
