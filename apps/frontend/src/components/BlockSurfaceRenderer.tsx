@@ -8,12 +8,13 @@
  * the onInteraction/onAction callbacks that HomePage expects.
  */
 
-import { useMemo, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ComposedLayout } from "@waibspace/ui-renderer-contract";
 import type { SurfaceAction, ComponentBlock } from "@waibspace/types";
 import { WaibRenderer } from "../blocks/WaibRenderer";
-import { transformSurface } from "../blocks/transformers";
 import { ErrorSurface } from "./ErrorSurface";
+import { useSurfaceDiff } from "../hooks/useSurfaceDiff";
+import { isLayoutStale } from "../lib/surface-diff";
 
 // ---------------------------------------------------------------------------
 // Props — identical to SurfaceRenderer
@@ -103,29 +104,23 @@ export function BlockSurfaceRenderer({
   pipelinePhase,
   loadingServices,
 }: BlockSurfaceRendererProps) {
-  // Transform ComposedLayout into ComponentBlock[] per surface
-  const surfaceBlocks = useMemo<
-    Array<{ blocks: ComponentBlock[]; width: string; prominence: string; surfaceId: string; position: number }>
-  >(() => {
-    if (!layout || layout.surfaces.length === 0) return [];
-    const directiveMap = new Map(
-      layout.layout.map((d) => [d.surfaceId, d]),
-    );
-    return layout.surfaces.map((spec, index) => {
-      const directive = directiveMap.get(spec.surfaceId);
-      const blocks = transformSurface(spec);
-      if (import.meta.env.DEV) {
-        console.log(`[BlockRenderer] ${spec.surfaceType}/${spec.surfaceId}`, blocks);
-      }
-      return {
-        blocks,
-        width: directive?.width ?? "full",
-        prominence: directive?.prominence ?? "standard",
-        surfaceId: spec.surfaceId,
-        position: directive?.position ?? index,
-      };
-    });
-  }, [layout]);
+  // Diff-aware surface transformation: only recomputes blocks for surfaces
+  // whose data actually changed. Unchanged surfaces retain stable block
+  // references, allowing React.memo in WaibRenderer to skip re-renders.
+  const { surfaces: surfaceBlocks, diff } = useSurfaceDiff(layout);
+
+  // Log diff summary in development
+  if (import.meta.env.DEV && diff) {
+    const { added, removed, changed, unchanged } = diff;
+    if (added.length || removed.length || changed.length) {
+      console.log(
+        `[SurfaceDiff] +${added.length} -${removed.length} ~${changed.length} =${unchanged.length}`,
+      );
+    }
+  }
+
+  // Staleness indicator: warn if layout data is old
+  const isStale = layout ? isLayoutStale(layout) : false;
 
   // Progressive reveal animation
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
@@ -271,6 +266,13 @@ export function BlockSurfaceRenderer({
           <div className="loading-banner">
             <div className="loading-spinner small" />
             <span>{PHASE_LABELS[pipelinePhase] ?? pipelinePhase}</span>
+          </div>
+        </div>
+      )}
+      {isStale && (
+        <div className="surface-cell full" style={{ order: -2 }}>
+          <div className="stale-banner">
+            Data may be outdated. Refreshing...
           </div>
         </div>
       )}
