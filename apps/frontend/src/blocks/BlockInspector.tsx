@@ -145,6 +145,7 @@ function BlockTreeNode({
   return (
     <div style={{ fontFamily: "monospace", fontSize: 12 }}>
       <div
+        className="block-inspector-tree-node"
         onClick={() => expandable && setExpanded(!expanded)}
         style={{
           padding: "3px 0",
@@ -155,12 +156,6 @@ function BlockTreeNode({
           gap: 6,
           borderRadius: 4,
           userSelect: "none",
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.backgroundColor = BG_DARKER;
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
         }}
       >
         <span style={{ color: DIMMED, width: 12, textAlign: "center" }}>
@@ -215,7 +210,7 @@ function BlockTreeNode({
 
 function TreeTab({ blocks }: { blocks: ComponentBlock[] }) {
   return (
-    <div style={scrollAreaStyle}>
+    <div className="block-inspector-scroll" style={scrollAreaStyle}>
       {blocks.length === 0 ? (
         <div style={{ color: DIMMED, textAlign: "center", padding: 24 }}>
           No blocks to display.
@@ -250,7 +245,7 @@ function ObservationsTab({
   const reversed = [...observations].reverse();
 
   return (
-    <div ref={scrollRef} style={scrollAreaStyle}>
+    <div ref={scrollRef} className="block-inspector-scroll" style={scrollAreaStyle}>
       {reversed.length === 0 ? (
         <div style={{ color: DIMMED, textAlign: "center", padding: 24 }}>
           No observations yet. Interact with blocks to see entries here.
@@ -265,6 +260,7 @@ function ObservationsTab({
           return (
             <div
               key={reversed.length - i}
+              className="block-inspector-observation"
               style={{
                 padding: "10px 12px",
                 marginBottom: 4,
@@ -346,7 +342,7 @@ function ComponentsTab() {
   });
 
   return (
-    <div style={scrollAreaStyle}>
+    <div className="block-inspector-scroll" style={scrollAreaStyle}>
       <div
         style={{
           padding: "8px 12px",
@@ -362,6 +358,7 @@ function ComponentsTab() {
       {registrations.map((reg) => (
         <div
           key={reg.type}
+          className="block-inspector-component"
           style={{
             padding: "10px 12px",
             marginBottom: 4,
@@ -440,10 +437,10 @@ export function BlockInspector({
   return (
     <>
       {/* Backdrop */}
-      <div style={backdropStyle} onClick={toggle} />
+      <div className="block-inspector-backdrop" style={backdropStyle} onClick={toggle} />
 
       {/* Panel */}
-      <div style={panelStyle}>
+      <div className="block-inspector-panel" style={panelStyle}>
         {/* Header */}
         <div style={headerStyle}>
           <span
@@ -466,6 +463,7 @@ export function BlockInspector({
           {(["tree", "observations", "components"] as TabId[]).map((tab) => (
             <button
               key={tab}
+              className="block-inspector-tab"
               style={tabStyle(activeTab === tab)}
               onClick={() => setActiveTab(tab)}
             >
@@ -496,6 +494,7 @@ export function BlockInspectorToggle({
 }): JSX.Element {
   return (
     <button
+      className="block-inspector-toggle"
       onClick={onClick}
       title="Block Inspector (Ctrl+Shift+B)"
       style={{
