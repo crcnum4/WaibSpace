@@ -420,6 +420,10 @@ body {
   grid-column: span 6;
 }
 
+.surface-cell.two-thirds {
+  grid-column: span 8;
+}
+
 .surface-cell.third {
   grid-column: span 4;
 }
@@ -428,10 +432,14 @@ body {
   .surface-cell.third {
     grid-column: span 6;
   }
+  .surface-cell.two-thirds {
+    grid-column: span 12;
+  }
 }
 
 @media (max-width: 768px) {
   .surface-cell.half,
+  .surface-cell.two-thirds,
   .surface-cell.third {
     grid-column: span 12;
   }
@@ -1831,6 +1839,7 @@ body {
   }
 
   .surface-cell.half,
+  .surface-cell.two-thirds,
   .surface-cell.third,
   .surface-cell.full {
     grid-column: span 12;

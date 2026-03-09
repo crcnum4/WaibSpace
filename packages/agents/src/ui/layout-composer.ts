@@ -142,16 +142,27 @@ export class LayoutComposerAgent extends BaseAgent {
    * Map resolved surfaces to LayoutDirectives.
    *
    * - Assigns sequential position numbers (0 = first/top)
-   * - Width defaults to "full" for primary, "half" for secondary
+   * - Dashboard mode (2 surfaces): primary gets "two-thirds", secondary gets "third"
+   * - Single surface: primary gets "full"
+   * - 3+ surfaces: secondary surfaces default to "half"
    * - Prominence defaults from layoutHints or "standard"
    * - Max 4 visible surfaces
    */
   private buildDirectives(surfaces: SurfaceSpec[]): LayoutDirective[] {
-    return surfaces.slice(0, MAX_VISIBLE_SURFACES).map((surface, idx) => {
+    const visible = surfaces.slice(0, MAX_VISIBLE_SURFACES);
+    const isDashboard = visible.length === 2;
+
+    return visible.map((surface, idx) => {
       const hints: LayoutHints = surface.layoutHints;
       const position = hints.position ?? "secondary";
 
-      const defaultWidth = position === "primary" ? "full" : "half";
+      let defaultWidth: string;
+      if (isDashboard) {
+        // Dashboard layout: primary (2/3) + secondary (1/3)
+        defaultWidth = position === "primary" ? "two-thirds" : "third";
+      } else {
+        defaultWidth = position === "primary" ? "full" : "half";
+      }
 
       return {
         surfaceId: surface.surfaceId,
