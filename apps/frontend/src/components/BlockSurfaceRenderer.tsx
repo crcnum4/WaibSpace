@@ -154,10 +154,15 @@ export function BlockSurfaceRenderer({
 
       const data = payload as Record<string, unknown>;
 
-      // Observation batches from ObservationCollector — forward as-is
+      // Observation batches from ObservationCollector — these go directly
+      // over the WebSocket for telemetry; do not forward to onInteraction.
       if (data.batch) return;
 
       const interaction = (data.interaction as string) ?? "";
+
+      // Passive observation events (e.g. scroll-view from IntersectionObserver)
+      // are telemetry-only and should not be forwarded as user interactions.
+      if (interaction === "scroll-view") return;
 
       // Try to resolve surfaceId/surfaceType from the payload context
       const surfaceId = (data.surfaceId as string) ?? "";
