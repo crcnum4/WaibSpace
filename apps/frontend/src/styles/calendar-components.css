@@ -259,3 +259,109 @@
   color: var(--color-warning-text);
   font-weight: var(--weight-semibold);
 }
+
+/* -------------------------------- */
+/* CalendarEventCard Skeleton       */
+/* -------------------------------- */
+
+.gcal-event-card--skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  pointer-events: none;
+}
+
+.gcal-event-card--skeleton .skel-bar {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 25%,
+    var(--color-surface-hover) 50%,
+    var(--color-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: block-skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
+.gcal-event-card--skeleton .skel-bar--time {
+  height: 0.75rem;
+  width: 30%;
+}
+
+.gcal-event-card--skeleton .skel-bar--title {
+  height: 0.875rem;
+  width: 60%;
+}
+
+.gcal-event-card--skeleton .skel-bar--location {
+  height: 0.75rem;
+  width: 45%;
+}
+
+/* -------------------------------- */
+/* CalendarDayTimeline Skeleton     */
+/* -------------------------------- */
+
+.gcal-day-timeline--skeleton {
+  display: flex;
+  position: relative;
+  height: 400px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  pointer-events: none;
+}
+
+.gcal-day-timeline--skeleton .skel-markers {
+  flex-shrink: 0;
+  width: 56px;
+  border-right: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: var(--space-3) var(--space-2);
+}
+
+.gcal-day-timeline--skeleton .skel-marker {
+  height: 0.625rem;
+  width: 70%;
+  margin-left: auto;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 25%,
+    var(--color-surface-hover) 50%,
+    var(--color-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: block-skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
+.gcal-day-timeline--skeleton .skel-track {
+  flex: 1;
+  position: relative;
+  padding: var(--space-3) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.gcal-day-timeline--skeleton .skel-event {
+  height: 48px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-border-subtle);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 25%,
+    var(--color-surface-hover) 50%,
+    var(--color-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: block-skeleton-shimmer 1.8s ease-in-out infinite;
+}
