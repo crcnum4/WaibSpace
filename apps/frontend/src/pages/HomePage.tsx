@@ -6,11 +6,14 @@ import type {
 } from "@waibspace/ui-renderer-contract";
 import type { SurfaceAction } from "@waibspace/types";
 import { useWebSocket } from "../hooks/useWebSocket";
+import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
+import { useGlobalShortcuts } from "../hooks/useGlobalShortcuts";
 import { BlockSurfaceRenderer } from "../components/BlockSurfaceRenderer";
 import { AgentStatus } from "../components/AgentStatus";
 import { ChatInput } from "../components/ChatInput";
 import { WelcomeState } from "../components/WelcomeState";
 import { ErrorSurface } from "../components/ErrorSurface";
+import { KeyboardShortcutHelp } from "../components/KeyboardShortcutHelp";
 import { BlockInspector, BlockInspectorToggle } from "../blocks/BlockInspector";
 import { composedLayoutToBlocks } from "../blocks/transformers";
 
@@ -49,6 +52,56 @@ export default function HomePage() {
     if (!layout || layout.surfaces.length === 0) return [];
     return composedLayoutToBlocks(layout);
   }, [layout]);
+
+  // Keyboard navigation for email lists
+  const hasSurfaces = layout && layout.surfaces.length > 0;
+
+  const handleEmailSelect = useCallback(
+    (_index: number, element: HTMLElement) => {
+      // Simulate a click on the selected card
+      element.click();
+    },
+    [],
+  );
+
+  const handleEmailArchive = useCallback(
+    (_index: number, _element: HTMLElement) => {
+      send("user.interaction", {
+        interaction: "archive",
+        target: "keyboard-shortcut",
+        surfaceId: "gmail-inbox",
+        surfaceType: "gmail",
+        context: { source: "keyboard" },
+        timestamp: Date.now(),
+      });
+    },
+    [send],
+  );
+
+  const handleEmailReply = useCallback(
+    (_index: number, _element: HTMLElement) => {
+      send("user.interaction", {
+        interaction: "reply",
+        target: "keyboard-shortcut",
+        surfaceId: "gmail-inbox",
+        surfaceType: "gmail",
+        context: { source: "keyboard" },
+        timestamp: Date.now(),
+      });
+    },
+    [send],
+  );
+
+  useKeyboardNavigation({
+    containerSelector: ".gmail-inbox-list__cards",
+    itemSelector: ".gmail-email-card",
+    onSelect: handleEmailSelect,
+    onArchive: handleEmailArchive,
+    onReply: handleEmailReply,
+    enabled: !!hasSurfaces,
+  });
+
+  const { helpVisible, dismissHelp } = useGlobalShortcuts();
 
   // On initial connection, check what services are connected
   // Show WelcomeState immediately, then trigger data fetch in background
@@ -206,8 +259,6 @@ export default function HomePage() {
     [send],
   );
 
-  const hasSurfaces = layout && layout.surfaces.length > 0;
-
   return (
     <div className="page home-page">
       {status !== "connected" && (
@@ -283,6 +334,8 @@ export default function HomePage() {
         isOpen={inspectorOpen}
         onToggle={() => setInspectorOpen((o) => !o)}
       />
+
+      <KeyboardShortcutHelp visible={helpVisible} onDismiss={dismissHelp} />
     </div>
   );
 }
