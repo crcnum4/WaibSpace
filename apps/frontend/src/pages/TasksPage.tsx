@@ -11,29 +11,72 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<BackgroundTask[]>([]);
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [history, setHistory] = useState<TaskExecution[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/tasks")
-      .then((r) => r.json())
-      .then(setTasks);
+      .then((r) => {
+        if (!r.ok) throw new Error(`Failed to load tasks (${r.status})`);
+        return r.json();
+      })
+      .then(setTasks)
+      .catch((err: unknown) => {
+        const message =
+          err instanceof Error ? err.message : "Failed to load tasks";
+        setError(message);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const toggleTask = async (id: string) => {
-    await fetch(`/api/tasks/${id}/toggle`, { method: "POST" });
-    const updated = await fetch("/api/tasks").then((r) => r.json());
-    setTasks(updated);
+    try {
+      const toggleRes = await fetch(`/api/tasks/${id}/toggle`, {
+        method: "POST",
+      });
+      if (!toggleRes.ok) throw new Error("Failed to toggle task");
+      const res = await fetch("/api/tasks");
+      if (!res.ok) throw new Error("Failed to refresh tasks");
+      const updated = await res.json();
+      setTasks(updated);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to toggle task";
+      setError(message);
+    }
   };
 
   const viewHistory = async (id: string) => {
     setSelectedTask(id);
-    const hist = await fetch(`/api/tasks/${id}/history`).then((r) => r.json());
-    setHistory(hist);
+    try {
+      const res = await fetch(`/api/tasks/${id}/history`);
+      if (!res.ok) throw new Error("Failed to load history");
+      const hist = await res.json();
+      setHistory(hist);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to load task history";
+      setError(message);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="tasks-page">
+        <h2>Background Tasks</h2>
+        <p>Loading tasks...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="tasks-page">
       <h2>Background Tasks</h2>
+      {error && <p className="tasks-error">{error}</p>}
       <div className="task-list">
+        {tasks.length === 0 && !error && (
+          <p className="tasks-empty">No background tasks configured.</p>
+        )}
         {tasks.map((task) => (
           <div key={task.id} className="task-card">
             <div className="task-header">
