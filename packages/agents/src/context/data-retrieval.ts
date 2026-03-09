@@ -13,6 +13,7 @@ interface RetrievalResult {
   status: "fulfilled" | "rejected";
   data?: unknown;
   provenance?: ProvenanceMetadata;
+  metadata?: Record<string, unknown>;
   error?: string;
 }
 
@@ -86,6 +87,7 @@ export class DataRetrievalAgent extends BaseAgent {
           operation: retrieval.operation,
           data: this.truncateData(response.data),
           provenance: response.provenance,
+          metadata: response.metadata,
         };
       }),
     );
@@ -100,6 +102,7 @@ export class DataRetrievalAgent extends BaseAgent {
             status: "fulfilled" as const,
             data: result.value.data,
             provenance: result.value.provenance,
+            metadata: result.value.metadata,
           };
         } else {
           this.log("Retrieval failed", {

@@ -84,7 +84,7 @@ export class InboxSurfaceAgent extends BaseAgent {
       });
     }
 
-    const gmailData = this.extractGmailData(retrievalOutput);
+    const { data: gmailData, totalUnread: gmailTotalUnread } = this.extractGmailData(retrievalOutput);
     const calendarData = this.extractCalendarData(input);
 
     // If no email data found, skip LLM call
@@ -116,7 +116,8 @@ export class InboxSurfaceAgent extends BaseAgent {
       SYSTEM_PROMPT,
     );
 
-    const unreadCount = analysis.emails.filter((e) => e.isUnread).length;
+    const batchUnreadCount = analysis.emails.filter((e) => e.isUnread).length;
+    const unreadCount = gmailTotalUnread ?? batchUnreadCount;
 
     const surfaceData: InboxSurfaceData = {
       emails: analysis.emails,
@@ -166,7 +167,7 @@ export class InboxSurfaceAgent extends BaseAgent {
     return undefined;
   }
 
-  private extractGmailData(retrieval: DataRetrievalOutput): unknown {
+  private extractGmailData(retrieval: DataRetrievalOutput): { data: unknown; totalUnread: number | undefined } {
     // Find email-related results from any connector (gmail, catalog-gmail, MCP mail, etc.)
     const emailResults = retrieval.results.filter(
       (r) =>
@@ -178,7 +179,30 @@ export class InboxSurfaceAgent extends BaseAgent {
           r.operation.includes("inbox")),
     );
 
-    if (emailResults.length === 0) return [];
+    if (emailResults.length === 0) return { data: [], totalUnread: undefined };
+
+    // Extract totalUnread from connector metadata if available
+    let totalUnread: number | undefined;
+    for (const result of emailResults) {
+      const meta = (result as Record<string, unknown>).metadata as Record<string, unknown> | undefined;
+      if (meta && typeof meta.totalUnread === "number") {
+        totalUnread = meta.totalUnread;
+        break;
+      }
+    }
+
+    // Also check for get-inbox-stats results
+    const statsResult = retrieval.results.find(
+      (r) =>
+        r.status === "fulfilled" &&
+        r.operation === "get-inbox-stats",
+    );
+    if (statsResult && totalUnread === undefined) {
+      const statsData = statsResult.data as Record<string, unknown> | undefined;
+      if (statsData && typeof statsData.messagesUnread === "number") {
+        totalUnread = statsData.messagesUnread;
+      }
+    }
 
     // MCP tools return [{type: "text", text: "..."}] — extract and parse the text content
     const allData: unknown[] = [];
@@ -190,7 +214,7 @@ export class InboxSurfaceAgent extends BaseAgent {
         allData.push(result.data);
       }
     }
-    return allData;
+    return { data: allData, totalUnread };
   }
 
   /**
