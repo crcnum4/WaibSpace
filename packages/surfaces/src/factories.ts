@@ -7,6 +7,7 @@ import type {
   ApprovalSurfaceData,
   ConnectionGuideSurfaceData,
   MorningDigestSurfaceData,
+  SearchSurfaceData,
 } from "./surface-data";
 
 export class SurfaceFactory {
@@ -155,7 +156,7 @@ export class SurfaceFactory {
     return new SurfaceSpecBuilder("morning-digest")
       .setTitle(data.greeting)
       .setSummary(summary)
-      .setPriority(95) // high priority — show at top of dashboard
+      .setPriority(95)
       .setData(data)
       .setLayout({
         position: "primary",
@@ -172,6 +173,25 @@ export class SurfaceFactory {
         label: "Open Inbox",
         actionType: "navigate.inbox",
         riskClass: "A",
+      })
+      .setProvenance(provenance)
+      .build();
+  }
+
+  static search(
+    data: SearchSurfaceData,
+    provenance: ProvenanceMetadata,
+  ): SurfaceSpec {
+    return new SurfaceSpecBuilder("search")
+      .setTitle(`Search: "${data.query}"`)
+      .setSummary(
+        `${data.totalResults} result${data.totalResults !== 1 ? "s" : ""} across ${data.sources.length} service${data.sources.length !== 1 ? "s" : ""}`,
+      )
+      .setPriority(85)
+      .setData(data)
+      .setLayout({
+        position: "primary",
+        prominence: "hero",
       })
       .setProvenance(provenance)
       .build();

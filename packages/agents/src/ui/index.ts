@@ -5,4 +5,5 @@ export { ApprovalSurfaceAgent } from "./approval-surface";
 export { ConnectionSurfaceAgent } from "./connection-surface";
 export { GenericDataSurfaceAgent } from "./generic-data-surface";
 export { MorningDigestAgent } from "./morning-digest-surface";
+export { SearchSurfaceAgent } from "./search-surface";
 export { LayoutComposerAgent, extractSurfaces } from "./layout-composer";

@@ -26,6 +26,7 @@ import {
   ApprovalSurfaceAgent,
   ConnectionSurfaceAgent,
   GenericDataSurfaceAgent,
+  SearchSurfaceAgent,
   LayoutComposerAgent,
   // Safety agents
   ProvenanceAnnotatorAgent,
@@ -159,6 +160,7 @@ agentRegistry.register(new DiscoverySurfaceAgent());
 agentRegistry.register(new ApprovalSurfaceAgent());
 agentRegistry.register(new ConnectionSurfaceAgent());
 agentRegistry.register(new GenericDataSurfaceAgent());
+agentRegistry.register(new SearchSurfaceAgent());
 agentRegistry.register(new LayoutComposerAgent());
 
 // Safety agents
