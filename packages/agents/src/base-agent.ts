@@ -8,6 +8,7 @@ import type {
   CompletionResponse,
   ModelRoleConfig,
 } from "@waibspace/model-provider";
+import { createLogger, type Logger } from "@waibspace/logger";
 import type { Agent, AgentInput, AgentContext } from "./types";
 
 export abstract class BaseAgent implements Agent {
@@ -15,6 +16,7 @@ export abstract class BaseAgent implements Agent {
   readonly name: string;
   readonly type: string;
   readonly category: AgentCategory;
+  protected readonly logger: Logger;
 
   constructor(config: {
     id: string;
@@ -26,6 +28,7 @@ export abstract class BaseAgent implements Agent {
     this.name = config.name;
     this.type = config.type;
     this.category = config.category;
+    this.logger = createLogger(`agent:${config.id}`);
   }
 
   abstract execute(
@@ -95,7 +98,7 @@ export abstract class BaseAgent implements Agent {
     });
   }
 
-  protected log(message: string, data?: unknown): void {
-    console.log(`[${this.category}:${this.name}] ${message}`, data ?? "");
+  protected log(message: string, data?: Record<string, unknown>): void {
+    this.logger.info(message, { category: this.category, ...data });
   }
 }

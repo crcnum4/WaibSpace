@@ -6,6 +6,7 @@ import type { MemoryStore } from "@waibspace/memory";
 import type { ConnectorRegistry } from "@waibspace/connectors";
 import type { PolicyEngine } from "@waibspace/policy";
 import type { WaibDatabase } from "@waibspace/db";
+import { createLogger, type Logger } from "@waibspace/logger";
 import { AgentRegistry } from "./agent-registry";
 import { buildExecutionPlan } from "./execution-planner";
 import { createPipelineTrace, logTrace } from "./trace";
@@ -23,11 +24,15 @@ export interface OrchestratorOptions {
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 export class Orchestrator {
+  private readonly log: Logger;
+
   constructor(
     private eventBus: EventBus,
     private registry: AgentRegistry,
     private options?: OrchestratorOptions,
-  ) {}
+  ) {
+    this.log = createLogger("orchestrator");
+  }
 
   private logToDb(
     eventType: string,
@@ -127,9 +132,11 @@ export class Orchestrator {
               error: errorMsg,
               durationMs: result.value.timing?.durationMs,
             }, "error");
-            console.error(
-              `[Orchestrator] [trace:${traceId}] Agent ${agent.id} returned error in phase "${phase.category}": ${errorMsg}`,
-            );
+            this.log.child({ traceId }).error("Agent returned error", {
+              agentId: agent.id,
+              phase: phase.category,
+              error: errorMsg,
+            });
           } else {
             // Log successful agent completion with output summary
             // Include full output for context agents (planner, connector-selection, data-retrieval)
@@ -158,9 +165,11 @@ export class Orchestrator {
             phase: phase.category,
             error: errorMsg,
           }, "error");
-          console.error(
-            `[Orchestrator] [trace:${traceId}] Agent ${agent.id} crashed in phase "${phase.category}": ${errorMsg}`,
-          );
+          this.log.child({ traceId }).error("Agent crashed", {
+            agentId: agent.id,
+            phase: phase.category,
+            error: errorMsg,
+          });
         }
       }
 
@@ -240,9 +249,9 @@ export class Orchestrator {
     } else if (errors.length > 0) {
       // No surfaces produced but there were errors - emit an error event
       // so the frontend knows something went wrong
-      console.error(
-        `[Orchestrator] [trace:${traceId}] Pipeline produced no surfaces. ${errors.length} error(s) occurred.`,
-      );
+      this.log.child({ traceId }).error("Pipeline produced no surfaces", {
+        errorCount: errors.length,
+      });
       const errorEvent = createEvent(
         "surface.composed",
         {
@@ -281,9 +290,10 @@ export class Orchestrator {
     }, errors.length > 0 ? "warn" : "info");
 
     if (errors.length > 0) {
-      console.warn(
-        `[Orchestrator] [trace:${traceId}] Completed with ${errors.length} error(s): ${errors.map((e) => e.agentId).join(", ")}`,
-      );
+      this.log.child({ traceId }).warn("Pipeline completed with errors", {
+        errorCount: errors.length,
+        failedAgents: errors.map((e) => e.agentId),
+      });
     }
   }
 }

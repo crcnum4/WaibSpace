@@ -19,6 +19,7 @@
     { "path": "packages/db" },
     { "path": "packages/ui-renderer-contract" },
     { "path": "apps/backend" },
+    { "path": "packages/logger" },
     { "path": "apps/frontend" }
   ],
   "include": []

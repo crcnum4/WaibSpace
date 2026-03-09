@@ -24,7 +24,8 @@
       "@waibspace/surfaces": ["./packages/surfaces/src/index.ts"],
       "@waibspace/model-provider": ["./packages/model-provider/src/index.ts"],
       "@waibspace/db": ["./packages/db/src/index.ts"],
-      "@waibspace/ui-renderer-contract": ["./packages/ui-renderer-contract/src/index.ts"]
+      "@waibspace/ui-renderer-contract": ["./packages/ui-renderer-contract/src/index.ts"],
+      "@waibspace/logger": ["./packages/logger/src/index.ts"]
     }
   }
 }

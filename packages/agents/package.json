@@ -5,6 +5,7 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "dependencies": {
+    "@waibspace/logger": "workspace:*",
     "@waibspace/types": "workspace:*",
     "@waibspace/event-bus": "workspace:*",
     "@waibspace/model-provider": "workspace:*",

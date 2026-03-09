@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "waibspace",
@@ -15,7 +16,9 @@
       "dependencies": {
         "@waibspace/agents": "workspace:*",
         "@waibspace/connectors": "workspace:*",
+        "@waibspace/db": "workspace:*",
         "@waibspace/event-bus": "workspace:*",
+        "@waibspace/logger": "workspace:*",
         "@waibspace/memory": "workspace:*",
         "@waibspace/model-provider": "workspace:*",
         "@waibspace/orchestrator": "workspace:*",
@@ -49,6 +52,7 @@
       "dependencies": {
         "@waibspace/connectors": "workspace:*",
         "@waibspace/event-bus": "workspace:*",
+        "@waibspace/logger": "workspace:*",
         "@waibspace/memory": "workspace:*",
         "@waibspace/model-provider": "workspace:*",
         "@waibspace/surfaces": "workspace:*",
@@ -61,11 +65,16 @@
       "version": "0.0.1",
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.12.1",
+        "@waibspace/db": "workspace:*",
         "@waibspace/policy": "workspace:*",
         "@waibspace/types": "workspace:*",
         "google-auth-library": "^9.15.1",
         "googleapis": "^171.4.0",
       },
+    },
+    "packages/db": {
+      "name": "@waibspace/db",
+      "version": "0.0.1",
     },
     "packages/event-bus": {
       "name": "@waibspace/event-bus",
@@ -74,10 +83,15 @@
         "@waibspace/types": "workspace:*",
       },
     },
+    "packages/logger": {
+      "name": "@waibspace/logger",
+      "version": "0.0.1",
+    },
     "packages/memory": {
       "name": "@waibspace/memory",
       "version": "0.0.1",
       "dependencies": {
+        "@waibspace/db": "workspace:*",
         "@waibspace/event-bus": "workspace:*",
         "@waibspace/types": "workspace:*",
       },
@@ -97,6 +111,7 @@
         "@waibspace/agents": "workspace:*",
         "@waibspace/connectors": "workspace:*",
         "@waibspace/event-bus": "workspace:*",
+        "@waibspace/logger": "workspace:*",
         "@waibspace/memory": "workspace:*",
         "@waibspace/policy": "workspace:*",
         "@waibspace/types": "workspace:*",
@@ -318,9 +333,13 @@
 
     "@waibspace/connectors": ["@waibspace/connectors@workspace:packages/connectors"],
 
+    "@waibspace/db": ["@waibspace/db@workspace:packages/db"],
+
     "@waibspace/event-bus": ["@waibspace/event-bus@workspace:packages/event-bus"],
 
     "@waibspace/frontend": ["@waibspace/frontend@workspace:apps/frontend"],
+
+    "@waibspace/logger": ["@waibspace/logger@workspace:packages/logger"],
 
     "@waibspace/memory": ["@waibspace/memory@workspace:packages/memory"],
 
