@@ -129,8 +129,8 @@ export class InboxSurfaceAgent extends BaseAgent {
     // Default path: map raw email fields directly — no LLM involved
     const emails: InboxSurfaceData["emails"] = rawEmails.map((email, i) => ({
       id: String(email.id ?? email.messageId ?? `email-${i}`),
-      from: String(email.from ?? email.sender ?? "Unknown"),
-      subject: String(email.subject ?? "No subject"),
+      from: String(email.from || email.sender || "Unknown"),
+      subject: String(email.subject || "No Subject"),
       snippet: String(email.snippet ?? email.text ?? email.body ?? "").slice(0, 200),
       date: String(email.date ?? email.receivedAt ?? ""),
       isUnread: Boolean(email.isUnread ?? email.unread ?? true),
@@ -301,8 +301,8 @@ export class InboxSurfaceAgent extends BaseAgent {
       return {
         emails: rawEmails.map((email, i) => ({
           id: String(email.id ?? email.messageId ?? `email-${i}`),
-          from: String(email.from ?? email.sender ?? "Unknown"),
-          subject: String(email.subject ?? "No subject"),
+          from: String(email.from || email.sender || "Unknown"),
+          subject: String(email.subject || "No Subject"),
           snippet: String(email.snippet ?? email.text ?? email.body ?? "").slice(0, 200),
           date: String(email.date ?? email.receivedAt ?? ""),
           isUnread: Boolean(email.isUnread ?? email.unread ?? true),
