@@ -9,9 +9,15 @@ export interface BackgroundTask {
   allowedConnectors: string[];
   actionClass: RiskClass;
   outputTarget: string; // "surface" | "memory" | "notification"
+  /** Maximum retry attempts on failure (default: 0 = no retries) */
+  maxRetries?: number;
+  /** Base delay in ms between retries, doubles each attempt (default: 5000) */
+  retryBackoffMs?: number;
   lastRun?: number;
   lastResult?: unknown;
   lastError?: string;
+  /** Number of consecutive failures (resets on success) */
+  consecutiveFailures?: number;
 }
 
 export interface TaskExecution {
@@ -21,4 +27,6 @@ export interface TaskExecution {
   success: boolean;
   result?: unknown;
   error?: string;
+  /** Which retry attempt this was (0 = first attempt) */
+  attempt?: number;
 }
