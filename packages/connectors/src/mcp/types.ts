@@ -43,3 +43,35 @@ export interface MCPToolInfo {
   serverId: string;
   serverName: string;
 }
+
+/** A single health-check result stored in the history ring buffer. */
+export interface HealthCheckEntry {
+  timestamp: number;
+  ok: boolean;
+  latencyMs?: number;
+  error?: string;
+}
+
+/** Aggregated health metrics for a single MCP server. */
+export interface ConnectorHealthMetrics {
+  serverId: string;
+  serverName: string;
+  transport: string;
+  connected: boolean;
+  /** ISO-8601 timestamp of the last successful health check. */
+  lastChecked: string | null;
+  /** ISO-8601 timestamp of when the server first connected in this session. */
+  connectedSince: string | null;
+  /** Uptime percentage (0-100) based on recent health checks. */
+  uptimePercent: number;
+  /** Most recent ping latency in ms. */
+  latencyMs: number | null;
+  /** Average latency over recent checks. */
+  avgLatencyMs: number | null;
+  /** Total error count since tracking started. */
+  errorCount: number;
+  /** Recent error history (most recent first). */
+  recentErrors: Array<{ timestamp: string; message: string }>;
+  /** Recent health check history (most recent first). */
+  checkHistory: HealthCheckEntry[];
+}

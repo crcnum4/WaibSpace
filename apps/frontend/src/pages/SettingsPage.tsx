@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { ConnectionManager } from "../components/ConnectionManager";
+import { ConnectorHealthDashboard } from "../components/ConnectorHealthDashboard";
 import { useTheme, type Theme } from "../hooks/useTheme";
 
-type SettingsSection = "connections" | "preferences" | "about";
+type SettingsSection = "connections" | "health" | "preferences" | "about";
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSection>("connections");
@@ -12,6 +13,7 @@ export default function SettingsPage() {
 
   const sections: { id: SettingsSection; label: string }[] = [
     { id: "connections", label: "Connections" },
+    { id: "health", label: "Health" },
     { id: "preferences", label: "Preferences" },
     { id: "about", label: "About" },
   ];
@@ -36,6 +38,12 @@ export default function SettingsPage() {
         {activeSection === "connections" && (
           <section className="settings-section">
             <ConnectionManager />
+          </section>
+        )}
+
+        {activeSection === "health" && (
+          <section className="settings-section">
+            <ConnectorHealthDashboard />
           </section>
         )}
 
