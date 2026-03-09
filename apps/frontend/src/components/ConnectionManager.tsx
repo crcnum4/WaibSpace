@@ -11,6 +11,10 @@ export function ConnectionManager() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [testLoading, setTestLoading] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<
+    Record<string, { ok: boolean; latencyMs?: number; toolCount?: number; error?: string }>
+  >({});
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Form state
@@ -103,6 +107,28 @@ export function ConnectionManager() {
       await fetchServers();
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const testServer = async (id: string) => {
+    setTestLoading(id);
+    // Clear previous result for this server
+    setTestResults((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    try {
+      const res = await fetch(`/api/mcp/servers/${id}/test`, { method: "POST" });
+      const data = await res.json();
+      setTestResults((prev) => ({ ...prev, [id]: data }));
+    } catch {
+      setTestResults((prev) => ({
+        ...prev,
+        [id]: { ok: false, error: "Network error — could not reach backend" },
+      }));
+    } finally {
+      setTestLoading(null);
     }
   };
 
@@ -296,6 +322,22 @@ export function ConnectionManager() {
                     available
                   </span>
                 )}
+                {server.connected && (
+                  <button
+                    className="conn-action-btn conn-action-btn--test"
+                    onClick={() => testServer(server.config.id)}
+                    disabled={testLoading === server.config.id}
+                  >
+                    {testLoading === server.config.id ? (
+                      <>
+                        <span className="conn-test-spinner" />
+                        Testing...
+                      </>
+                    ) : (
+                      "Test"
+                    )}
+                  </button>
+                )}
                 <button
                   className={`conn-action-btn ${server.connected ? "disconnect" : "connect"}`}
                   onClick={() =>
@@ -344,6 +386,21 @@ export function ConnectionManager() {
                 <span className="conn-error-icon">!</span>
                 <span className="conn-error-message">
                   {friendlyConnectionError(server.error, server.config)}
+                </span>
+              </div>
+            )}
+
+            {testResults[server.config.id] && (
+              <div
+                className={`conn-test-result ${testResults[server.config.id].ok ? "conn-test-result--success" : "conn-test-result--failure"}`}
+              >
+                <span className="conn-test-result__icon">
+                  {testResults[server.config.id].ok ? "\u2713" : "\u2717"}
+                </span>
+                <span className="conn-test-result__message">
+                  {testResults[server.config.id].ok
+                    ? `Connection healthy — ${testResults[server.config.id].latencyMs}ms latency, ${testResults[server.config.id].toolCount} tool${testResults[server.config.id].toolCount !== 1 ? "s" : ""} reachable`
+                    : `Test failed — ${testResults[server.config.id].error}`}
                 </span>
               </div>
             )}

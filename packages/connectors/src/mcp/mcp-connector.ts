@@ -87,6 +87,22 @@ export class MCPConnector extends BaseConnector {
     return [...this.discoveredTools];
   }
 
+  /** Ping the server by listing tools and return latency in ms. */
+  async ping(): Promise<{ ok: true; latencyMs: number; toolCount: number } | { ok: false; error: string }> {
+    if (!this.client || !this.connected) {
+      return { ok: false, error: "Server is not connected" };
+    }
+    const start = performance.now();
+    try {
+      const response = await this.client.listTools();
+      const latencyMs = Math.round(performance.now() - start);
+      return { ok: true, latencyMs, toolCount: response.tools.length };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { ok: false, error: message };
+    }
+  }
+
   protected async doFetch(
     request: ConnectorRequest,
   ): Promise<ConnectorResponse> {
