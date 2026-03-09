@@ -430,6 +430,78 @@ export function startServer(deps: ServerDeps) {
         }
       }
 
+      // ---------- Search endpoint ----------
+
+      // GET /api/search?q=query — search across all connected services
+      if (url.pathname === "/api/search" && req.method === "GET") {
+        const query = url.searchParams.get("q");
+        if (!query || !query.trim()) {
+          return jsonResponse({ error: "Missing search query parameter 'q'" }, 400);
+        }
+
+        if (!deps.connectorRegistry) {
+          return jsonResponse({ error: "Connector registry not available" }, 503);
+        }
+
+        const connectors = deps.connectorRegistry.getAll();
+        const connectedConnectors = connectors.filter(
+          (c: { isConnected(): boolean }) => c.isConnected(),
+        );
+
+        if (connectedConnectors.length === 0) {
+          return jsonResponse({
+            query: query.trim(),
+            results: [],
+            sources: [],
+            totalResults: 0,
+          });
+        }
+
+        const traceId = crypto.randomUUID();
+        const searchResults: Array<{
+          connectorId: string;
+          data: unknown;
+          error?: string;
+        }> = [];
+
+        // Query each connector in parallel with search-compatible operations
+        const settlements = await Promise.allSettled(
+          connectedConnectors.map(async (connector: { id: string; fetch(req: { operation: string; params: Record<string, unknown>; traceId: string }): Promise<{ data: unknown }> }) => {
+            try {
+              // Use "search" operation — connectors that don't support it will error
+              const response = await connector.fetch({
+                operation: "search",
+                params: { query: query.trim(), maxResults: 10 },
+                traceId,
+              });
+              return {
+                connectorId: connector.id,
+                data: response.data,
+              };
+            } catch {
+              // Connector doesn't support search, skip silently
+              return {
+                connectorId: connector.id,
+                data: null,
+              };
+            }
+          }),
+        );
+
+        for (const settlement of settlements) {
+          if (settlement.status === "fulfilled" && settlement.value.data) {
+            searchResults.push(settlement.value);
+          }
+        }
+
+        return jsonResponse({
+          query: query.trim(),
+          results: searchResults,
+          sources: searchResults.map((r) => r.connectorId),
+          totalResults: searchResults.length,
+        });
+      }
+
       return jsonResponse({ error: "Not found" }, 404);
     },
 

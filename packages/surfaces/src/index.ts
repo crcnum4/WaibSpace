@@ -8,4 +8,5 @@ export type {
   ApprovalSurfaceData,
   ConnectionGuideSurfaceData,
   MorningDigestSurfaceData,
+  SearchSurfaceData,
 } from "./surface-data";

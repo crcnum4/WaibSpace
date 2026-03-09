@@ -7,6 +7,7 @@ import { discoveryToBlocks } from "./discovery";
 import { approvalToBlocks } from "./approval";
 import { connectionGuideToBlocks } from "./connection-guide";
 import { genericToBlocks } from "./generic";
+import { searchToBlocks } from "./search";
 
 export {
   inboxToBlocks,
@@ -15,6 +16,7 @@ export {
   approvalToBlocks,
   connectionGuideToBlocks,
   genericToBlocks,
+  searchToBlocks,
 };
 
 const transformerMap: Record<
@@ -26,6 +28,7 @@ const transformerMap: Record<
   discovery: discoveryToBlocks,
   approval: approvalToBlocks,
   "connection-guide": connectionGuideToBlocks,
+  search: searchToBlocks,
 };
 
 /**

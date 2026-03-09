@@ -119,3 +119,20 @@ export interface ConnectionGuideSurfaceData {
   discoveredTools?: Array<{ name: string; description?: string }>;
   errorDetail?: string;
 }
+
+export interface SearchSurfaceData {
+  query: string;
+  results: Array<{
+    id: string;
+    title: string;
+    snippet: string;
+    source: string;
+    sourceType: string;
+    date?: string;
+    url?: string;
+    relevanceScore: number;
+    metadata?: Record<string, string>;
+  }>;
+  totalResults: number;
+  sources: string[];
+}
