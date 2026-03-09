@@ -1,11 +1,14 @@
 import type { BlockProps } from "../../registry";
 
 export function ListItem({ block, children }: BlockProps) {
-  const { swipeable = false } = block.props as { swipeable?: boolean };
+  const { swipeable = false, className = "" } = block.props as {
+    swipeable?: boolean;
+    className?: string;
+  };
 
   return (
     <div
-      className="block-list-item"
+      className={`block-list-item ${className}`.trim()}
       data-swipeable={swipeable || undefined}
       style={{
         padding: "8px 12px",
