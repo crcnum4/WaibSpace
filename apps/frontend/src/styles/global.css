@@ -2109,10 +2109,23 @@ body {
 /* ===================== */
 /* Surface Transitions    */
 /* ===================== */
+
+/*
+ * Progressive reveal for new surfaces.
+ *
+ * --surface-stagger is set per-element from React (0, 1, 2, …).
+ * Each surface fades in + slides up with a staggered delay so
+ * multiple surfaces arriving together cascade visually.
+ *
+ * Initial-load surfaces are marked .surface-revealed immediately
+ * (no animation).  Only surfaces added *after* the first render
+ * play the entrance animation.
+ */
+
 @keyframes surface-fade-in {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -2121,14 +2134,41 @@ body {
 }
 
 .surface-entering {
+  --surface-stagger: 0;
   opacity: 0;
-  transform: translateY(12px);
-  animation: surface-fade-in 0.4s ease-out 0.05s both;
+  transform: translateY(16px);
+  animation: surface-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--surface-stagger) * 120ms);
 }
 
 .surface-revealed {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* ===================== */
+/* Reduced Motion        */
+/* ===================== */
+@media (prefers-reduced-motion: reduce) {
+  .surface-entering {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .surface-entering [data-block-id] {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .surface-revealed [data-block-id] {
+    animation: none;
+  }
+
+  [data-block-id] {
+    animation: none;
+  }
 }
 
 /* ===================== */
@@ -3366,12 +3406,12 @@ body {
 /* Surface entering/revealed work on block wrappers too */
 .surface-entering [data-block-id] {
   opacity: 0;
-  transform: translateY(12px);
+  transform: translateY(16px);
   animation: none;
 }
 
 .surface-revealed [data-block-id] {
-  animation: block-fade-in-stagger 0.35s ease-out both;
+  animation: block-fade-in-stagger 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* ----------------------------- */
