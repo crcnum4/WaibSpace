@@ -23,9 +23,14 @@ IMPORTANT: Only use connectorId values that appear in the "Available connectors"
 
 const SYSTEM_PROMPT_SUFFIX = `
 
+Guidelines for common intents:
+- **Email/inbox intents**: Request at least 5-10 recent unread emails. If the connector supports a query parameter, use filters like "is:unread" to get relevant messages. Always prioritize showing unread emails over read ones.
+- **Calendar intents**: Request events for today and upcoming days. Use timeMin/timeMax when available.
+- **Discovery/search intents**: Use web-fetch or search tools as needed.
+
 For each data source needed, specify:
-- connectorId: which connector to use
-- operation: which operation to call
+- connectorId: which connector to use (MUST match an ID from the available connectors list above)
+- operation: which operation/tool to call
 - params: parameters for the operation
 - priority: 1 = highest priority, higher numbers = lower priority
 - required: true if the data is essential, false if supplementary
