@@ -9,6 +9,11 @@ import type {
   ConnectorResult,
 } from "../types";
 import type { MCPServerConfig, MCPToolInfo } from "./types";
+import {
+  KNOWN_SCHEMAS,
+  extractPayload,
+  validateResponse,
+} from "./validation";
 
 export class MCPConnector extends BaseConnector {
   private client: Client | null = null;
@@ -188,7 +193,31 @@ export class MCPConnector extends BaseConnector {
         name: toolName,
         arguments: args,
       });
-      return result.content;
+
+      const content = result.content;
+
+      // Validate response against known schema (if one exists)
+      const schema = KNOWN_SCHEMAS[toolName];
+      if (schema) {
+        try {
+          const payload = extractPayload(content);
+          const validation = validateResponse(payload, schema);
+          if (!validation.valid) {
+            this.log(
+              `Validation warnings for "${toolName}": ${validation.warnings.join("; ")}`,
+            );
+          }
+        } catch (validationError) {
+          // Never let validation itself crash the pipeline
+          const msg =
+            validationError instanceof Error
+              ? validationError.message
+              : String(validationError);
+          this.log(`Validation error for "${toolName}": ${msg}`);
+        }
+      }
+
+      return content;
     } catch (error) {
       // If the server process crashed, mark as disconnected
       this.connected = false;
