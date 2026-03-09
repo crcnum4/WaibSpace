@@ -68,7 +68,7 @@ export function GmailEmailCard({ block, onEvent }: BlockProps) {
   );
 
   return (
-    <div className={cardClass} role="listitem" aria-label={`${isUnread ? "Unread: " : ""}${subject || "No Subject"} from ${from}`}>
+    <div className={cardClass} role="listitem" tabIndex={0} aria-label={`${isUnread ? "Unread: " : ""}${subject || "No Subject"} from ${from}`}>
       <div
         className="gmail-email-card__avatar"
         style={{ backgroundColor: avatarBg }}
