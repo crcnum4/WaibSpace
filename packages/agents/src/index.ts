@@ -43,4 +43,5 @@ export {
   LayoutComposerAgent,
   extractSurfaces,
 } from "./ui";
-export { ActionExecutorAgent } from "./execution";
+export { ActionExecutorAgent, pendingActionStore } from "./execution";
+export type { PendingAction } from "./execution";
