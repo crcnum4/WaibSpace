@@ -1895,88 +1895,6 @@ body {
   gap: 0.75rem;
 }
 
-.skeleton-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.skeleton-list,
-.skeleton-timeline,
-.skeleton-results {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.skeleton-inbox-item {
-  padding: 0.625rem 0.75rem;
-}
-
-.skeleton-inbox-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-
-.skeleton-dot {
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-top: 0.4rem;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.skeleton-inbox-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.skeleton-inbox-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.skeleton-event {
-  padding: 0.625rem 0.75rem;
-  border-left: 4px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.375rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.skeleton-query-bar {
-  padding: 0.5rem 0.75rem;
-  background: var(--color-bg);
-  border-radius: 0.375rem;
-}
-
-.skeleton-result {
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 0.375rem;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.skeleton-relevance-bar {
-  margin-top: 0.25rem;
-}
-
-.skeleton-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
 /* ===================== */
 /* Surface Transitions    */
 /* ===================== */
@@ -1989,10 +1907,6 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.surface-appear {
-  animation: surface-fade-in 0.4s ease-out both;
 }
 
 .surface-entering {
@@ -2152,20 +2066,6 @@ body {
 /* ===================== */
 /* Stale Indicator       */
 /* ===================== */
-.stale-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.125rem 0.5rem;
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: #fbbf24;
-  background: rgba(234, 179, 8, 0.12);
-  border: 1px solid rgba(234, 179, 8, 0.2);
-  border-radius: 999px;
-  margin-bottom: 0.375rem;
-}
-
 .surface-wrapper {
   display: flex;
   flex-direction: column;
