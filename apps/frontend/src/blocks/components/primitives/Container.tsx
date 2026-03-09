@@ -2,9 +2,9 @@ import type { BlockProps } from "../../registry";
 
 export function Container({ block, children }: BlockProps) {
   const {
-    direction = "column",
-    gap = "0",
-    padding = "0",
+    direction,
+    gap,
+    padding,
     className = "",
   } = block.props as {
     direction?: "row" | "column";
@@ -13,15 +13,15 @@ export function Container({ block, children }: BlockProps) {
     className?: string;
   };
 
+  const style: React.CSSProperties = {};
+  if (direction === "row") style.flexDirection = "row";
+  if (gap) style.gap = gap;
+  if (padding) style.padding = padding;
+
   return (
     <div
       className={`block-container ${className}`.trim()}
-      style={{
-        display: "flex",
-        flexDirection: direction,
-        gap,
-        padding,
-      }}
+      style={Object.keys(style).length > 0 ? style : undefined}
     >
       {children}
     </div>
