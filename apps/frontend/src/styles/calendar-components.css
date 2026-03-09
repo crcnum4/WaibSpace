@@ -1,0 +1,261 @@
+/* ================================ */
+/* Google Calendar Domain Components */
+/* ================================ */
+
+/* -------------------------------- */
+/* CalendarEventCard                */
+/* -------------------------------- */
+
+.gcal-event-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+  cursor: default;
+}
+
+.gcal-event-card:hover {
+  background: var(--color-surface-hover);
+}
+
+.gcal-event-card__time {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.gcal-event-card__title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  line-height: var(--leading-tight);
+}
+
+.gcal-event-card__location {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.gcal-event-card__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.gcal-event-card__attendees {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  border-radius: var(--radius-full);
+}
+
+.gcal-event-card__conflict-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-warning-text);
+  background: var(--color-warning-subtle);
+  border-radius: var(--radius-full);
+}
+
+/* Cancelled state */
+.gcal-event-card--cancelled {
+  opacity: 0.5;
+}
+
+.gcal-event-card--cancelled .gcal-event-card__title {
+  text-decoration: line-through;
+}
+
+/* Tentative state */
+.gcal-event-card--tentative {
+  border-left-style: dashed;
+}
+
+/* Conflict state — subtle warning background */
+.gcal-event-card--conflict {
+  background: var(--color-warning-subtle);
+}
+
+.gcal-event-card--conflict:hover {
+  background: rgba(234, 179, 8, 0.18);
+}
+
+/* -------------------------------- */
+/* CalendarDayTimeline              */
+/* -------------------------------- */
+
+.gcal-day-timeline {
+  display: flex;
+  position: relative;
+  height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.gcal-day-timeline__markers {
+  position: relative;
+  flex-shrink: 0;
+  width: 56px;
+  border-right: 1px solid var(--color-border-subtle);
+}
+
+.gcal-day-timeline__hour-label {
+  position: absolute;
+  right: var(--space-2);
+  transform: translateY(-50%);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.gcal-day-timeline__track {
+  position: relative;
+  flex: 1;
+  min-height: 100%;
+}
+
+.gcal-day-timeline__grid-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--color-border-subtle);
+}
+
+.gcal-day-timeline__free-slot {
+  position: absolute;
+  left: var(--space-1);
+  right: var(--space-1);
+  border: 1px dashed var(--color-success);
+  border-radius: var(--radius-sm);
+  background: var(--color-success-subtle);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.gcal-day-timeline__event {
+  position: absolute;
+  left: var(--space-2);
+  right: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: default;
+  transition: background var(--transition-fast);
+}
+
+.gcal-day-timeline__event:hover {
+  background: var(--color-surface-hover);
+}
+
+.gcal-day-timeline__event-title {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gcal-day-timeline__event-time {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+/* Current time indicator */
+.gcal-day-timeline__now-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-danger);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.gcal-day-timeline__now-line::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-danger);
+}
+
+/* -------------------------------- */
+/* CalendarSummary                  */
+/* -------------------------------- */
+
+.gcal-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.gcal-summary__date {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+}
+
+.gcal-summary__stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.gcal-summary__stat-sep {
+  color: var(--color-muted);
+}
+
+.gcal-summary__stat--conflict {
+  color: var(--color-warning-text);
+  font-weight: var(--weight-semibold);
+}
+
+.gcal-summary__next {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-accent-muted);
+  border-radius: var(--radius-sm);
+}
+
+.gcal-summary__next--urgent {
+  background: var(--color-warning-subtle);
+  color: var(--color-warning-text);
+  font-weight: var(--weight-semibold);
+}
