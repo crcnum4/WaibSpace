@@ -113,6 +113,23 @@ function BlockNode({ block, send }: BlockNodeProps) {
     [executeAction],
   );
 
+  /**
+   * onEvent callback for domain components (e.g. GmailInboxList's WaibScan button).
+   * Bridges the BlockProps.onEvent API to the WebSocket event bus so domain
+   * components can emit named events without needing to define emit actions.
+   */
+  const handleEvent = useCallback(
+    (eventName: string, payload?: unknown) => {
+      send("user.interaction", {
+        interaction: eventName,
+        blockId: block.id,
+        blockType: block.type,
+        ...((payload != null && typeof payload === "object") ? payload as Record<string, unknown> : {}),
+      });
+    },
+    [send, block.id, block.type],
+  );
+
   // Resolve registered component or fall back
   const Component = getBlockComponent(block.type) ?? FallbackBlock;
 
@@ -126,7 +143,7 @@ function BlockNode({ block, send }: BlockNodeProps) {
 
   return (
     <ObservationWrapper block={block} onExecuteAction={handleExecuteAction}>
-      <Component block={block}>{childNodes}</Component>
+      <Component block={block} onEvent={handleEvent}>{childNodes}</Component>
     </ObservationWrapper>
   );
 }

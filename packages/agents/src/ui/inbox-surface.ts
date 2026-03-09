@@ -76,9 +76,12 @@ export class InboxSurfaceAgent extends BaseAgent {
 
   async execute(
     input: AgentInput,
-    _context: AgentContext,
+    context: AgentContext,
   ): Promise<AgentOutput> {
     const startMs = Date.now();
+
+    // Detect WaibScan action — triggered when user clicks the WaibScan button
+    const isWaibScan = this.isWaibScanAction(input);
 
     const retrievalOutput = this.findDataRetrieval(input);
     if (!retrievalOutput) {
@@ -108,9 +111,22 @@ export class InboxSurfaceAgent extends BaseAgent {
       rawEmailCount: Array.isArray(gmailData) ? gmailData.length : "non-array",
       truncatedEmailCount: rawEmails.length,
       totalUnreadFromMCP: gmailTotalUnread,
+      isWaibScan,
     });
 
-    // Map raw email fields directly — no LLM involved
+    // If WaibScan was triggered, run LLM analysis for urgency classification
+    if (isWaibScan) {
+      return this.executeWithLLMAnalysis(
+        gmailData,
+        rawEmails,
+        gmailTotalUnread,
+        input,
+        context,
+        startMs,
+      );
+    }
+
+    // Default path: map raw email fields directly — no LLM involved
     const emails: InboxSurfaceData["emails"] = rawEmails.map((email, i) => ({
       id: String(email.id ?? email.messageId ?? `email-${i}`),
       from: String(email.from ?? email.sender ?? "Unknown"),
@@ -157,6 +173,93 @@ export class InboxSurfaceAgent extends BaseAgent {
       ...this.createOutput(
         { surfaceSpec, summary },
         0.85,
+        provenance,
+      ),
+      timing: {
+        startMs,
+        endMs,
+        durationMs: endMs - startMs,
+      },
+    };
+  }
+
+  /**
+   * Check if the current event is a WaibScan action trigger.
+   * This matches when the user clicks the WaibScan button, which emits
+   * an interaction event with actionType "agent.invoke" and actionId "waib-scan".
+   */
+  private isWaibScanAction(input: AgentInput): boolean {
+    const payload = input.event.payload as Record<string, unknown> | undefined;
+    if (!payload) return false;
+
+    // Match the emit action payload from the WaibScan button
+    return (
+      payload.actionId === "waib-scan" ||
+      (payload.actionType === "agent.invoke" &&
+        payload.interaction === "waib-scan")
+    );
+  }
+
+  /**
+   * Execute the LLM analysis path: classify urgency, generate suggested replies,
+   * and produce an enriched inbox surface with a GmailScanResult summary.
+   */
+  private async executeWithLLMAnalysis(
+    gmailData: unknown,
+    rawEmails: Record<string, unknown>[],
+    gmailTotalUnread: number | undefined,
+    input: AgentInput,
+    context: AgentContext,
+    startMs: number,
+  ): Promise<AgentOutput> {
+    this.log("WaibScan triggered — running LLM analysis on inbox");
+
+    const calendarData = this.extractCalendarData(input);
+    const analysis = await this.analyzeWithLLM(gmailData, calendarData, context);
+
+    // Build enriched email list with urgency and suggested replies from LLM
+    const emails: InboxSurfaceData["emails"] = analysis.emails.map((email) => ({
+      id: email.id,
+      from: email.from,
+      subject: email.subject,
+      snippet: email.snippet,
+      date: email.date,
+      isUnread: email.isUnread,
+      urgency: email.urgency,
+      suggestedReply: email.suggestedReply,
+    }));
+
+    const batchUnreadCount = emails.filter((e) => e.isUnread).length;
+    const unreadCount = gmailTotalUnread ?? batchUnreadCount;
+
+    const surfaceData: InboxSurfaceData = {
+      emails,
+      totalCount: emails.length,
+      unreadCount,
+    };
+
+    const endMs = Date.now();
+
+    const summary = analysis.overallSummary;
+
+    const provenance = {
+      sourceType: "agent" as const,
+      sourceId: this.id,
+      trustLevel: "trusted" as const,
+      timestamp: startMs,
+      freshness: "realtime" as const,
+      dataState: "transformed" as const,
+    };
+
+    const surfaceSpec = SurfaceFactory.inbox(surfaceData, provenance);
+
+    // No WaibScan action — already scanned. The inbox transformer will
+    // detect urgency data and render appropriately.
+
+    return {
+      ...this.createOutput(
+        { surfaceSpec, summary },
+        0.9,
         provenance,
       ),
       timing: {
