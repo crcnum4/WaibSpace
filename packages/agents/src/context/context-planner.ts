@@ -19,23 +19,7 @@ const BASE_SYSTEM_PROMPT = `You are a context planning agent for WaibSpace, an A
 
 Given an intent classification, determine which data sources need to be queried to fulfill the user's request.
 
-Available connectors and their operations:
-
-- **gmail**:
-  - list-emails: List emails. Params: maxResults (number, default 10), labelIds (string[] e.g. ["INBOX"], ["UNREAD"], ["STARRED"]), query (string, supports Gmail search syntax: "is:unread", "newer_than:7d", "from:address", "subject:text", "in:inbox", etc.)
-    - For inbox/email intents with no specific filter, default to query: "is:unread newer_than:7d" with maxResults: 10 to show recent unread emails
-  - get-email: Get a specific email. Params: emailId (string)
-  - search-emails: Search emails by query. Params: query (string), maxResults (number)
-  - get-inbox-stats: Get inbox label statistics including total unread count. No params required.
-
-- **google-calendar**:
-  - list-events: List upcoming calendar events. Params: timeMin (string), timeMax (string), maxResults (number)
-  - check-availability: Check free/busy status. Params: timeMin (string), timeMax (string)
-  - get-event: Get a specific event. Params: eventId (string)
-
-- **web-fetch**:
-  - fetch-url: Fetch content from a URL. Params: url (string)
-  - search-site: Search a website. Params: query (string), site (string)`;
+IMPORTANT: Only use connectorId values that appear in the "Available connectors" list below. Do NOT invent connector IDs.`;
 
 const SYSTEM_PROMPT_SUFFIX = `
 
@@ -100,9 +84,9 @@ export class ContextPlannerAgent extends BaseAgent {
       category: intentClassification.intentCategory,
     });
 
-    // Build system prompt with available MCP tools
-    const mcpToolsSection = this.buildMCPToolsPromptSection(context);
-    const systemPrompt = BASE_SYSTEM_PROMPT + mcpToolsSection + SYSTEM_PROMPT_SUFFIX;
+    // Build system prompt with all available connectors (native + MCP)
+    const connectorsSection = this.buildConnectorsPromptSection(context);
+    const systemPrompt = BASE_SYSTEM_PROMPT + connectorsSection + SYSTEM_PROMPT_SUFFIX;
 
     const userMessage = [
       `Intent: ${intentClassification.primaryIntent}`,
@@ -151,10 +135,11 @@ export class ContextPlannerAgent extends BaseAgent {
   }
 
   /**
-   * Build a prompt section describing available MCP tools by querying
-   * the ConnectorRegistry for MCP-type connectors.
+   * Build a prompt section describing ALL available connectors by querying
+   * the ConnectorRegistry. Lists native connectors with known operations
+   * and MCP connectors with their discovered tools.
    */
-  private buildMCPToolsPromptSection(context: AgentContext): string {
+  private buildConnectorsPromptSection(context: AgentContext): string {
     const registry = context.config?.["connectorRegistry"] as
       | ConnectorRegistry
       | undefined;
@@ -162,46 +147,51 @@ export class ContextPlannerAgent extends BaseAgent {
       return "";
     }
 
-    const mcpConnectors = registry.getByType("mcp");
-    if (mcpConnectors.length === 0) {
-      return "";
+    const allConnectors = registry.getAll();
+    if (allConnectors.length === 0) {
+      return "\n\nNo connectors available.";
     }
 
     const sections: string[] = [];
-    for (const connector of mcpConnectors) {
+
+    for (const connector of allConnectors) {
+      // Check if it's an MCP connector with discovered tools
       const mcpConn = connector as unknown as {
         getDiscoveredTools(): MCPToolInfo[];
       };
-      if (typeof mcpConn.getDiscoveredTools !== "function") {
-        continue;
+      if (typeof mcpConn.getDiscoveredTools === "function") {
+        const tools = mcpConn.getDiscoveredTools();
+        if (tools.length > 0) {
+          const toolLines = tools.map((tool) => {
+            const desc = tool.description ? `: ${tool.description}` : "";
+            const schema = tool.inputSchema
+              ? `. Params: ${JSON.stringify(tool.inputSchema)}`
+              : "";
+            return `  - ${tool.name}${desc}${schema}`;
+          });
+          sections.push(
+            `\n- **${connector.id}** (MCP, ${connector.type}):\n${toolLines.join("\n")}`,
+          );
+        }
+      } else {
+        // Native connector — list known actions from capabilities
+        const actions = connector.capabilities?.actions ?? [];
+        if (actions.length > 0) {
+          const actionLines = actions.map((a: string) => `  - ${a}`);
+          sections.push(
+            `\n- **${connector.id}** (${connector.type}):\n${actionLines.join("\n")}`,
+          );
+        } else {
+          sections.push(`\n- **${connector.id}** (${connector.type})`);
+        }
       }
-
-      const tools = mcpConn.getDiscoveredTools();
-      if (tools.length === 0) {
-        continue;
-      }
-
-      const toolLines = tools.map((tool) => {
-        const desc = tool.description ? `: ${tool.description}` : "";
-        const schema = tool.inputSchema
-          ? `. Params: ${JSON.stringify(tool.inputSchema)}`
-          : "";
-        return `  - ${tool.name}${desc}${schema}`;
-      });
-
-      sections.push(
-        `\n- **${connector.id}** (MCP):\n${toolLines.join("\n")}`,
-      );
     }
 
-    if (sections.length === 0) {
-      return "";
-    }
-
-    this.log("Including MCP tools in planning prompt", {
-      mcpConnectors: sections.length,
+    this.log("Available connectors for planning", {
+      total: sections.length,
+      ids: allConnectors.map((c) => c.id),
     });
 
-    return sections.join("");
+    return `\n\nAvailable connectors:\n${sections.join("")}`;
   }
 }
