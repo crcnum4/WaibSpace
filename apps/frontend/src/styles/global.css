@@ -1558,6 +1558,40 @@ body {
   box-shadow: var(--shadow-glow-danger), var(--shadow-md);
 }
 
+/* ---- Approval Response Feedback ---- */
+
+.approval-modal--responded {
+  padding: var(--space-8);
+  text-align: center;
+  animation: approval-fade-in 0.3s ease;
+}
+
+.approval-response {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.approval-response__icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.approval-response--approved .approval-response__icon {
+  color: var(--color-success);
+}
+
+.approval-response--denied .approval-response__icon {
+  color: var(--color-danger);
+}
+
+.approval-response__text {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
 /* ================================ */
 /* Tasks Page                       */
 /* ================================ */
