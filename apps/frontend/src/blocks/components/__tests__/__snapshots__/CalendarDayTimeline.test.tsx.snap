@@ -1,0 +1,343 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CalendarDayTimeline > matches snapshot: empty day 1`] = `
+<div
+  class="gcal-day-timeline"
+>
+  <div
+    class="gcal-day-timeline__markers"
+  >
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 0%;"
+    >
+      8 AM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 10%;"
+    >
+      9 AM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 20%;"
+    >
+      10 AM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 30%;"
+    >
+      11 AM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 40%;"
+    >
+      12 PM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 50%;"
+    >
+      1 PM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 60%;"
+    >
+      2 PM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 70%;"
+    >
+      3 PM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 80%;"
+    >
+      4 PM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 90%;"
+    >
+      5 PM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 100%;"
+    >
+      6 PM
+    </div>
+  </div>
+  <div
+    class="gcal-day-timeline__track"
+  >
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 0%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 10%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 20%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 30%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 40%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 50%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 60%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 70%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 80%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 90%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 100%;"
+    />
+    <div
+      class="gcal-day-timeline__free-slot"
+      style="top: 0%; height: 100%;"
+    />
+    <div
+      class="gcal-day-timeline__now-line"
+      style="top: 20%;"
+    />
+  </div>
+</div>
+`;
+
+exports[`CalendarDayTimeline > matches snapshot: workday with events and free slots 1`] = `
+<div
+  class="gcal-day-timeline"
+>
+  <div
+    class="gcal-day-timeline__markers"
+  >
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 0%;"
+    >
+      8 AM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 10%;"
+    >
+      9 AM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 20%;"
+    >
+      10 AM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 30%;"
+    >
+      11 AM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 40%;"
+    >
+      12 PM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 50%;"
+    >
+      1 PM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 60%;"
+    >
+      2 PM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 70%;"
+    >
+      3 PM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 80%;"
+    >
+      4 PM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 90%;"
+    >
+      5 PM
+    </div>
+    <div
+      class="gcal-day-timeline__hour-label"
+      style="top: 100%;"
+    >
+      6 PM
+    </div>
+  </div>
+  <div
+    class="gcal-day-timeline__track"
+  >
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 0%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 10%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 20%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 30%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 40%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 50%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 60%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 70%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 80%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 90%;"
+    />
+    <div
+      class="gcal-day-timeline__grid-line"
+      style="top: 100%;"
+    />
+    <div
+      class="gcal-day-timeline__free-slot"
+      style="top: 30%; height: 10%;"
+    />
+    <div
+      class="gcal-day-timeline__free-slot"
+      style="top: 50%; height: 20%;"
+    />
+    <div
+      class="gcal-day-timeline__free-slot"
+      style="top: 80%; height: 20%;"
+    />
+    <div
+      class="gcal-day-timeline__event"
+      style="top: 10%; height: 2.5%; border-left-color: hsl(194, 65%, 55%);"
+    >
+      <span
+        class="gcal-day-timeline__event-title"
+      >
+        Stand-up
+      </span>
+      <span
+        class="gcal-day-timeline__event-time"
+      >
+        9 AM
+         – 
+        9:15 AM
+      </span>
+    </div>
+    <div
+      class="gcal-day-timeline__event"
+      style="top: 20%; height: 10%; border-left-color: hsl(291, 65%, 55%);"
+    >
+      <span
+        class="gcal-day-timeline__event-title"
+      >
+        Sprint Planning
+      </span>
+      <span
+        class="gcal-day-timeline__event-time"
+      >
+        10 AM
+         – 
+        11 AM
+      </span>
+    </div>
+    <div
+      class="gcal-day-timeline__event"
+      style="top: 40%; height: 10%; border-left-color: #4caf50;"
+    >
+      <span
+        class="gcal-day-timeline__event-title"
+      >
+        Lunch
+      </span>
+      <span
+        class="gcal-day-timeline__event-time"
+      >
+        12 PM
+         – 
+        1 PM
+      </span>
+    </div>
+    <div
+      class="gcal-day-timeline__event"
+      style="top: 70%; height: 10%; border-left-color: hsl(211, 65%, 55%);"
+    >
+      <span
+        class="gcal-day-timeline__event-title"
+      >
+        Code Review
+      </span>
+      <span
+        class="gcal-day-timeline__event-time"
+      >
+        3 PM
+         – 
+        4 PM
+      </span>
+    </div>
+    <div
+      class="gcal-day-timeline__now-line"
+      style="top: 65%;"
+    />
+  </div>
+</div>
+`;

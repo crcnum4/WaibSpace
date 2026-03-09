@@ -1,0 +1,147 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CalendarEventCard > matches snapshot: all-day event 1`] = `
+<div
+  class="gcal-event-card"
+  style="border-left-color: hsl(187, 65%, 55%);"
+>
+  <div
+    class="gcal-event-card__time"
+  >
+    All Day
+  </div>
+  <div
+    class="gcal-event-card__title"
+  >
+    Company Offsite
+  </div>
+  <div
+    class="gcal-event-card__footer"
+  />
+</div>
+`;
+
+exports[`CalendarEventCard > matches snapshot: cancelled event 1`] = `
+<div
+  class="gcal-event-card gcal-event-card--cancelled"
+  style="border-left-color: hsl(263, 65%, 55%);"
+>
+  <div
+    class="gcal-event-card__time"
+  >
+    12 – 1 PM
+  </div>
+  <div
+    class="gcal-event-card__title"
+  >
+    Team Lunch
+  </div>
+  <div
+    class="gcal-event-card__location"
+  >
+    Cafeteria
+  </div>
+  <div
+    class="gcal-event-card__footer"
+  />
+</div>
+`;
+
+exports[`CalendarEventCard > matches snapshot: conflicting event 1`] = `
+<div
+  class="gcal-event-card gcal-event-card--conflict"
+  style="border-left-color: hsl(162, 65%, 55%);"
+>
+  <div
+    class="gcal-event-card__time"
+  >
+    10:30 – 11:30 AM
+  </div>
+  <div
+    class="gcal-event-card__title"
+  >
+    Design Review
+  </div>
+  <div
+    class="gcal-event-card__footer"
+  >
+    <span
+      class="gcal-event-card__attendees"
+    >
+      +
+      2
+       attendee
+      s
+    </span>
+    <span
+      class="gcal-event-card__conflict-badge"
+    >
+      Conflict
+    </span>
+  </div>
+</div>
+`;
+
+exports[`CalendarEventCard > matches snapshot: standard meeting 1`] = `
+<div
+  class="gcal-event-card"
+  style="border-left-color: hsl(291, 65%, 55%);"
+>
+  <div
+    class="gcal-event-card__time"
+  >
+    10 – 11 AM
+  </div>
+  <div
+    class="gcal-event-card__title"
+  >
+    Sprint Planning
+  </div>
+  <div
+    class="gcal-event-card__location"
+  >
+    Conference Room B
+  </div>
+  <div
+    class="gcal-event-card__footer"
+  >
+    <span
+      class="gcal-event-card__attendees"
+    >
+      +
+      3
+       attendee
+      s
+    </span>
+  </div>
+</div>
+`;
+
+exports[`CalendarEventCard > matches snapshot: tentative event 1`] = `
+<div
+  class="gcal-event-card gcal-event-card--tentative"
+  style="border-left-color: hsl(195, 65%, 55%);"
+>
+  <div
+    class="gcal-event-card__time"
+  >
+    2 – 2:30 PM
+  </div>
+  <div
+    class="gcal-event-card__title"
+  >
+    1:1 with Manager
+  </div>
+  <div
+    class="gcal-event-card__footer"
+  >
+    <span
+      class="gcal-event-card__attendees"
+    >
+      +
+      1
+       attendee
+    </span>
+  </div>
+</div>
+`;
