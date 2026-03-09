@@ -11,6 +11,8 @@ export const MVP_BACKGROUND_TASKS: BackgroundTask[] = [
     allowedConnectors: ["gmail"],
     actionClass: "A",
     outputTarget: "surface",
+    maxRetries: 2,
+    retryBackoffMs: 10_000,
   },
   {
     id: "calendar-conflict-watch",
@@ -21,6 +23,8 @@ export const MVP_BACKGROUND_TASKS: BackgroundTask[] = [
     allowedConnectors: ["google-calendar"],
     actionClass: "A",
     outputTarget: "surface",
+    maxRetries: 2,
+    retryBackoffMs: 5_000,
   },
   {
     id: "unanswered-messages",
@@ -31,5 +35,7 @@ export const MVP_BACKGROUND_TASKS: BackgroundTask[] = [
     allowedConnectors: ["gmail"],
     actionClass: "A",
     outputTarget: "surface",
+    maxRetries: 2,
+    retryBackoffMs: 10_000,
   },
 ];

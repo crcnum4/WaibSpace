@@ -273,3 +273,15 @@ const PORT = Number(process.env.PORT) || 3001;
 console.log(`[backend] WaibSpace backend started`);
 console.log(`[backend] HTTP & WebSocket listening on port ${PORT}`);
 console.log(`[backend] Started at ${new Date().toISOString()}`);
+
+// ---------- 13. Graceful Shutdown ----------
+function handleShutdown(signal: string) {
+  console.log(`[backend] Received ${signal}, shutting down gracefully...`);
+  scheduler.stop();
+  server.stop();
+  console.log("[backend] Shutdown complete");
+  process.exit(0);
+}
+
+process.on("SIGINT", () => handleShutdown("SIGINT"));
+process.on("SIGTERM", () => handleShutdown("SIGTERM"));
