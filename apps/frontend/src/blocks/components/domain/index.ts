@@ -1,4 +1,5 @@
 import { registerGmailComponents } from "./gmail";
+import { registerCalendarComponents } from "./gcal";
 
 /**
  * Register all domain-specific block components.
@@ -6,4 +7,5 @@ import { registerGmailComponents } from "./gmail";
  */
 export function registerDomainComponents(): void {
   registerGmailComponents();
+  registerCalendarComponents();
 }
