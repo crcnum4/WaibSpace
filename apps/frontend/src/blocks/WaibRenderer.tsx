@@ -22,6 +22,7 @@ import { BlockStateProvider, BlockStateContext } from "./BlockStateStore";
 import { ObservationWrapper } from "./ObservationWrapper";
 import { getBlockComponent } from "./registry";
 import { registerPrimitiveBlocks, registerDomainComponents, FallbackBlock } from "./components";
+import { BlockErrorBoundary } from "../components/BlockErrorBoundary";
 
 // ---------------------------------------------------------------------------
 // WaibRenderer — top-level entry point
@@ -142,8 +143,10 @@ function BlockNode({ block, send }: BlockNodeProps) {
   }
 
   return (
-    <ObservationWrapper block={block} onExecuteAction={handleExecuteAction}>
-      <Component block={block} onEvent={handleEvent}>{childNodes}</Component>
-    </ObservationWrapper>
+    <BlockErrorBoundary blockId={block.id}>
+      <ObservationWrapper block={block} onExecuteAction={handleExecuteAction}>
+        <Component block={block} onEvent={handleEvent}>{childNodes}</Component>
+      </ObservationWrapper>
+    </BlockErrorBoundary>
   );
 }
