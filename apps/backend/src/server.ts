@@ -11,6 +11,7 @@ import {
   createWebSocketHandlers,
   type WebSocketData,
 } from "./ws";
+import { RateLimiter, loadRateLimitConfig } from "./rate-limiter";
 
 const PORT = Number(process.env.PORT) || 3001;
 
@@ -42,6 +43,7 @@ const startTime = Date.now();
 
 export function startServer(deps: ServerDeps) {
   const wsHandlers = createWebSocketHandlers(deps.eventBus, deps.memoryStore);
+  const rateLimiter = new RateLimiter(loadRateLimitConfig());
 
   const server = Bun.serve<WebSocketData>({
     port: PORT,
@@ -54,7 +56,7 @@ export function startServer(deps: ServerDeps) {
         return new Response(null, { status: 204, headers: CORS_HEADERS });
       }
 
-      // WebSocket upgrade
+      // WebSocket upgrade — not rate-limited
       if (url.pathname === "/ws") {
         const upgraded = server.upgrade(req, {
           data: {
@@ -66,12 +68,40 @@ export function startServer(deps: ServerDeps) {
         return jsonResponse({ error: "WebSocket upgrade failed" }, 400);
       }
 
-      // Health check
+      // Health check — not rate-limited
       if (url.pathname === "/health" && req.method === "GET") {
         return jsonResponse({
           status: "ok",
           uptime: Date.now() - startTime,
         });
+      }
+
+      // --- Rate limiting (applies to all /api/* routes below) ---
+      if (url.pathname.startsWith("/api/")) {
+        const clientIp =
+          req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+          req.headers.get("x-real-ip") ||
+          "unknown";
+        const result = rateLimiter.check(clientIp);
+
+        if (!result.allowed) {
+          return new Response(
+            JSON.stringify({
+              error: "Too many requests",
+              retryAfter: result.retryAfterSecs,
+            }),
+            {
+              status: 429,
+              headers: {
+                "Content-Type": "application/json",
+                "Retry-After": String(result.retryAfterSecs),
+                "X-RateLimit-Limit": String(rateLimiter.config.maxRequests),
+                "X-RateLimit-Remaining": "0",
+                ...CORS_HEADERS,
+              },
+            },
+          );
+        }
       }
 
       // Task management endpoints
@@ -388,6 +418,14 @@ export function startServer(deps: ServerDeps) {
 
     websocket: wsHandlers,
   });
+
+  // Attach cleanup so callers can stop the sweep timer on shutdown
+  (server as any)._rateLimiter = rateLimiter;
+  const origStop = server.stop.bind(server);
+  server.stop = (closeActiveConnections?: boolean) => {
+    rateLimiter.stop();
+    return origStop(closeActiveConnections);
+  };
 
   return server;
 }
