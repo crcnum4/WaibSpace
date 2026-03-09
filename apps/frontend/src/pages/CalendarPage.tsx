@@ -1,8 +1,15 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+
 export default function CalendarPage() {
-  return (
-    <div className="page calendar-page">
-      <h1>Calendar</h1>
-      <p className="placeholder">Calendar content will be placed here.</p>
-    </div>
-  );
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    navigate("/", {
+      state: { pendingMessage: "Show my upcoming calendar events" },
+      replace: true,
+    });
+  }, [navigate]);
+
+  return null;
 }

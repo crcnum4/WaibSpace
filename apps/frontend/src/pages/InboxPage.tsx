@@ -1,8 +1,15 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+
 export default function InboxPage() {
-  return (
-    <div className="page inbox-page">
-      <h1>Inbox</h1>
-      <p className="placeholder">Inbox content will be placed here.</p>
-    </div>
-  );
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    navigate("/", {
+      state: { pendingMessage: "Show my latest emails" },
+      replace: true,
+    });
+  }, [navigate]);
+
+  return null;
 }
