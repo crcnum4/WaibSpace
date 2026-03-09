@@ -15,7 +15,7 @@ export interface SurfaceAffordance {
 }
 
 export interface LayoutHints {
-  width?: "full" | "half" | "third" | "auto";
+  width?: "full" | "two-thirds" | "half" | "third" | "auto";
   position?: "primary" | "secondary" | "sidebar" | "overlay";
   prominence?: "hero" | "standard" | "compact" | "minimal";
 }
