@@ -2,6 +2,7 @@ export { SurfaceSpecBuilder } from "./builder";
 export { SurfaceFactory } from "./factories";
 export { SurfaceTypeRegistry, createDefaultRegistry } from "./registry";
 export type {
+  EmailSenderProfile,
   InboxSurfaceData,
   CalendarSurfaceData,
   DiscoverySurfaceData,
