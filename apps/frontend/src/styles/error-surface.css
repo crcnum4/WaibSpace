@@ -1,0 +1,73 @@
+/* ================================ */
+/* ErrorSurface Block               */
+/* ================================ */
+
+.error-surface {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-danger-subtle);
+  border: var(--block-card-border);
+  border-left: 3px solid var(--color-warning);
+  border-radius: var(--block-card-radius);
+  box-shadow: var(--block-card-shadow);
+}
+
+.error-surface__icon {
+  flex-shrink: 0;
+  font-size: var(--text-2xl);
+  line-height: 1;
+  color: var(--color-warning-text);
+}
+
+.error-surface__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.error-surface__title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  line-height: var(--leading-tight);
+}
+
+.error-surface__message {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+}
+
+.error-surface__code {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  margin-top: var(--space-1);
+}
+
+.error-surface__retry {
+  flex-shrink: 0;
+  align-self: center;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.error-surface__retry:hover {
+  background: var(--color-surface-active);
+  border-color: var(--color-warning);
+}
+
+.error-surface__retry:active {
+  background: var(--color-surface);
+}
