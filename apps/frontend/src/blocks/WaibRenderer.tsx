@@ -21,7 +21,7 @@ import { ObservationCollectorProvider } from "./ObservationCollector";
 import { BlockStateProvider, BlockStateContext } from "./BlockStateStore";
 import { ObservationWrapper } from "./ObservationWrapper";
 import { getBlockComponent } from "./registry";
-import { registerPrimitiveBlocks, FallbackBlock } from "./components";
+import { registerPrimitiveBlocks, registerDomainComponents, FallbackBlock } from "./components";
 
 // ---------------------------------------------------------------------------
 // WaibRenderer — top-level entry point
@@ -35,6 +35,7 @@ export interface WaibRendererProps {
 export function WaibRenderer({ blocks, send }: WaibRendererProps) {
   useEffect(() => {
     registerPrimitiveBlocks();
+    registerDomainComponents();
   }, []);
 
   return (

@@ -15,6 +15,7 @@ import { TextInput } from "./primitives/TextInput";
 import { Divider } from "./primitives/Divider";
 
 export { FallbackBlock } from "./FallbackBlock";
+export { registerDomainComponents } from "./domain";
 
 /**
  * Register all 13 built-in primitive block components.
