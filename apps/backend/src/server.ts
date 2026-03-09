@@ -104,6 +104,19 @@ export function startServer(deps: ServerDeps) {
         }
       }
 
+      // ---------- Agent benchmark endpoints ----------
+
+      // GET /api/benchmarks — agent performance metrics summary
+      if (url.pathname === "/api/benchmarks" && req.method === "GET") {
+        return jsonResponse(deps.orchestrator.benchmarks.getSummary());
+      }
+
+      // POST /api/benchmarks/reset — clear collected benchmark data
+      if (url.pathname === "/api/benchmarks/reset" && req.method === "POST") {
+        deps.orchestrator.benchmarks.reset();
+        return jsonResponse({ ok: true });
+      }
+
       // Task management endpoints
       if (url.pathname === "/api/tasks" && req.method === "GET") {
         if (!deps.scheduler) {

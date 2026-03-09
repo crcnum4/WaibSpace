@@ -10,6 +10,7 @@ import { createLogger, type Logger } from "@waibspace/logger";
 import { AgentRegistry } from "./agent-registry";
 import { buildExecutionPlan } from "./execution-planner";
 import { createPipelineTrace, logTrace } from "./trace";
+import { BenchmarkCollector } from "./benchmark";
 
 export interface OrchestratorOptions {
   timeoutMs?: number;
@@ -26,6 +27,7 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 
 export class Orchestrator {
   private readonly log: Logger;
+  readonly benchmarks: BenchmarkCollector;
 
   constructor(
     private eventBus: EventBus,
@@ -33,6 +35,7 @@ export class Orchestrator {
     private options?: OrchestratorOptions,
   ) {
     this.log = createLogger("orchestrator");
+    this.benchmarks = new BenchmarkCollector();
   }
 
   private logToDb(
@@ -298,6 +301,7 @@ export class Orchestrator {
       phaseResults,
     );
     logTrace(trace);
+    this.benchmarks.record(trace);
 
     this.logToDb("pipeline.complete", "orchestrator", traceId, {
       eventType: event.type,
