@@ -15,7 +15,7 @@
  *                         └─ children BlockNodes (recursive)
  */
 
-import { useCallback, useContext, useEffect, type ReactNode } from "react";
+import { memo, useCallback, useContext, useEffect, type ReactNode } from "react";
 import type { ComponentBlock, ComponentEventAction } from "@waibspace/types";
 import { ObservationCollectorProvider } from "./ObservationCollector";
 import { BlockStateProvider, BlockStateContext } from "./BlockStateStore";
@@ -33,7 +33,7 @@ export interface WaibRendererProps {
   send: (type: string, payload: unknown) => void;
 }
 
-export function WaibRenderer({ blocks, send }: WaibRendererProps) {
+export const WaibRenderer = memo(function WaibRenderer({ blocks, send }: WaibRendererProps) {
   useEffect(() => {
     registerPrimitiveBlocks();
     registerDomainComponents();
@@ -43,12 +43,12 @@ export function WaibRenderer({ blocks, send }: WaibRendererProps) {
     <ObservationCollectorProvider send={send}>
       <BlockStateProvider>
         {blocks.map((block) => (
-          <BlockNode key={block.id} block={block} send={send} />
+          <MemoizedBlockNode key={block.id} block={block} send={send} />
         ))}
       </BlockStateProvider>
     </ObservationCollectorProvider>
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // BlockNode — per-block recursive renderer
@@ -138,7 +138,7 @@ function BlockNode({ block, send }: BlockNodeProps) {
   let childNodes: ReactNode = null;
   if (block.children && block.children.length > 0) {
     childNodes = block.children.map((child) => (
-      <BlockNode key={child.id} block={child} send={send} />
+      <MemoizedBlockNode key={child.id} block={child} send={send} />
     ));
   }
 
@@ -150,3 +150,20 @@ function BlockNode({ block, send }: BlockNodeProps) {
     </BlockErrorBoundary>
   );
 }
+
+// ---------------------------------------------------------------------------
+// MemoizedBlockNode — skips re-render when block reference is stable
+// ---------------------------------------------------------------------------
+
+const MemoizedBlockNode = memo(BlockNode, (prev, next) => {
+  // If the block object reference is the same, skip re-render
+  if (prev.block === next.block && prev.send === next.send) return true;
+  // If the block id/type/props are identical, skip re-render
+  if (prev.block.id !== next.block.id) return false;
+  if (prev.block.type !== next.block.type) return false;
+  if (prev.send !== next.send) return false;
+  // For prop equality, rely on reference equality (which we guarantee via
+  // the useSurfaceDiff hook returning stable block references for unchanged
+  // surfaces).
+  return prev.block === next.block;
+});
