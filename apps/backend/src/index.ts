@@ -33,6 +33,8 @@ import {
   ConnectorRegistry,
   WebFetchConnector,
   MCPServerRegistry,
+  GmailConnector,
+  MockGmailConnector,
 } from "@waibspace/connectors";
 import { PolicyEngine, DEFAULT_POLICY_RULES } from "@waibspace/policy";
 import {
@@ -70,6 +72,21 @@ const webFetchConnector = new WebFetchConnector("web-fetch", "Web Fetch");
 await webFetchConnector.connect();
 connectorRegistry.register(webFetchConnector);
 console.log("[backend] WebFetch connector registered");
+
+// Gmail connector — use mock fixture data when MOCK_CONNECTORS is enabled
+if (process.env.MOCK_CONNECTORS === "true") {
+  const mockGmail = new MockGmailConnector();
+  await mockGmail.connect();
+  connectorRegistry.register(mockGmail);
+  console.log("[backend] MockGmailConnector registered (MOCK_CONNECTORS=true)");
+} else {
+  const gmailConnector = new GmailConnector();
+  await gmailConnector.connect();
+  if (gmailConnector.isConnected()) {
+    connectorRegistry.register(gmailConnector);
+    console.log("[backend] GmailConnector registered");
+  }
+}
 
 // ---------- 4. Policy Engine ----------
 const policyEngine = new PolicyEngine(DEFAULT_POLICY_RULES);
