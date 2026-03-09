@@ -114,6 +114,19 @@ export class BackgroundTaskScheduler {
       task.consecutiveFailures = 0;
       this.pushHistory(taskId, execution);
 
+      this.eventBus.emit(
+        createEvent(
+          "background.task.complete",
+          {
+            taskId: task.id,
+            taskName: task.name,
+            success: true,
+            durationMs: execution.durationMs,
+          },
+          "background-scheduler",
+        ),
+      );
+
       console.log(
         `[scheduler] Task "${task.name}" completed successfully (${execution.durationMs}ms)`,
       );
@@ -135,8 +148,25 @@ export class BackgroundTaskScheduler {
         `[scheduler] Task "${task.name}" failed (attempt ${attempt + 1}): ${errorMsg}`,
       );
 
-      // Schedule retry if within limits
+      // Emit failure notification when retries are exhausted
       const maxRetries = task.maxRetries ?? 0;
+      if (attempt >= maxRetries || !task.enabled || this.stopped) {
+        this.eventBus.emit(
+          createEvent(
+            "background.task.complete",
+            {
+              taskId: task.id,
+              taskName: task.name,
+              success: false,
+              durationMs: execution.durationMs,
+              error: errorMsg,
+            },
+            "background-scheduler",
+          ),
+        );
+      }
+
+      // Schedule retry if within limits
       if (attempt < maxRetries && task.enabled && !this.stopped) {
         const backoffMs = (task.retryBackoffMs ?? DEFAULT_RETRY_BACKOFF_MS) * Math.pow(2, attempt);
         console.log(

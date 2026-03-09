@@ -273,6 +273,26 @@ bus.on("surface.composed", (event: WaibEvent) => {
   broadcast(message);
 });
 
+// ---------- 11b. Broadcast background task completion notifications ----------
+bus.on("background.task.complete", (event: WaibEvent) => {
+  const payload = event.payload as {
+    taskId: string;
+    taskName: string;
+    success: boolean;
+    durationMs: number;
+    error?: string;
+  };
+  const message: ServerMessage = {
+    type: "task.complete",
+    payload,
+  };
+  log.child({ traceId: event.traceId }).info("Broadcasting task.complete", {
+    taskId: payload.taskId,
+    success: payload.success,
+  });
+  broadcast(message);
+});
+
 // ---------- 12. Start HTTP/WebSocket server ----------
 const server = startServer({ eventBus: bus, orchestrator, memoryStore, scheduler, mcpRegistry, connectorRegistry, db, pendingActionStore });
 

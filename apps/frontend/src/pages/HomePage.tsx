@@ -16,6 +16,8 @@ import { ErrorSurface } from "../components/ErrorSurface";
 import { KeyboardShortcutHelp } from "../components/KeyboardShortcutHelp";
 import { BlockInspector, BlockInspectorToggle } from "../blocks/BlockInspector";
 import { composedLayoutToBlocks } from "../blocks/transformers";
+import { useNotifications } from "../hooks/useNotifications";
+import { NotificationStack } from "../components/NotificationToast";
 
 const WS_URL = `ws://${window.location.hostname}:${import.meta.env.VITE_WS_PORT || 3001}/ws`;
 const API_BASE = `http://${window.location.hostname}:${import.meta.env.VITE_WS_PORT || 3001}`;
@@ -102,6 +104,7 @@ export default function HomePage() {
   });
 
   const { helpVisible, dismissHelp } = useGlobalShortcuts();
+  const { notifications, dismiss: dismissNotification } = useNotifications(lastMessage);
 
   // On initial connection, check what services are connected
   // Show WelcomeState immediately, then trigger data fetch in background
@@ -261,6 +264,7 @@ export default function HomePage() {
 
   return (
     <div className="page home-page">
+      <NotificationStack notifications={notifications} onDismiss={dismissNotification} />
       {status !== "connected" && (
         <div className={`connection-banner ${status === "reconnecting" ? "connecting" : status}`}>
           <span className="connection-banner-icon">!</span>
