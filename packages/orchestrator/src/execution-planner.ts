@@ -103,7 +103,10 @@ export function buildExecutionPlan(
   registry: AgentRegistry,
 ): ExecutionPlan {
   const categories = getPipelineForEvent(eventType);
-  const orderings = AGENT_ORDERINGS[eventType];
+  // Look up exact match first, then fall back to pattern-based orderings
+  // (e.g. user.interaction.* events reuse the user.message.received ordering)
+  const orderings = AGENT_ORDERINGS[eventType]
+    ?? (eventType.startsWith("user.interaction.") ? AGENT_ORDERINGS["user.message.received"] : undefined);
 
   const phases: ExecutionPhase[] = [];
 
