@@ -46,7 +46,7 @@ import {
   ModelProviderRegistry,
   AnthropicProvider,
 } from "@waibspace/model-provider";
-import { MemoryStore, MemoryUpdatePipeline, ObservationProcessor, ConversationContextStore } from "@waibspace/memory";
+import { MemoryStore, MemoryUpdatePipeline, ObservationProcessor, ConversationContextStore, EngagementTracker } from "@waibspace/memory";
 import { WaibDatabase } from "@waibspace/db";
 import { BackgroundTaskScheduler, MVP_BACKGROUND_TASKS } from "./background";
 import { startServer } from "./server";
@@ -177,7 +177,11 @@ log.info("Agent registry initialized", {
 // ---------- 6. Memory Store ----------
 const memoryStore = new MemoryStore(db, bus);
 
-// ---------- 6a. Conversation Context Store ----------
+// ---------- 6a. Engagement Tracker ----------
+const engagementTracker = new EngagementTracker(memoryStore);
+log.info("Engagement tracker initialized");
+
+// ---------- 6b. Conversation Context Store ----------
 const conversationContextStore = new ConversationContextStore();
 conversationContextStore.startCleanup();
 log.info("Conversation context store initialized");
@@ -194,6 +198,7 @@ const orchestrator = new Orchestrator(bus, agentRegistry, {
   connectorRegistry,
   policyEngine,
   pendingActionStore,
+  engagementTracker,
   db,
 });
 
@@ -204,6 +209,26 @@ memoryPipeline.start();
 // ---------- 8b. Observation Processor ----------
 const observationProcessor = new ObservationProcessor(memoryStore, bus);
 observationProcessor.start();
+
+// ---------- 8c. Engagement Tracking (interaction events -> engagement tracker) ----------
+bus.on("user.interaction.*", (event: WaibEvent) => {
+  const payload = event.payload as Record<string, unknown> | undefined;
+  if (!payload) return;
+
+  const surfaceType = (payload.surfaceType as string) || "";
+  const surfaceId = (payload.surfaceId as string) || "";
+  const interaction = (payload.interaction as string) || "";
+
+  // Only track interactions with identified surfaces
+  if (surfaceType && surfaceId) {
+    engagementTracker.recordInteraction({
+      surfaceType,
+      surfaceId,
+      interaction,
+      timestamp: Date.now(),
+    });
+  }
+});
 
 // ---------- 9. Background Task Scheduler ----------
 const scheduler = new BackgroundTaskScheduler(bus, orchestrator, memoryStore);

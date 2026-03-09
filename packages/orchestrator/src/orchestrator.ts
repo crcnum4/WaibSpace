@@ -21,6 +21,8 @@ export interface OrchestratorOptions {
   policyEngine?: PolicyEngine;
   pendingActionStore?: IPendingActionStore;
   db?: WaibDatabase;
+  /** Engagement tracker for adaptive layout based on user interaction patterns */
+  engagementTracker?: unknown;
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -105,6 +107,9 @@ export class Orchestrator {
             : {}),
           ...(this.options?.conversationContextStore
             ? { conversationContextStore: this.options.conversationContextStore }
+            : {}),
+          ...(this.options?.engagementTracker
+            ? { engagementTracker: this.options.engagementTracker }
             : {}),
         },
       };
