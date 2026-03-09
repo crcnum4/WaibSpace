@@ -183,23 +183,25 @@ export function inboxToBlocks(spec: SurfaceSpec): ComponentBlock[] {
         children: contentChildren,
       });
 
-      // Urgency badge on the right
-      rowChildren.push({
-        id: `${sid}-email-urgency-${i}`,
-        type: "Container",
-        props: { className: `inbox-block-urgency inbox-block-urgency--${email.urgency}` },
-        children: [
-          {
-            id: `${sid}-email-urgency-text-${i}`,
-            type: "Text",
-            props: {
-              content: email.urgency,
-              variant: "caption",
-              color: urgencyTextColor(email.urgency),
+      // Urgency badge on the right (only if classified)
+      if (email.urgency) {
+        rowChildren.push({
+          id: `${sid}-email-urgency-${i}`,
+          type: "Container",
+          props: { className: `inbox-block-urgency inbox-block-urgency--${email.urgency}` },
+          children: [
+            {
+              id: `${sid}-email-urgency-text-${i}`,
+              type: "Text",
+              props: {
+                content: email.urgency,
+                variant: "caption",
+                color: urgencyTextColor(email.urgency),
+              },
             },
-          },
-        ],
-      });
+          ],
+        });
+      }
 
       const itemChildren: ComponentBlock[] = [
         {
