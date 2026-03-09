@@ -34,6 +34,8 @@ export {
   ConversationContextAgent,
   type ConversationContextOutput,
   PolicyGateAgent,
+  BehavioralPreferenceAgent,
+  type BehavioralPreferenceOutput,
 } from "./context";
 export {
   InboxSurfaceAgent,

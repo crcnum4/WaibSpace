@@ -19,6 +19,7 @@ import {
   MemoryRetrievalAgent,
   ConversationContextAgent,
   PolicyGateAgent,
+  BehavioralPreferenceAgent,
   // UI agents
   InboxSurfaceAgent,
   CalendarSurfaceAgent,
@@ -46,7 +47,7 @@ import {
   ModelProviderRegistry,
   AnthropicProvider,
 } from "@waibspace/model-provider";
-import { MemoryStore, MemoryUpdatePipeline, ObservationProcessor, ConversationContextStore, EngagementTracker } from "@waibspace/memory";
+import { MemoryStore, MemoryUpdatePipeline, ObservationProcessor, ConversationContextStore, EngagementTracker, BehavioralTracker, BehavioralModel } from "@waibspace/memory";
 import { WaibDatabase } from "@waibspace/db";
 import { BackgroundTaskScheduler, MVP_BACKGROUND_TASKS } from "./background";
 import { startServer } from "./server";
@@ -152,6 +153,7 @@ agentRegistry.register(new ContextPlannerAgent());
 agentRegistry.register(new ConnectorSelectionAgent());
 agentRegistry.register(new DataRetrievalAgent());
 agentRegistry.register(new PolicyGateAgent());
+agentRegistry.register(new BehavioralPreferenceAgent());
 
 // UI agents
 agentRegistry.register(new InboxSurfaceAgent());
@@ -229,6 +231,19 @@ bus.on("user.interaction.*", (event: WaibEvent) => {
     });
   }
 });
+
+// ---------- 8d. Behavioral Learning ----------
+const behavioralTracker = new BehavioralTracker(memoryStore, bus);
+behavioralTracker.start();
+
+const behavioralModel = new BehavioralModel(memoryStore);
+
+// Periodically refresh learned preferences (every 5 minutes)
+setInterval(() => {
+  behavioralModel.persistPreferences();
+}, 5 * 60 * 1000);
+
+log.info("Behavioral learning pipeline initialized");
 
 // ---------- 9. Background Task Scheduler ----------
 const scheduler = new BackgroundTaskScheduler(bus, orchestrator, memoryStore);

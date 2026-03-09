@@ -19,3 +19,14 @@ export type {
   EngagementMetrics,
   EngagementScore,
 } from "./engagement-tracker";
+export { BehavioralTracker } from "./behavioral-tracker";
+export type {
+  BehaviorObservation,
+  BehaviorAggregate,
+  BehavioralTrackerOptions,
+} from "./behavioral-tracker";
+export { BehavioralModel } from "./behavioral-model";
+export type {
+  LearnedPreference,
+  BehavioralModelOptions,
+} from "./behavioral-model";

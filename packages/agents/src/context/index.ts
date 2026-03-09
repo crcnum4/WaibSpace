@@ -19,3 +19,7 @@ export {
   type ConversationContextOutput,
 } from "./conversation-context";
 export { PolicyGateAgent } from "./policy-gate";
+export {
+  BehavioralPreferenceAgent,
+  type BehavioralPreferenceOutput,
+} from "./behavioral-preference";
