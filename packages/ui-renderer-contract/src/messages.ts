@@ -27,6 +27,19 @@ export type ClientMessage =
         surfaceType?: string;
         context?: unknown;
         timestamp: number;
+        blockId?: string;
+        blockType?: string;
+        wasPlanned?: boolean;
+        batch?: Array<{
+          blockId: string;
+          blockType: string;
+          wasPlanned: boolean;
+          interactionType: string;
+          position?: { x: number; y: number };
+          dwellMs?: number;
+          viewportRatio?: number;
+          timestamp: number;
+        }>;
       };
     }
   | { type: "user.intent.url"; payload: { path: string; raw: string } }
