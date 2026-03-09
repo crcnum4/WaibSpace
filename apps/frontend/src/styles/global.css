@@ -710,6 +710,11 @@ body {
   background: var(--color-danger);
 }
 
+.connection-dot.error {
+  background: var(--color-warning);
+  box-shadow: 0 0 6px var(--color-warning);
+}
+
 .connection-label {
   font-size: var(--text-sm);
   color: var(--color-muted);
@@ -2473,6 +2478,29 @@ body {
   gap: var(--space-1);
   font-size: var(--text-sm);
   color: var(--color-danger);
+}
+
+/* Connection Error */
+.conn-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: color-mix(in srgb, var(--color-warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-warning);
+  line-height: 1.4;
+}
+
+.conn-error-icon {
+  flex-shrink: 0;
+  font-weight: var(--weight-bold);
+}
+
+.conn-error-message {
+  color: var(--color-text-secondary, var(--color-muted));
 }
 
 /* Expand / Tools */

@@ -22,6 +22,12 @@ interface ConnectedService {
   name: string;
 }
 
+interface FailedService {
+  id: string;
+  name: string;
+  error: string;
+}
+
 export default function HomePage() {
   const { send, lastMessage, status } = useWebSocket(WS_URL);
   const location = useLocation();
@@ -29,6 +35,7 @@ export default function HomePage() {
   const [agents, setAgents] = useState<AgentStatusType[]>([]);
   const [hasCheckedConnections, setHasCheckedConnections] = useState(false);
   const [connectedServices, setConnectedServices] = useState<ConnectedService[]>([]);
+  const [failedServices, setFailedServices] = useState<FailedService[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pipelinePhase, setPipelinePhase] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -51,12 +58,17 @@ export default function HomePage() {
 
     fetch(`${API_BASE}/api/mcp/servers`)
       .then((res) => res.json())
-      .then((servers: Array<{ config: { id: string; name: string }; connected: boolean }>) => {
+      .then((servers: Array<{ config: { id: string; name: string }; connected: boolean; error: string | null }>) => {
         const connected = servers
           .filter((s) => s.connected)
           .map((s) => ({ id: s.config.id, name: s.config.name }));
 
+        const failed = servers
+          .filter((s) => !s.connected && s.error)
+          .map((s) => ({ id: s.config.id, name: s.config.name, error: s.error! }));
+
         setConnectedServices(connected);
+        setFailedServices(failed);
 
         if (connected.length === 0) return; // Stay on WelcomeState
 
@@ -222,6 +234,15 @@ export default function HomePage() {
       </div>
 
       <div className="home-content">
+        {failedServices.length > 0 && (
+          <ErrorSurface
+            errors={failedServices.map((svc) => ({
+              agentId: svc.name,
+              message: svc.error,
+              phase: "connection",
+            }))}
+          />
+        )}
         {errorMessage && (
           <ErrorSurface
             errors={[

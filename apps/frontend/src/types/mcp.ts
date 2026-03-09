@@ -9,6 +9,7 @@ export interface MCPServer {
   };
   connected: boolean;
   toolCount: number;
+  error: string | null;
 }
 
 export interface MCPTool {

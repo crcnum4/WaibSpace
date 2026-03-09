@@ -31,6 +31,7 @@ function classifyTool(toolName: string): { riskClass: "A" | "B" | "C"; autoAppro
 
 export class MCPServerRegistry {
   private servers = new Map<string, { config: MCPServerConfig; connector: MCPConnector }>();
+  private connectionErrors = new Map<string, string>();
   private policyEngine: PolicyEngine | undefined;
   private db?: WaibDatabase;
 
@@ -57,6 +58,7 @@ export class MCPServerRegistry {
     if (entry.connector.isConnected()) {
       await this.disconnectServer(id);
     }
+    this.connectionErrors.delete(id);
     this.servers.delete(id);
   }
 
@@ -66,8 +68,16 @@ export class MCPServerRegistry {
     if (!entry) {
       throw new Error(`MCP server "${id}" not found`);
     }
-    await entry.connector.connect();
-    this.generatePolicyRules(id, entry.connector.getDiscoveredTools());
+    try {
+      await entry.connector.connect();
+      // Clear any previous connection error on success
+      this.connectionErrors.delete(id);
+      this.generatePolicyRules(id, entry.connector.getDiscoveredTools());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.connectionErrors.set(id, message);
+      throw error;
+    }
   }
 
   /** Disconnect from a specific server and remove its policy rules. */
@@ -77,15 +87,17 @@ export class MCPServerRegistry {
       throw new Error(`MCP server "${id}" not found`);
     }
     this.removePolicyRules(id);
+    this.connectionErrors.delete(id);
     await entry.connector.disconnect();
   }
 
   /** Get status of all servers. */
-  getServers(): Array<{ config: MCPServerConfig; connected: boolean; toolCount: number }> {
+  getServers(): Array<{ config: MCPServerConfig; connected: boolean; toolCount: number; error: string | null }> {
     return Array.from(this.servers.values()).map(({ config, connector }) => ({
       config,
       connected: connector.isConnected(),
       toolCount: connector.getDiscoveredTools().length,
+      error: this.connectionErrors.get(config.id) ?? null,
     }));
   }
 

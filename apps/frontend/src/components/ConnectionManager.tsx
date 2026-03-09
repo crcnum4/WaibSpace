@@ -68,7 +68,17 @@ export function ConnectionManager() {
   const connectServer = async (id: string) => {
     setActionLoading(id);
     try {
-      await fetch(`/api/mcp/servers/${id}/connect`, { method: "POST" });
+      const res = await fetch(`/api/mcp/servers/${id}/connect`, { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        const errMsg = body?.error ?? `Connection failed (HTTP ${res.status})`;
+        // Update local state immediately so the error shows
+        setServers((prev) =>
+          prev.map((s) =>
+            s.config.id === id ? { ...s, error: errMsg } : s,
+          ),
+        );
+      }
       await fetchServers();
     } finally {
       setActionLoading(null);
@@ -136,11 +146,13 @@ export function ConnectionManager() {
 
   const getStatusClass = (server: MCPServer) => {
     if (server.connected) return "connected";
+    if (server.error) return "error";
     return "disconnected";
   };
 
   const getStatusLabel = (server: MCPServer) => {
     if (server.connected) return "Connected";
+    if (server.error) return "Error";
     return "Disconnected";
   };
 
@@ -327,6 +339,15 @@ export function ConnectionManager() {
               </div>
             </div>
 
+            {server.error && !server.connected && (
+              <div className="conn-error">
+                <span className="conn-error-icon">!</span>
+                <span className="conn-error-message">
+                  {friendlyConnectionError(server.error, server.config)}
+                </span>
+              </div>
+            )}
+
             {server.connected && (
               <button
                 className="conn-expand-btn"
@@ -367,4 +388,42 @@ export function ConnectionManager() {
       </div>
     </div>
   );
+}
+
+/** Convert raw MCP connection errors into actionable user-facing messages. */
+function friendlyConnectionError(
+  error: string,
+  config: MCPServer["config"],
+): string {
+  // stdio: command not found
+  if (error.includes("ENOENT") || error.includes("not found")) {
+    return `Command "${config.command ?? "unknown"}" not found. Is the MCP server installed?`;
+  }
+  // SSE/HTTP: connection refused
+  if (error.includes("ECONNREFUSED")) {
+    const port = config.url ? new URL(config.url).port : null;
+    return port
+      ? `Connection refused on port ${port}. Is the server running?`
+      : `Connection refused. Is the ${config.name} server running?`;
+  }
+  // Process exited / crashed
+  if (error.includes("exited") || error.includes("spawn")) {
+    return `${config.name} server process failed to start. Check the command and arguments.`;
+  }
+  // Timeout
+  if (error.includes("timed out") || error.includes("timeout")) {
+    return `Connection to ${config.name} timed out. The server may be unresponsive.`;
+  }
+  // DNS / network
+  if (error.includes("ENOTFOUND")) {
+    return `Could not resolve host for ${config.name}. Check the server URL.`;
+  }
+  // Auth
+  if (error.includes("401") || error.includes("403") || error.includes("Unauthorized")) {
+    return `Authentication failed for ${config.name}. Check your credentials.`;
+  }
+  // Fallback: show the raw error but truncated
+  const maxLen = 150;
+  const cleaned = error.replace(/^Failed to connect to MCP server "[^"]+": /, "");
+  return cleaned.length > maxLen ? cleaned.slice(0, maxLen) + "..." : cleaned;
 }
