@@ -6,6 +6,7 @@ import {
 import { BaseAgent } from "../base-agent";
 import type { AgentInput, AgentContext } from "../types";
 import type { DataRetrievalOutput } from "../context/data-retrieval";
+import { classifyEmailUrgency } from "./email-urgency";
 
 interface EmailSummary {
   id: string;
@@ -187,14 +188,19 @@ export class InboxSurfaceAgent extends BaseAgent {
     }
 
     // Default path: map raw email fields directly — no LLM involved
-    const emails: InboxSurfaceData["emails"] = rawEmails.map((email, i) => ({
-      id: String(email.id ?? email.messageId ?? `email-${i}`),
-      from: String(email.from || email.sender || "Unknown"),
-      subject: String(email.subject || "No Subject"),
-      snippet: String(email.snippet ?? email.text ?? email.body ?? "").slice(0, 200),
-      date: String(email.date ?? email.receivedAt ?? ""),
-      isUnread: Boolean(email.isUnread ?? email.unread ?? true),
-    }));
+    // Apply lightweight heuristic urgency scoring (no LLM cost)
+    const emails: InboxSurfaceData["emails"] = rawEmails.map((email, i) => {
+      const { urgency } = classifyEmailUrgency(email);
+      return {
+        id: String(email.id ?? email.messageId ?? `email-${i}`),
+        from: String(email.from || email.sender || "Unknown"),
+        subject: String(email.subject || "No Subject"),
+        snippet: String(email.snippet ?? email.text ?? email.body ?? "").slice(0, 200),
+        date: String(email.date ?? email.receivedAt ?? ""),
+        isUnread: Boolean(email.isUnread ?? email.unread ?? true),
+        urgency,
+      };
+    });
 
     const batchUnreadCount = emails.filter((e) => e.isUnread).length;
     const unreadCount = gmailTotalUnread ?? batchUnreadCount;
@@ -362,16 +368,19 @@ export class InboxSurfaceAgent extends BaseAgent {
       this.log("LLM analysis failed, falling back to raw email data", { error: errMsg });
       const rawEmails = (Array.isArray(truncatedData) ? truncatedData : [truncatedData]) as Record<string, unknown>[];
       return {
-        emails: rawEmails.map((email, i) => ({
-          id: String(email.id ?? email.messageId ?? `email-${i}`),
-          from: String(email.from || email.sender || "Unknown"),
-          subject: String(email.subject || "No Subject"),
-          snippet: String(email.snippet ?? email.text ?? email.body ?? "").slice(0, 200),
-          date: String(email.date ?? email.receivedAt ?? ""),
-          isUnread: Boolean(email.isUnread ?? email.unread ?? true),
-          urgency: "medium" as const,
-        })),
-        overallSummary: `${rawEmails.length} emails (LLM analysis unavailable)`,
+        emails: rawEmails.map((email, i) => {
+          const { urgency } = classifyEmailUrgency(email);
+          return {
+            id: String(email.id ?? email.messageId ?? `email-${i}`),
+            from: String(email.from || email.sender || "Unknown"),
+            subject: String(email.subject || "No Subject"),
+            snippet: String(email.snippet ?? email.text ?? email.body ?? "").slice(0, 200),
+            date: String(email.date ?? email.receivedAt ?? ""),
+            isUnread: Boolean(email.isUnread ?? email.unread ?? true),
+            urgency,
+          };
+        }),
+        overallSummary: `${rawEmails.length} emails (LLM analysis unavailable, heuristic urgency applied)`,
       };
     }
   }
