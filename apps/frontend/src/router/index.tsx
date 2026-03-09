@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import Layout from "../components/Layout";
 import HomePage from "../pages/HomePage";
@@ -8,6 +9,8 @@ import ApprovalsPage from "../pages/ApprovalsPage";
 import IntentResolutionPage from "../pages/IntentResolutionPage";
 import TasksPage from "../pages/TasksPage";
 
+const BlocksDemoPage = lazy(() => import("../pages/BlocksDemoPage"));
+
 // Known routes
 const knownRoutes = [
   { index: true, element: <HomePage /> },
@@ -16,6 +19,7 @@ const knownRoutes = [
   { path: "settings", element: <SettingsPage /> },
   { path: "approvals", element: <ApprovalsPage /> },
   { path: "tasks", element: <TasksPage /> },
+  { path: "blocks-demo", element: <Suspense fallback={<div>Loading...</div>}><BlocksDemoPage /></Suspense> },
 ];
 
 // Catch-all: unknown paths become intent queries
