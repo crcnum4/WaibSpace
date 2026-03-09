@@ -6,7 +6,7 @@ import type {
 } from "@waibspace/ui-renderer-contract";
 import type { SurfaceAction } from "@waibspace/types";
 import { useWebSocket } from "../hooks/useWebSocket";
-import { SurfaceRenderer } from "../components/SurfaceRenderer";
+import { BlockSurfaceRenderer } from "../components/BlockSurfaceRenderer";
 import { AgentStatus } from "../components/AgentStatus";
 
 const WS_URL = `ws://${window.location.hostname}:${import.meta.env.VITE_WS_PORT || 3001}/ws`;
@@ -157,7 +157,7 @@ export default function IntentResolutionPage() {
         </div>
       ) : hasSurfaces ? (
         <div className="intent-results">
-          <SurfaceRenderer
+          <BlockSurfaceRenderer
             layout={layout}
             onAction={handleAction}
             onInteraction={handleInteraction}
