@@ -131,6 +131,67 @@
   line-height: 1;
 }
 
+/* ---- GmailEmailCard Quick Actions ---- */
+
+.gmail-email-card__quick-actions {
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  box-shadow: var(--shadow-sm);
+}
+
+.gmail-email-card {
+  position: relative;
+}
+
+.gmail-email-card:hover .gmail-email-card__quick-actions,
+.gmail-email-card:focus-within .gmail-email-card__quick-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.gmail-email-card__quick-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  font-family: var(--font-sans);
+  line-height: 1;
+}
+
+.gmail-email-card__quick-btn:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.gmail-email-card__quick-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.gmail-email-card__quick-btn:active {
+  background: var(--color-border);
+}
+
 /* ---- GmailInboxList ---- */
 
 .gmail-inbox-list {
@@ -375,6 +436,10 @@
   }
 
   .gmail-email-card__actions {
+    display: none;
+  }
+
+  .gmail-email-card__quick-actions {
     display: none;
   }
 
