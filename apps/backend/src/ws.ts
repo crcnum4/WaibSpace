@@ -175,19 +175,44 @@ export function createWebSocketHandlers(bus: EventBus, memoryStore?: MemoryStore
 
       const clientMsg = parsed as ClientMessage;
       const eventType = mapClientMessageToEventType(clientMsg);
+      const source = `ws:${ws.data.connectionId}`;
 
       console.log(
         `[ws] [trace:${traceId}] message from ${ws.data.connectionId}: ${clientMsg.type} -> ${eventType}`,
       );
 
-      // Create a WaibEvent and emit to the event bus
-      const event = createEvent(
-        eventType,
-        clientMsg.payload,
-        `ws:${ws.data.connectionId}`,
-        traceId,
-      );
-      bus.emit(event);
+      // If this is a user.interaction with a batch, emit individual events for each observation
+      if (clientMsg.type === "user.interaction" && clientMsg.payload.batch && clientMsg.payload.batch.length > 0) {
+        const { batch, ...basePayload } = clientMsg.payload;
+        console.log(
+          `[ws] [trace:${traceId}] Processing observation batch of ${batch.length} item(s)`,
+        );
+        for (const observation of batch) {
+          const obsEventType = `user.interaction.${observation.interactionType}`;
+          const obsPayload = {
+            ...basePayload,
+            interaction: observation.interactionType,
+            blockId: observation.blockId,
+            blockType: observation.blockType,
+            wasPlanned: observation.wasPlanned,
+            position: observation.position,
+            dwellMs: observation.dwellMs,
+            viewportRatio: observation.viewportRatio,
+            timestamp: observation.timestamp,
+          };
+          const obsEvent = createEvent(obsEventType, obsPayload, source, traceId);
+          bus.emit(obsEvent);
+        }
+      } else {
+        // Create a WaibEvent and emit to the event bus
+        const event = createEvent(
+          eventType,
+          clientMsg.payload,
+          source,
+          traceId,
+        );
+        bus.emit(event);
+      }
     },
 
     close(ws: ServerWebSocket<WebSocketData>) {
