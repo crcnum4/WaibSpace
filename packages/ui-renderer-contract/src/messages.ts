@@ -13,7 +13,17 @@ export type ServerMessage =
       payload: { approvalId: string; surface: SurfaceSpec };
     }
   | { type: "status"; payload: { phase: string; agents: AgentStatus[] } }
-  | { type: "error"; payload: { message: string; code: string } };
+  | { type: "error"; payload: { message: string; code: string } }
+  | {
+      type: "task.complete";
+      payload: {
+        taskId: string;
+        taskName: string;
+        success: boolean;
+        durationMs: number;
+        error?: string;
+      };
+    };
 
 // Frontend → Backend messages
 export type ClientMessage =
