@@ -122,22 +122,40 @@ export function BlockSurfaceRenderer({
   // Staleness indicator: warn if layout data is old
   const isStale = layout ? isLayoutStale(layout) : false;
 
-  // Progressive reveal animation
+  // Progressive reveal animation — only animate surfaces that appear *after*
+  // the initial page load.  On the first render we mark all existing surfaces
+  // as already-revealed so they don't animate in.  Subsequent surfaces get a
+  // CSS-driven staggered fade-in + slide-up.
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
   const prevSurfaceIdsRef = useRef<string[]>([]);
+  const isInitialLoadRef = useRef(true);
 
   useEffect(() => {
     if (!layout) return;
     const currentIds = layout.surfaces.map((s) => s.surfaceId);
     const prevIds = prevSurfaceIdsRef.current;
-    const newIds = currentIds.filter((id) => !prevIds.includes(id));
-    if (newIds.length > 0) {
-      newIds.forEach((id, i) => {
+
+    if (isInitialLoadRef.current) {
+      // First render — mark everything as revealed immediately (no animation)
+      setRevealedIds(new Set(currentIds));
+      isInitialLoadRef.current = false;
+    } else {
+      const newIds = currentIds.filter((id) => !prevIds.includes(id));
+      if (newIds.length > 0) {
+        // New surfaces enter with stagger; delay is set via CSS custom property.
+        // We still need to flip them to "revealed" after the animation ends so
+        // the class can settle.  One timeout covers the whole batch.
+        const batchDuration = newIds.length * 120 + 400; // stagger + animation
         setTimeout(() => {
-          setRevealedIds((prev) => new Set([...prev, id]));
-        }, i * 150);
-      });
+          setRevealedIds((prev) => {
+            const next = new Set(prev);
+            newIds.forEach((id) => next.add(id));
+            return next;
+          });
+        }, batchDuration);
+      }
     }
+
     prevSurfaceIdsRef.current = currentIds;
   }, [layout]);
 
@@ -283,11 +301,17 @@ export function BlockSurfaceRenderer({
       )}
       {surfaceBlocks.map((surface) => {
         const isRevealed = revealedIds.has(surface.surfaceId);
+        // Compute stagger index among currently-entering surfaces
+        const enteringSiblings = surfaceBlocks.filter((s) => !revealedIds.has(s.surfaceId));
+        const staggerIndex = enteringSiblings.indexOf(surface);
         return (
           <div
             key={surface.surfaceId}
             className={`surface-cell ${surface.width} ${surface.prominence} ${isRevealed ? "surface-revealed" : "surface-entering"}`}
-            style={{ order: surface.position }}
+            style={{
+              order: surface.position,
+              ...(!isRevealed ? { "--surface-stagger": staggerIndex } as React.CSSProperties : {}),
+            }}
           >
             <div className="surface-wrapper">
               <div className="surface">
