@@ -57,6 +57,18 @@ export function inboxToBlocks(spec: SurfaceSpec): ComponentBlock[] {
 
   const children: ComponentBlock[] = [];
 
+  // Error banner when data retrieval failed
+  if (data.error) {
+    children.push({
+      id: `${sid}-error`,
+      type: "Text",
+      props: {
+        text: data.error,
+        variant: "error",
+      },
+    });
+  }
+
   // Email cards
   if (data.emails && data.emails.length > 0) {
     for (let i = 0; i < data.emails.length; i++) {
@@ -99,6 +111,7 @@ export function inboxToBlocks(spec: SurfaceSpec): ComponentBlock[] {
         unreadCount: data.unreadCount,
         totalCount: data.totalCount,
         isScanned: false,
+        ...(data.error ? { error: data.error } : {}),
       },
       children,
       meta: {

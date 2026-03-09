@@ -5,10 +5,11 @@ interface GmailInboxListProps {
   unreadCount: number;
   totalCount: number;
   isScanned: boolean;
+  error?: string;
 }
 
 export function GmailInboxList({ block, children, onEvent }: BlockProps) {
-  const { unreadCount, isScanned } = block.props as GmailInboxListProps;
+  const { unreadCount, isScanned, error } = block.props as GmailInboxListProps;
   const [isScanning, setIsScanning] = useState(false);
 
   const handleScan = () => {
@@ -21,11 +22,11 @@ export function GmailInboxList({ block, children, onEvent }: BlockProps) {
       <div className="gmail-inbox-list__header">
         <div className="gmail-inbox-list__title-row">
           <h3 className="gmail-inbox-list__title">Inbox</h3>
-          {unreadCount > 0 && (
+          {!error && unreadCount > 0 && (
             <span className="gmail-inbox-list__badge">{unreadCount}</span>
           )}
         </div>
-        {!isScanned && (
+        {!isScanned && !error && (
           <button
             className={`gmail-inbox-list__scan-btn${isScanning ? " gmail-inbox-list__scan-btn--loading" : ""}`}
             onClick={handleScan}
@@ -42,7 +43,13 @@ export function GmailInboxList({ block, children, onEvent }: BlockProps) {
           </button>
         )}
       </div>
-      <div className="gmail-inbox-list__cards">{children}</div>
+      {error ? (
+        <div className="gmail-inbox-list__error">
+          <p className="gmail-inbox-list__error-text">{error}</p>
+        </div>
+      ) : (
+        <div className="gmail-inbox-list__cards">{children}</div>
+      )}
     </div>
   );
 }
