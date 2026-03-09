@@ -3,10 +3,17 @@ import type {
   ComposedLayout,
   LayoutDirective,
 } from "@waibspace/ui-renderer-contract";
+import type { EngagementTracker, EngagementScore } from "@waibspace/memory";
 import { BaseAgent } from "../base-agent";
 import type { AgentInput, AgentContext } from "../types";
 
 const MAX_VISIBLE_SURFACES = 4;
+
+/**
+ * Priority boost applied per engagement score point (0-1 range).
+ * A fully engaged surface (score=1) gets up to this many extra priority points.
+ */
+const ENGAGEMENT_PRIORITY_BOOST = 30;
 
 /**
  * Extract SurfaceSpec objects from a list of agent outputs.
@@ -70,20 +77,48 @@ export class LayoutComposerAgent extends BaseAgent {
 
     this.log("Collected surfaces", { count: surfaces.length });
 
-    // 2. Sort by priority (highest first)
-    surfaces.sort((a, b) => b.priority - a.priority);
+    // 2. Retrieve engagement data if available
+    const engagementTracker = context.config?.engagementTracker as
+      | EngagementTracker
+      | undefined;
+    const engagementScores = engagementTracker?.getScores() ?? [];
+    const scoreMap = new Map<string, EngagementScore>();
+    for (const score of engagementScores) {
+      scoreMap.set(score.surfaceType, score);
+    }
 
-    // 3. Resolve position conflicts
+    if (engagementScores.length > 0) {
+      this.log("Engagement data available", {
+        trackedTypes: engagementScores.length,
+        topType: engagementScores[0]?.surfaceType,
+        topScore: engagementScores[0]?.score.toFixed(3),
+      });
+    }
+
+    // 3. Sort by priority, boosted by engagement score
+    surfaces.sort((a, b) => {
+      const boostA = (scoreMap.get(a.surfaceType)?.score ?? 0) * ENGAGEMENT_PRIORITY_BOOST;
+      const boostB = (scoreMap.get(b.surfaceType)?.score ?? 0) * ENGAGEMENT_PRIORITY_BOOST;
+      return (b.priority + boostB) - (a.priority + boostA);
+    });
+
+    // 4. Resolve position conflicts
     const resolved = this.resolvePositions(surfaces);
 
-    // 4. Generate LayoutDirectives (max 4 visible)
-    const layout = this.buildDirectives(resolved);
+    // 5. Apply engagement-based prominence adjustments
+    const prominenceMap = engagementTracker?.getProminenceMap();
+    const adjusted = prominenceMap
+      ? this.applyEngagementProminence(resolved, prominenceMap)
+      : resolved;
+
+    // 6. Generate LayoutDirectives (max 4 visible)
+    const layout = this.buildDirectives(adjusted);
 
     const endMs = Date.now();
 
-    // 5. Build ComposedLayout
+    // 7. Build ComposedLayout
     const composed: ComposedLayout = {
-      surfaces: resolved,
+      surfaces: adjusted,
       layout,
       timestamp: Date.now(),
       traceId: context.traceId,
@@ -92,7 +127,7 @@ export class LayoutComposerAgent extends BaseAgent {
     return {
       ...this.createOutput(composed, 1.0, {
         dataState: "transformed",
-        transformations: ["layout-composition"],
+        transformations: ["layout-composition", ...(prominenceMap ? ["engagement-adaptive"] : [])],
         timestamp: startMs,
       }),
       timing: {
@@ -135,6 +170,35 @@ export class LayoutComposerAgent extends BaseAgent {
       }
 
       return surface;
+    });
+  }
+
+  /**
+   * Apply engagement-driven prominence to surfaces.
+   *
+   * If a surface's layoutHints don't already specify a prominence, the
+   * engagement tracker's prominence map overrides the default. This means
+   * highly-used surfaces get "hero" prominence and rarely-used ones get
+   * "compact", without overriding explicit agent hints.
+   */
+  private applyEngagementProminence(
+    surfaces: SurfaceSpec[],
+    prominenceMap: Map<string, "hero" | "standard" | "compact">,
+  ): SurfaceSpec[] {
+    return surfaces.map((surface) => {
+      // Only override if the agent didn't explicitly set prominence
+      if (surface.layoutHints.prominence) return surface;
+
+      const engagementProminence = prominenceMap.get(surface.surfaceType);
+      if (!engagementProminence) return surface;
+
+      return {
+        ...surface,
+        layoutHints: {
+          ...surface.layoutHints,
+          prominence: engagementProminence,
+        },
+      };
     });
   }
 

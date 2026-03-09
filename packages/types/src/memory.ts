@@ -4,7 +4,8 @@ export type MemoryCategory =
   | "task"
   | "relationship"
   | "system"
-  | "conversation";
+  | "conversation"
+  | "engagement";
 
 /**
  * A single turn in a conversation history.

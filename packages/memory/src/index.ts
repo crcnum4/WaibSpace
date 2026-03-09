@@ -13,3 +13,9 @@ export { ConversationContextStore } from "./conversation-context-store";
 export type { ConversationContextStoreOptions } from "./conversation-context-store";
 export { ContactProfileStore, parseFromHeader } from "./contact-profile-store";
 export type { ContactProfile, SenderSummary } from "./contact-profile-store";
+export { EngagementTracker } from "./engagement-tracker";
+export type {
+  SurfaceInteraction,
+  EngagementMetrics,
+  EngagementScore,
+} from "./engagement-tracker";
