@@ -1558,6 +1558,69 @@ body {
   box-shadow: var(--shadow-glow-danger), var(--shadow-md);
 }
 
+/* Approval response feedback */
+.approval-backdrop--fading {
+  animation: approval-fade-out 1.8s ease-out forwards;
+}
+
+.approval-modal--approved,
+.approval-modal--denied {
+  animation: approval-response-pop 0.3s ease-out, approval-slide-out 0.5s ease-in 1.3s forwards;
+  text-align: center;
+  padding: var(--space-8) var(--space-10);
+}
+
+.approval-modal--denied {
+  border-color: var(--color-danger);
+}
+
+.approval-modal--approved {
+  border-color: var(--color-accent);
+}
+
+.approval-response-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.approval-response-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.approval-modal--approved .approval-response-icon {
+  color: var(--color-accent);
+}
+
+.approval-modal--denied .approval-response-icon {
+  color: var(--color-danger);
+}
+
+.approval-response-text {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  margin: 0;
+}
+
+@keyframes approval-response-pop {
+  0% { transform: scale(0.95); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes approval-slide-out {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.9) translateY(-12px); opacity: 0; }
+}
+
+@keyframes approval-fade-out {
+  0% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 /* ================================ */
 /* Tasks Page                       */
 /* ================================ */

@@ -1,7 +1,7 @@
 import type {
   ComponentBlock,
   SurfaceSpec,
-  EmitAction,
+  SequenceAction,
 } from "@waibspace/types";
 import type { ApprovalSurfaceData } from "@waibspace/surfaces";
 
@@ -61,13 +61,23 @@ export function approvalToBlocks(spec: SurfaceSpec): ComponentBlock[] {
         props: { label: "Approve", variant: "primary" },
         events: {
           onClick: {
-            action: "emit",
-            event: "approval",
-            payload: {
-              approvalId: data.approvalId,
-              approved: true,
-            },
-          } satisfies EmitAction,
+            action: "sequence",
+            steps: [
+              {
+                action: "setState",
+                key: `${sid}-status`,
+                value: "approved",
+              },
+              {
+                action: "emit",
+                event: "approval",
+                payload: {
+                  approvalId: data.approvalId,
+                  approved: true,
+                },
+              },
+            ],
+          } satisfies SequenceAction,
         },
       },
       {
@@ -76,13 +86,23 @@ export function approvalToBlocks(spec: SurfaceSpec): ComponentBlock[] {
         props: { label: "Deny", variant: "secondary" },
         events: {
           onClick: {
-            action: "emit",
-            event: "approval",
-            payload: {
-              approvalId: data.approvalId,
-              approved: false,
-            },
-          } satisfies EmitAction,
+            action: "sequence",
+            steps: [
+              {
+                action: "setState",
+                key: `${sid}-status`,
+                value: "denied",
+              },
+              {
+                action: "emit",
+                event: "approval",
+                payload: {
+                  approvalId: data.approvalId,
+                  approved: false,
+                },
+              },
+            ],
+          } satisfies SequenceAction,
         },
       },
     ],
@@ -94,6 +114,9 @@ export function approvalToBlocks(spec: SurfaceSpec): ComponentBlock[] {
       type: "Container",
       props: { direction: "column", gap: "12px", padding: "var(--space-5)" },
       children,
+      state: {
+        [`${sid}-status`]: { type: "string", default: "pending" },
+      },
       meta: {
         surfaceId: spec.surfaceId,
         surfaceType: "approval",
