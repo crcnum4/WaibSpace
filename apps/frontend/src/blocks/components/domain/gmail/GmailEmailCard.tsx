@@ -67,7 +67,7 @@ export function GmailEmailCard({ block }: BlockProps) {
       </div>
 
       <div className="gmail-email-card__content">
-        <div className="gmail-email-card__subject">{subject}</div>
+        <div className="gmail-email-card__subject">{subject || "No Subject"}</div>
         <div className="gmail-email-card__meta">
           <span className="gmail-email-card__from">{from}</span>
           <span className="gmail-email-card__date">{date}</span>
