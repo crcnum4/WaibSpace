@@ -148,7 +148,10 @@ export function ObservationWrapper({
   const handleMouseLeave = useCallback(() => {
     const dwellMs = Date.now() - hoverStartRef.current;
     hoverStartRef.current = 0;
-    executeIfPlanned("hover", block.events?.onHover, { dwellMs });
+    // Only record hover if dwell time is meaningful (>200ms) to avoid noise
+    if (dwellMs > 200) {
+      executeIfPlanned("hover", block.events?.onHover, { dwellMs });
+    }
   }, [block.events?.onHover, executeIfPlanned]);
 
   // -------------------------------------------------------------------------

@@ -299,8 +299,10 @@ const inboxBlocks: ComponentBlock[] = [
 // ---------------------------------------------------------------------------
 
 interface ObservationEntry {
-  type: string;
-  payload: unknown;
+  blockId: string;
+  blockType: string;
+  interactionType: string;
+  wasPlanned: boolean;
   time: string;
 }
 
@@ -313,10 +315,19 @@ export default function BlocksDemoPage() {
 
   const send = useCallback((type: string, payload: unknown) => {
     if (type === "user.interaction") {
-      setObservations((prev) => [
-        ...prev.slice(-50),
-        { type, payload, time: new Date().toLocaleTimeString() },
-      ]);
+      const p = payload as Record<string, unknown>;
+      const batch = p?.batch as Array<Record<string, unknown>> | undefined;
+      const now = new Date().toLocaleTimeString();
+      if (batch && Array.isArray(batch)) {
+        const entries: ObservationEntry[] = batch.map((obs) => ({
+          blockId: (obs.blockId as string) ?? "unknown",
+          blockType: (obs.blockType as string) ?? "unknown",
+          interactionType: (obs.interactionType as string) ?? "unknown",
+          wasPlanned: (obs.wasPlanned as boolean) ?? false,
+          time: now,
+        }));
+        setObservations((prev) => [...prev.slice(-50), ...entries]);
+      }
     }
   }, []);
 
@@ -385,13 +396,7 @@ export default function BlocksDemoPage() {
             </div>
           )}
 
-          {observations.map((obs, i) => {
-            const p = obs.payload as Record<string, unknown> | undefined;
-            const blockType = (p?.blockType as string) ?? "unknown";
-            const interactionType = (p?.interactionType as string) ?? "unknown";
-            const wasPlanned = (p?.wasPlanned as boolean) ?? false;
-
-            return (
+          {[...observations].reverse().map((obs, i) => (
               <div
                 key={i}
                 style={{
@@ -408,21 +413,20 @@ export default function BlocksDemoPage() {
                   <span style={{ color: "#8b8ba7" }}>{obs.time}</span>
                   <span
                     style={{
-                      color: wasPlanned ? "#22c55e" : "#f97316",
+                      color: obs.wasPlanned ? "#22c55e" : "#f97316",
                       fontWeight: 600,
                     }}
                   >
-                    {wasPlanned ? "\u2713 planned" : "\u2717 unplanned"}
+                    {obs.wasPlanned ? "\u2713 planned" : "\u2717 unplanned"}
                   </span>
                 </div>
                 <div>
-                  <span style={{ color: "#7dd3fc" }}>{blockType}</span>
+                  <span style={{ color: "#7dd3fc" }}>{obs.blockType}</span>
                   <span style={{ color: "#6b7280" }}> / </span>
-                  <span style={{ color: "#c4b5fd" }}>{interactionType}</span>
+                  <span style={{ color: "#c4b5fd" }}>{obs.interactionType}</span>
                 </div>
               </div>
-            );
-          })}
+          ))}
         </div>
       </div>
     </div>
