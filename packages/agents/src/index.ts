@@ -31,6 +31,8 @@ export {
   type DataRetrievalOutput,
   MemoryRetrievalAgent,
   type MemoryRetrievalOutput,
+  ConversationContextAgent,
+  type ConversationContextOutput,
   PolicyGateAgent,
 } from "./context";
 export {
