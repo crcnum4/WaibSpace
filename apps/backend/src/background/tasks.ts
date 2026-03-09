@@ -2,6 +2,19 @@ import type { BackgroundTask } from "./types";
 
 export const MVP_BACKGROUND_TASKS: BackgroundTask[] = [
   {
+    id: "morning-digest",
+    name: "Morning Digest",
+    description:
+      "Proactive daily summary combining unread email highlights, urgent items, and today's calendar events. Runs once in the morning to prepare the dashboard digest card.",
+    intervalMs: 24 * 60 * 60 * 1000, // every 24 hours (scheduled at ~7 AM via initial delay)
+    enabled: true,
+    allowedConnectors: ["gmail", "google-calendar"],
+    actionClass: "A",
+    outputTarget: "surface",
+    maxRetries: 2,
+    retryBackoffMs: 30_000,
+  },
+  {
     id: "inbox-summary",
     name: "Inbox Summary",
     description:

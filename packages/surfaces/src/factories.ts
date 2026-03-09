@@ -6,6 +6,7 @@ import type {
   DiscoverySurfaceData,
   ApprovalSurfaceData,
   ConnectionGuideSurfaceData,
+  MorningDigestSurfaceData,
 } from "./surface-data";
 
 export class SurfaceFactory {
@@ -132,6 +133,45 @@ export class SurfaceFactory {
       .setLayout({
         position: "primary",
         prominence: "hero",
+      })
+      .setProvenance(provenance)
+      .build();
+  }
+
+  static morningDigest(
+    data: MorningDigestSurfaceData,
+    provenance: ProvenanceMetadata
+  ): SurfaceSpec {
+    const urgentCount = data.inbox.urgentEmails.length;
+    const eventCount = data.calendar.eventCount;
+    const summary = [
+      `${data.inbox.unreadCount} unread`,
+      urgentCount > 0 ? `${urgentCount} urgent` : null,
+      `${eventCount} event${eventCount !== 1 ? "s" : ""} today`,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    return new SurfaceSpecBuilder("morning-digest")
+      .setTitle(data.greeting)
+      .setSummary(summary)
+      .setPriority(95) // high priority — show at top of dashboard
+      .setData(data)
+      .setLayout({
+        position: "primary",
+        prominence: "hero",
+      })
+      .addAction({
+        id: "dismiss-digest",
+        label: "Dismiss",
+        actionType: "digest.dismiss",
+        riskClass: "A",
+      })
+      .addAction({
+        id: "open-inbox",
+        label: "Open Inbox",
+        actionType: "navigate.inbox",
+        riskClass: "A",
       })
       .setProvenance(provenance)
       .build();
