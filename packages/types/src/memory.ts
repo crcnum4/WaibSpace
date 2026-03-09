@@ -3,7 +3,18 @@ export type MemoryCategory =
   | "interaction"
   | "task"
   | "relationship"
-  | "system";
+  | "system"
+  | "conversation";
+
+/**
+ * A single turn in a conversation history.
+ */
+export interface ConversationTurn {
+  role: "user" | "assistant";
+  content: string;
+  timestamp: number;
+  traceId: string;
+}
 
 export interface MemoryEntry {
   id: string;

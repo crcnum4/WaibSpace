@@ -14,4 +14,8 @@ export {
   MemoryRetrievalAgent,
   type MemoryRetrievalOutput,
 } from "./memory-retrieval";
+export {
+  ConversationContextAgent,
+  type ConversationContextOutput,
+} from "./conversation-context";
 export { PolicyGateAgent } from "./policy-gate";

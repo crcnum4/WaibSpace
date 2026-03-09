@@ -17,6 +17,7 @@ import {
   ConnectorSelectionAgent,
   DataRetrievalAgent,
   MemoryRetrievalAgent,
+  ConversationContextAgent,
   PolicyGateAgent,
   // UI agents
   InboxSurfaceAgent,
@@ -44,7 +45,7 @@ import {
   ModelProviderRegistry,
   AnthropicProvider,
 } from "@waibspace/model-provider";
-import { MemoryStore, MemoryUpdatePipeline, ObservationProcessor } from "@waibspace/memory";
+import { MemoryStore, MemoryUpdatePipeline, ObservationProcessor, ConversationContextStore } from "@waibspace/memory";
 import { WaibDatabase } from "@waibspace/db";
 import { BackgroundTaskScheduler, MVP_BACKGROUND_TASKS } from "./background";
 import { startServer } from "./server";
@@ -142,6 +143,7 @@ agentRegistry.register(new InteractionSemanticsAgent());
 
 // Context agents
 agentRegistry.register(new MemoryRetrievalAgent());
+agentRegistry.register(new ConversationContextAgent());
 agentRegistry.register(new ContextPlannerAgent());
 agentRegistry.register(new ConnectorSelectionAgent());
 agentRegistry.register(new DataRetrievalAgent());
@@ -170,6 +172,11 @@ log.info("Agent registry initialized", {
 // ---------- 6. Memory Store ----------
 const memoryStore = new MemoryStore(db, bus);
 
+// ---------- 6a. Conversation Context Store ----------
+const conversationContextStore = new ConversationContextStore();
+conversationContextStore.startCleanup();
+log.info("Conversation context store initialized");
+
 // ---------- 6b. Pending Action Store ----------
 const pendingActionStore = new InMemoryPendingActionStore();
 log.info("Pending action store initialized");
@@ -178,6 +185,7 @@ log.info("Pending action store initialized");
 const orchestrator = new Orchestrator(bus, agentRegistry, {
   modelProvider: modelRegistry,
   memoryStore,
+  conversationContextStore,
   connectorRegistry,
   policyEngine,
   pendingActionStore,
@@ -303,6 +311,7 @@ log.info("WaibSpace backend started", { port: PORT });
 function handleShutdown(signal: string) {
   log.info("Shutting down", { signal });
   scheduler.stop();
+  conversationContextStore.stopCleanup();
   server.stop();
   log.info("Shutdown complete");
   process.exit(0);

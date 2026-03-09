@@ -2,7 +2,7 @@ import type { WaibEvent, AgentOutput, AgentCategory, IPendingActionStore } from 
 import { EventBus, createEvent } from "@waibspace/event-bus";
 import { executeAgent } from "@waibspace/agents";
 import type { ModelProviderRegistry } from "@waibspace/model-provider";
-import type { MemoryStore } from "@waibspace/memory";
+import type { MemoryStore, ConversationContextStore } from "@waibspace/memory";
 import type { ConnectorRegistry } from "@waibspace/connectors";
 import type { PolicyEngine } from "@waibspace/policy";
 import type { WaibDatabase } from "@waibspace/db";
@@ -15,6 +15,7 @@ export interface OrchestratorOptions {
   timeoutMs?: number;
   modelProvider?: ModelProviderRegistry;
   memoryStore?: MemoryStore;
+  conversationContextStore?: ConversationContextStore;
   connectorRegistry?: ConnectorRegistry;
   policyEngine?: PolicyEngine;
   pendingActionStore?: IPendingActionStore;
@@ -98,6 +99,9 @@ export class Orchestrator {
             : {}),
           ...(this.options?.pendingActionStore
             ? { pendingActionStore: this.options.pendingActionStore }
+            : {}),
+          ...(this.options?.conversationContextStore
+            ? { conversationContextStore: this.options.conversationContextStore }
             : {}),
         },
       };
@@ -269,6 +273,20 @@ export class Orchestrator {
         traceId,
       );
       this.eventBus.emit(errorEvent);
+    }
+
+    // Record assistant response in conversation context
+    if (this.options?.conversationContextStore && surfaceOutputs.length > 0) {
+      const sessionId =
+        (event.metadata as Record<string, unknown> | undefined)?.sessionId as string | undefined
+        ?? "default";
+      const surfaceSummary = surfaceOutputs.map((o) => o.agentId).join(", ");
+      this.options.conversationContextStore.addTurn(sessionId, {
+        role: "assistant",
+        content: `[Rendered surfaces: ${surfaceSummary}]`,
+        timestamp: Date.now(),
+        traceId,
+      });
     }
 
     // Log trace summary
