@@ -8,6 +8,7 @@ export function List({ block, children }: BlockProps) {
 
   return (
     <div
+      role="list"
       className={`block-list ${className}`.trim()}
       style={gap ? { gap } : undefined}
     >
