@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { BlockProps } from "../../../registry";
 
 interface GmailInboxListProps {
@@ -8,6 +9,12 @@ interface GmailInboxListProps {
 
 export function GmailInboxList({ block, children, onEvent }: BlockProps) {
   const { unreadCount, isScanned } = block.props as GmailInboxListProps;
+  const [isScanning, setIsScanning] = useState(false);
+
+  const handleScan = () => {
+    setIsScanning(true);
+    onEvent?.("waib-scan", { scope: "all" });
+  };
 
   return (
     <div className="gmail-inbox-list">
@@ -20,10 +27,18 @@ export function GmailInboxList({ block, children, onEvent }: BlockProps) {
         </div>
         {!isScanned && (
           <button
-            className="gmail-inbox-list__scan-btn"
-            onClick={() => onEvent?.("waib-scan", { scope: "all" })}
+            className={`gmail-inbox-list__scan-btn${isScanning ? " gmail-inbox-list__scan-btn--loading" : ""}`}
+            onClick={handleScan}
+            disabled={isScanning}
           >
-            WaibScan
+            {isScanning ? (
+              <>
+                <span className="gmail-inbox-list__scan-spinner" />
+                Scanning…
+              </>
+            ) : (
+              "WaibScan"
+            )}
           </button>
         )}
       </div>
