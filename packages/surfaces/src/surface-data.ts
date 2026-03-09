@@ -9,7 +9,7 @@ export interface InboxSurfaceData {
     snippet: string;
     date: string;
     isUnread: boolean;
-    urgency: "high" | "medium" | "low";
+    urgency?: "high" | "medium" | "low";
     suggestedReply?: string;
   }>;
   totalCount: number;

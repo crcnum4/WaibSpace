@@ -76,7 +76,7 @@ export class InboxSurfaceAgent extends BaseAgent {
 
   async execute(
     input: AgentInput,
-    context: AgentContext,
+    _context: AgentContext,
   ): Promise<AgentOutput> {
     const startMs = Date.now();
 
@@ -89,9 +89,8 @@ export class InboxSurfaceAgent extends BaseAgent {
     }
 
     const { data: gmailData, totalUnread: gmailTotalUnread } = this.extractGmailData(retrievalOutput);
-    const calendarData = this.extractCalendarData(input);
 
-    // If no email data found, skip LLM call
+    // If no email data found, return empty
     if (!gmailData || (Array.isArray(gmailData) && gmailData.length === 0)) {
       this.log("No email data found, skipping inbox surface");
       return this.createOutput(null, 0, {
@@ -100,29 +99,92 @@ export class InboxSurfaceAgent extends BaseAgent {
       });
     }
 
-    // Truncate email data to avoid hitting token limits
+    // Truncate to 20 emails max
     const truncatedData = this.truncateEmailData(gmailData);
 
-    const emailCount = Array.isArray(truncatedData) ? truncatedData.length : "non-array";
-    this.log("Building inbox surface", {
+    const rawEmails = (Array.isArray(truncatedData) ? truncatedData : [truncatedData]) as Record<string, unknown>[];
+
+    this.log("Building inbox surface from raw email data", {
       rawEmailCount: Array.isArray(gmailData) ? gmailData.length : "non-array",
-      truncatedEmailCount: emailCount,
-      emailDataSize: JSON.stringify(truncatedData).length,
+      truncatedEmailCount: rawEmails.length,
       totalUnreadFromMCP: gmailTotalUnread,
-      hasCalendarContext: calendarData !== undefined,
-      sampleKeys: Array.isArray(truncatedData) && truncatedData.length > 0
-        ? Object.keys(truncatedData[0] as Record<string, unknown>).join(", ")
-        : "none",
     });
+
+    // Map raw email fields directly — no LLM involved
+    const emails: InboxSurfaceData["emails"] = rawEmails.map((email, i) => ({
+      id: String(email.id ?? email.messageId ?? `email-${i}`),
+      from: String(email.from ?? email.sender ?? "Unknown"),
+      subject: String(email.subject ?? "No subject"),
+      snippet: String(email.snippet ?? email.text ?? email.body ?? "").slice(0, 200),
+      date: String(email.date ?? email.receivedAt ?? ""),
+      isUnread: Boolean(email.isUnread ?? email.unread ?? true),
+    }));
+
+    const batchUnreadCount = emails.filter((e) => e.isUnread).length;
+    const unreadCount = gmailTotalUnread ?? batchUnreadCount;
+
+    const surfaceData: InboxSurfaceData = {
+      emails,
+      totalCount: emails.length,
+      unreadCount,
+    };
+
+    const endMs = Date.now();
+
+    const summary = `${emails.length} emails, ${unreadCount} unread`;
+
+    const provenance = {
+      sourceType: "agent" as const,
+      sourceId: this.id,
+      trustLevel: "trusted" as const,
+      timestamp: startMs,
+      freshness: "realtime" as const,
+      dataState: "raw" as const,
+    };
+
+    const surfaceSpec = SurfaceFactory.inbox(surfaceData, provenance);
+
+    // Add WaibScan action for on-demand LLM analysis
+    surfaceSpec.actions.push({
+      id: "waib-scan",
+      label: "WaibScan Inbox",
+      actionType: "agent.invoke",
+      riskClass: "A",
+      payload: { scope: "all" },
+    });
+
+    return {
+      ...this.createOutput(
+        { surfaceSpec, summary },
+        0.85,
+        provenance,
+      ),
+      timing: {
+        startMs,
+        endMs,
+        durationMs: endMs - startMs,
+      },
+    };
+  }
+
+  /**
+   * Analyze emails with LLM for urgency classification and summarization.
+   * Called by WaibScan action (see issue #166), not during initial render.
+   */
+  async analyzeWithLLM(
+    emailData: unknown,
+    calendarData: unknown | undefined,
+    context: AgentContext,
+  ): Promise<InboxAnalysis> {
+    const truncatedData = this.truncateEmailData(emailData);
 
     const userMessage = JSON.stringify({
       emails: truncatedData,
       calendarContext: calendarData,
     });
 
-    let analysis: InboxAnalysis;
     try {
-      analysis = await this.completeStructured<InboxAnalysis>(
+      return await this.completeStructured<InboxAnalysis>(
         context,
         "summarization",
         [{ role: "user", content: userMessage }],
@@ -132,9 +194,8 @@ export class InboxSurfaceAgent extends BaseAgent {
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       this.log("LLM analysis failed, falling back to raw email data", { error: errMsg });
-      // Fall back to showing raw emails without LLM analysis
       const rawEmails = (Array.isArray(truncatedData) ? truncatedData : [truncatedData]) as Record<string, unknown>[];
-      analysis = {
+      return {
         emails: rawEmails.map((email, i) => ({
           id: String(email.id ?? email.messageId ?? `email-${i}`),
           from: String(email.from ?? email.sender ?? "Unknown"),
@@ -147,47 +208,6 @@ export class InboxSurfaceAgent extends BaseAgent {
         overallSummary: `${rawEmails.length} emails (LLM analysis unavailable)`,
       };
     }
-
-    this.log("LLM analysis result", {
-      emailsReturned: analysis.emails.length,
-      summary: analysis.overallSummary,
-    });
-
-    const batchUnreadCount = analysis.emails.filter((e) => e.isUnread).length;
-    const unreadCount = gmailTotalUnread ?? batchUnreadCount;
-
-    const surfaceData: InboxSurfaceData = {
-      emails: analysis.emails,
-      totalCount: analysis.emails.length,
-      unreadCount,
-    };
-
-    const endMs = Date.now();
-
-    const provenance = {
-      sourceType: "agent" as const,
-      sourceId: this.id,
-      trustLevel: "trusted" as const,
-      timestamp: startMs,
-      freshness: "realtime" as const,
-      dataState: "transformed" as const,
-      transformations: ["email-summarization", "urgency-classification"],
-    };
-
-    const surfaceSpec = SurfaceFactory.inbox(surfaceData, provenance);
-
-    return {
-      ...this.createOutput(
-        { surfaceSpec, summary: analysis.overallSummary },
-        0.85,
-        provenance,
-      ),
-      timing: {
-        startMs,
-        endMs,
-        durationMs: endMs - startMs,
-      },
-    };
   }
 
   private findDataRetrieval(
@@ -310,7 +330,7 @@ export class InboxSurfaceAgent extends BaseAgent {
   }
 
   /**
-   * Truncate email data to keep the LLM prompt under token limits.
+   * Truncate email data to keep within limits.
    * Keeps at most 20 emails, truncates body text to 500 chars each.
    */
   private truncateEmailData(data: unknown): unknown {
