@@ -6,10 +6,12 @@ interface GmailInboxListProps {
   totalCount: number;
   isScanned: boolean;
   error?: string;
+  isTruncated?: boolean;
+  fullCount?: number;
 }
 
 export function GmailInboxList({ block, children, onEvent }: BlockProps) {
-  const { unreadCount, isScanned, error } = block.props as GmailInboxListProps;
+  const { unreadCount, totalCount, isScanned, error, isTruncated, fullCount } = block.props as GmailInboxListProps;
   const [isScanning, setIsScanning] = useState(false);
 
   const handleScan = () => {
@@ -49,6 +51,11 @@ export function GmailInboxList({ block, children, onEvent }: BlockProps) {
         </div>
       ) : (
         <div className="gmail-inbox-list__cards">{children}</div>
+      )}
+      {isTruncated && fullCount && (
+        <p className="gmail-inbox-list__truncated">
+          Showing {totalCount} of {fullCount} emails
+        </p>
       )}
     </div>
   );

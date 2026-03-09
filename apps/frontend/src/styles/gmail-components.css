@@ -239,6 +239,16 @@
   line-height: var(--leading-normal);
 }
 
+/* ---- GmailInboxList Truncation Footer ---- */
+
+.gmail-inbox-list__truncated {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  text-align: center;
+  margin: 0;
+  padding: var(--space-2) 0;
+}
+
 /* ---- GmailScanResult ---- */
 
 .gmail-scan-result {
