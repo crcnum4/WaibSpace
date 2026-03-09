@@ -57,6 +57,42 @@ export interface ApprovalSurfaceData {
   consequences: string[];
 }
 
+export interface MorningDigestSurfaceData {
+  /** ISO date string for the digest (e.g. "2026-03-09") */
+  date: string;
+  /** Summary line for the digest card header */
+  greeting: string;
+  inbox: {
+    unreadCount: number;
+    urgentEmails: Array<{
+      id: string;
+      from: string;
+      subject: string;
+      snippet: string;
+      urgency: "high" | "medium";
+    }>;
+  };
+  calendar: {
+    eventCount: number;
+    events: Array<{
+      id: string;
+      title: string;
+      start: string;
+      end: string;
+      location?: string;
+    }>;
+  };
+  suggestedActions: Array<{
+    id: string;
+    label: string;
+    reason: string;
+    actionType: string;
+    payload?: Record<string, unknown>;
+  }>;
+  /** When the digest was generated (ISO timestamp) */
+  generatedAt: string;
+}
+
 export interface ConnectionGuideSurfaceData {
   step: "browse" | "credentials" | "connecting" | "success" | "error";
   message: string;

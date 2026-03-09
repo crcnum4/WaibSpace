@@ -40,6 +40,7 @@ export {
   ApprovalSurfaceAgent,
   ConnectionSurfaceAgent,
   GenericDataSurfaceAgent,
+  MorningDigestAgent,
   LayoutComposerAgent,
   extractSurfaces,
 } from "./ui";

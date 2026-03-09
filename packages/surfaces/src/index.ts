@@ -7,4 +7,5 @@ export type {
   DiscoverySurfaceData,
   ApprovalSurfaceData,
   ConnectionGuideSurfaceData,
+  MorningDigestSurfaceData,
 } from "./surface-data";
