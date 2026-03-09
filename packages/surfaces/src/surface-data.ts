@@ -14,6 +14,8 @@ export interface InboxSurfaceData {
   }>;
   totalCount: number;
   unreadCount: number;
+  /** Present when data retrieval failed (e.g. Gmail API timeout) */
+  error?: string;
 }
 
 export interface CalendarSurfaceData {

@@ -223,6 +223,22 @@
   gap: 8px;
 }
 
+/* ---- GmailInboxList Error State ---- */
+
+.gmail-inbox-list__error {
+  padding: var(--space-4);
+  border: 1px solid var(--color-danger-subtle);
+  border-radius: var(--block-card-radius);
+  background: var(--color-danger-subtle);
+}
+
+.gmail-inbox-list__error-text {
+  font-size: var(--text-sm);
+  color: var(--color-danger-text);
+  margin: 0;
+  line-height: var(--leading-normal);
+}
+
 /* ---- GmailScanResult ---- */
 
 .gmail-scan-result {

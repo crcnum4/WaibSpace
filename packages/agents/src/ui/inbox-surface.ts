@@ -91,7 +91,39 @@ export class InboxSurfaceAgent extends BaseAgent {
       });
     }
 
-    const { data: gmailData, totalUnread: gmailTotalUnread } = this.extractGmailData(retrievalOutput);
+    const { data: gmailData, totalUnread: gmailTotalUnread, error: gmailError } = this.extractGmailData(retrievalOutput);
+
+    // If data retrieval failed, return an error-state inbox surface
+    if (gmailError) {
+      this.log("Email retrieval failed, returning error surface", { error: gmailError });
+      const surfaceData: InboxSurfaceData = {
+        emails: [],
+        totalCount: 0,
+        unreadCount: 0,
+        error: gmailError,
+      };
+      const provenance = {
+        sourceType: "agent" as const,
+        sourceId: this.id,
+        trustLevel: "trusted" as const,
+        timestamp: startMs,
+        freshness: "realtime" as const,
+        dataState: "raw" as const,
+      };
+      const surfaceSpec = SurfaceFactory.inbox(surfaceData, provenance);
+      return {
+        ...this.createOutput(
+          { surfaceSpec, summary: gmailError },
+          0.3,
+          provenance,
+        ),
+        timing: {
+          startMs,
+          endMs: Date.now(),
+          durationMs: Date.now() - startMs,
+        },
+      };
+    }
 
     // If no email data found, return an empty inbox surface (not null)
     if (!gmailData || (Array.isArray(gmailData) && gmailData.length === 0)) {
@@ -353,21 +385,37 @@ export class InboxSurfaceAgent extends BaseAgent {
     return undefined;
   }
 
-  private extractGmailData(retrieval: DataRetrievalOutput): { data: unknown; totalUnread: number | undefined } {
-    // Find email-related results from any connector (gmail, catalog-gmail, MCP mail, etc.)
-    const emailResults = retrieval.results.filter(
-      (r) =>
-        r.status === "fulfilled" &&
-        (r.connectorId.includes("gmail") ||
-          r.connectorId.includes("mail") ||
-          r.operation.includes("email") ||
-          r.operation.includes("message") ||
-          r.operation.includes("inbox") ||
-          r.operation.includes("unseen") ||
-          r.operation.includes("recent")),
-    );
+  private extractGmailData(retrieval: DataRetrievalOutput): { data: unknown; totalUnread: number | undefined; error?: string } {
+    const isEmailRelated = (r: { connectorId: string; operation: string }) =>
+      r.connectorId.includes("gmail") ||
+      r.connectorId.includes("mail") ||
+      r.operation.includes("email") ||
+      r.operation.includes("message") ||
+      r.operation.includes("inbox") ||
+      r.operation.includes("unseen") ||
+      r.operation.includes("recent");
 
-    if (emailResults.length === 0) return { data: [], totalUnread: undefined };
+    // Find ALL email-related results (both fulfilled and rejected)
+    const allEmailResults = retrieval.results.filter((r) => isEmailRelated(r));
+
+    // If no email-related results at all, this isn't an email retrieval
+    if (allEmailResults.length === 0) return { data: [], totalUnread: undefined };
+
+    const rejectedEmailResults = allEmailResults.filter((r) => r.status === "rejected");
+    const emailResults = allEmailResults.filter((r) => r.status === "fulfilled");
+
+    // If ALL email results failed, signal an error instead of returning empty
+    if (emailResults.length === 0 && rejectedEmailResults.length > 0) {
+      const errors = rejectedEmailResults.map(
+        (r) => `${r.connectorId}/${r.operation}: ${r.error ?? "unknown error"}`,
+      );
+      this.log("All email retrievals failed", { errors });
+      return {
+        data: [],
+        totalUnread: undefined,
+        error: `Gmail service unavailable (${rejectedEmailResults.length} request${rejectedEmailResults.length > 1 ? "s" : ""} failed)`,
+      };
+    }
 
     this.log("Found email results", {
       count: emailResults.length,
