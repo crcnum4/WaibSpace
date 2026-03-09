@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
 import type {
   ComposedLayout,
   AgentStatus as AgentStatusType,
@@ -7,21 +7,49 @@ import type {
 import type { SurfaceAction } from "@waibspace/types";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { SurfaceRenderer } from "../components/SurfaceRenderer";
+import { BlockSurfaceRenderer } from "../components/BlockSurfaceRenderer";
 import { AgentStatus } from "../components/AgentStatus";
 import { ChatInput } from "../components/ChatInput";
 import { WelcomeState } from "../components/WelcomeState";
 import { ErrorSurface } from "../components/ErrorSurface";
+import { BlockInspector, BlockInspectorToggle } from "../blocks/BlockInspector";
+import { composedLayoutToBlocks } from "../blocks/transformers";
 
 const WS_URL = `ws://${window.location.hostname}:${import.meta.env.VITE_WS_PORT || 3001}/ws`;
 
 export default function HomePage() {
   const { send, lastMessage, status } = useWebSocket(WS_URL);
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [layout, setLayout] = useState<ComposedLayout | null>(null);
   const [agents, setAgents] = useState<AgentStatusType[]>([]);
   const [hasRequestedAmbient, setHasRequestedAmbient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [observations, setObservations] = useState<
+    Array<{ type: string; payload: unknown; time: string }>
+  >([]);
+
+  const useBlocks = searchParams.get("renderer") === "blocks";
+
+  const toggleRenderer = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (next.get("renderer") === "blocks") {
+        next.delete("renderer");
+      } else {
+        next.set("renderer", "blocks");
+      }
+      return next;
+    });
+  }, [setSearchParams]);
+
+  // Derive block tree for the inspector
+  const inspectorBlocks = useMemo(() => {
+    if (!useBlocks || !layout || layout.surfaces.length === 0) return [];
+    return composedLayoutToBlocks(layout);
+  }, [useBlocks, layout]);
 
   // Request ambient state on initial connection
   useEffect(() => {
@@ -162,6 +190,23 @@ export default function HomePage() {
               : "Disconnected"}
         </span>
         <AgentStatus agents={agents} />
+
+        <button
+          onClick={toggleRenderer}
+          style={{
+            marginLeft: "auto",
+            padding: "4px 10px",
+            fontSize: 12,
+            borderRadius: 6,
+            border: "1px solid var(--border, #333)",
+            background: useBlocks ? "var(--accent, #7dd3fc)" : "transparent",
+            color: useBlocks ? "#000" : "var(--text-secondary, #aaa)",
+            cursor: "pointer",
+          }}
+          title="Toggle between SurfaceRenderer and BlockSurfaceRenderer"
+        >
+          {useBlocks ? "Blocks" : "Surfaces"}
+        </button>
       </div>
 
       <div className="home-content">
@@ -177,12 +222,21 @@ export default function HomePage() {
           />
         )}
         {hasSurfaces || isLoading ? (
-          <SurfaceRenderer
-            layout={layout}
-            onAction={handleAction}
-            onInteraction={handleInteraction}
-            isLoading={isLoading}
-          />
+          useBlocks ? (
+            <BlockSurfaceRenderer
+              layout={layout}
+              onAction={handleAction}
+              onInteraction={handleInteraction}
+              isLoading={isLoading}
+            />
+          ) : (
+            <SurfaceRenderer
+              layout={layout}
+              onAction={handleAction}
+              onInteraction={handleInteraction}
+              isLoading={isLoading}
+            />
+          )
         ) : (
           <WelcomeState onSuggest={handleSend} />
         )}
@@ -191,6 +245,18 @@ export default function HomePage() {
       <div className="home-chat">
         <ChatInput onSend={handleSend} placeholder="Ask WaibSpace anything..." />
       </div>
+
+      {useBlocks && (
+        <>
+          <BlockInspectorToggle onClick={() => setInspectorOpen((o) => !o)} />
+          <BlockInspector
+            blocks={inspectorBlocks}
+            observations={observations}
+            isOpen={inspectorOpen}
+            onToggle={() => setInspectorOpen((o) => !o)}
+          />
+        </>
+      )}
     </div>
   );
 }
