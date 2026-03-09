@@ -29,7 +29,7 @@ interface FailedService {
 }
 
 export default function HomePage() {
-  const { send, lastMessage, status } = useWebSocket(WS_URL);
+  const { send, lastMessage, status, pendingCount } = useWebSocket(WS_URL);
   const location = useLocation();
   const [layout, setLayout] = useState<ComposedLayout | null>(null);
   const [agents, setAgents] = useState<AgentStatusType[]>([]);
@@ -211,24 +211,28 @@ export default function HomePage() {
   return (
     <div className="page home-page">
       {status !== "connected" && (
-        <div className={`connection-banner ${status}`}>
+        <div className={`connection-banner ${status === "reconnecting" ? "connecting" : status}`}>
           <span className="connection-banner-icon">!</span>
           {status === "connecting"
-            ? "Reconnecting to server..."
-            : "Connection lost. Attempting to reconnect..."}
+            ? "Connecting to server..."
+            : status === "reconnecting"
+              ? `Reconnecting to server...${pendingCount > 0 ? ` (${pendingCount} pending)` : ""}`
+              : "Connection lost. Retries exhausted."}
         </div>
       )}
 
       <div className="home-status-bar">
         <span
-          className={`connection-dot ${status === "connected" ? "connected" : status === "connecting" ? "connecting" : "disconnected"}`}
+          className={`connection-dot ${status === "connected" ? "connected" : status === "reconnecting" || status === "connecting" ? "connecting" : "disconnected"}`}
         />
         <span className="connection-label">
           {status === "connected"
             ? "Connected"
             : status === "connecting"
               ? "Connecting..."
-              : "Disconnected"}
+              : status === "reconnecting"
+                ? "Reconnecting..."
+                : "Disconnected"}
         </span>
         <AgentStatus agents={agents} />
       </div>
