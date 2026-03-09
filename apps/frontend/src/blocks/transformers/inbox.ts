@@ -112,6 +112,7 @@ export function inboxToBlocks(spec: SurfaceSpec): ComponentBlock[] {
         totalCount: data.totalCount,
         isScanned: false,
         ...(data.error ? { error: data.error } : {}),
+        ...(data.isTruncated ? { isTruncated: true, fullCount: data.fullCount } : {}),
       },
       children,
       meta: {

@@ -14,6 +14,10 @@ export interface InboxSurfaceData {
   }>;
   totalCount: number;
   unreadCount: number;
+  /** True when the email list was truncated to fit within limits */
+  isTruncated?: boolean;
+  /** Original email count before truncation */
+  fullCount?: number;
   /** Present when data retrieval failed (e.g. Gmail API timeout) */
   error?: string;
 }

@@ -161,12 +161,14 @@ export class InboxSurfaceAgent extends BaseAgent {
     }
 
     // Truncate to 20 emails max
+    const originalCount = Array.isArray(gmailData) ? gmailData.length : 1;
     const truncatedData = this.truncateEmailData(gmailData);
 
     const rawEmails = (Array.isArray(truncatedData) ? truncatedData : [truncatedData]) as Record<string, unknown>[];
+    const isTruncated = originalCount > rawEmails.length;
 
     this.log("Building inbox surface from raw email data", {
-      rawEmailCount: Array.isArray(gmailData) ? gmailData.length : "non-array",
+      rawEmailCount: originalCount,
       truncatedEmailCount: rawEmails.length,
       totalUnreadFromMCP: gmailTotalUnread,
       isWaibScan,
@@ -201,11 +203,14 @@ export class InboxSurfaceAgent extends BaseAgent {
       emails,
       totalCount: emails.length,
       unreadCount,
+      ...(isTruncated && { isTruncated: true, fullCount: originalCount }),
     };
 
     const endMs = Date.now();
 
-    const summary = `${emails.length} emails, ${unreadCount} unread`;
+    const summary = isTruncated
+      ? `${emails.length} of ${originalCount} emails, ${unreadCount} unread`
+      : `${emails.length} emails, ${unreadCount} unread`;
 
     const provenance = {
       sourceType: "agent" as const,
