@@ -1,4 +1,7 @@
 import type { AgentCategory, AgentOutput } from "@waibspace/types";
+import { createLogger } from "@waibspace/logger";
+
+const log = createLogger("pipeline-trace");
 
 export interface PipelineTrace {
   traceId: string;
@@ -114,23 +117,28 @@ function aggregateByCategory(
 export function logTrace(trace: PipelineTrace): void {
   const totalDuration = trace.endMs - trace.startMs;
   const categories = aggregateByCategory(trace.phases);
+  const traceLog = log.child({ traceId: trace.traceId });
 
-  console.log(`[trace:${trace.traceId}] Pipeline complete in ${totalDuration}ms`);
-
+  const breakdown: Record<string, { durationMs: number; agents: Array<{ agentId: string; durationMs: number }> }> = {};
   for (const [category, data] of categories) {
-    const agentDetails = data.agents
-      .map((a) => `${a.agentId}: ${a.durationMs}ms`)
-      .join(", ");
-    console.log(`  ${category}: ${data.durationMs}ms (${agentDetails})`);
+    breakdown[category] = data;
   }
+
+  traceLog.info("Pipeline complete", {
+    durationMs: totalDuration,
+    eventType: trace.eventType,
+    phases: breakdown,
+  });
 
   // Log slow agents as warnings (> 1 second)
   for (const phase of trace.phases) {
     for (const agent of phase.agents) {
       if (agent.durationMs > 1000) {
-        console.warn(
-          `[trace:${trace.traceId}] SLOW AGENT: ${agent.agentId} took ${agent.durationMs}ms (${agent.status})`,
-        );
+        traceLog.warn("Slow agent detected", {
+          agentId: agent.agentId,
+          durationMs: agent.durationMs,
+          status: agent.status,
+        });
       }
     }
   }

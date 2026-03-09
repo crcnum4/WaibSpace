@@ -1,5 +1,7 @@
 import { EventBus } from "@waibspace/event-bus";
 import type { WaibEvent } from "@waibspace/types";
+import { createLogger } from "@waibspace/logger";
+
 import type { ServerMessage, ComposedLayout } from "@waibspace/ui-renderer-contract";
 import { Orchestrator, AgentRegistry, InMemoryPendingActionStore } from "@waibspace/orchestrator";
 import {
@@ -50,10 +52,11 @@ import { broadcast } from "./ws";
 
 // ---------- 1. Event Bus ----------
 const bus = new EventBus();
+const log = createLogger("backend");
 
 // ---------- 1b. Database ----------
 const db = new WaibDatabase("./data/waibspace.db");
-console.log("[backend] SQLite database initialized");
+log.info("SQLite database initialized");
 
 // ---------- 2. Model Provider ----------
 const modelRegistry = new ModelProviderRegistry();
@@ -72,31 +75,31 @@ const connectorRegistry = new ConnectorRegistry();
 const webFetchConnector = new WebFetchConnector("web-fetch", "Web Fetch");
 await webFetchConnector.connect();
 connectorRegistry.register(webFetchConnector);
-console.log("[backend] WebFetch connector registered");
+log.info("WebFetch connector registered");
 
 // Gmail connector — use mock fixture data when MOCK_CONNECTORS is enabled
 if (process.env.MOCK_CONNECTORS === "true") {
   const mockGmail = new MockGmailConnector();
   await mockGmail.connect();
   connectorRegistry.register(mockGmail);
-  console.log("[backend] MockGmailConnector registered (MOCK_CONNECTORS=true)");
+  log.info("MockGmailConnector registered", { mock: true });
 
   const mockCalendar = new MockCalendarConnector();
   await mockCalendar.connect();
   connectorRegistry.register(mockCalendar);
-  console.log("[backend] MockCalendarConnector registered (MOCK_CONNECTORS=true)");
+  log.info("MockCalendarConnector registered", { mock: true });
 } else {
   const gmailConnector = new GmailConnector();
   await gmailConnector.connect();
   if (gmailConnector.isConnected()) {
     connectorRegistry.register(gmailConnector);
-    console.log("[backend] GmailConnector registered");
+    log.info("GmailConnector registered");
   }
 }
 
 // ---------- 4. Policy Engine ----------
 const policyEngine = new PolicyEngine(DEFAULT_POLICY_RULES);
-console.log(`[backend] Policy engine initialized with ${policyEngine.getRules().length} rules`);
+log.info("Policy engine initialized", { ruleCount: policyEngine.getRules().length });
 
 // ---------- 4b. MCP Server Registry ----------
 const mcpRegistry = new MCPServerRegistry(policyEngine, db);
@@ -111,18 +114,19 @@ for (const server of mcpRegistry.getServers()) {
       if (connector) {
         connectorRegistry.register(connector);
       }
-      console.log(`[backend] MCP server "${server.config.name}" connected`);
+      log.info("MCP server connected", { serverName: server.config.name });
     } catch (err) {
-      console.warn(
-        `[backend] MCP server "${server.config.name}" failed to connect:`,
-        err instanceof Error ? err.message : err,
-      );
+      log.warn("MCP server failed to connect", {
+        serverName: server.config.name,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 }
-console.log(
-  `[backend] MCP registry: ${mcpRegistry.getServers().length} server(s), ${mcpRegistry.getAllTools().length} tool(s)`,
-);
+log.info("MCP registry loaded", {
+  serverCount: mcpRegistry.getServers().length,
+  toolCount: mcpRegistry.getAllTools().length,
+});
 
 // ---------- 5. Agent Registry ----------
 const agentRegistry = new AgentRegistry();
@@ -158,16 +162,17 @@ agentRegistry.register(new ProvenanceAnnotatorAgent());
 // Execution agents
 agentRegistry.register(new ActionExecutorAgent());
 
-console.log(
-  `[backend] Registered ${agentRegistry.getAll().length} agents: ${agentRegistry.getAll().map((a: { id: string }) => a.id).join(", ")}`,
-);
+log.info("Agent registry initialized", {
+  agentCount: agentRegistry.getAll().length,
+  agents: agentRegistry.getAll().map((a: { id: string }) => a.id),
+});
 
 // ---------- 6. Memory Store ----------
 const memoryStore = new MemoryStore(db, bus);
 
 // ---------- 6b. Pending Action Store ----------
 const pendingActionStore = new InMemoryPendingActionStore();
-console.log("[backend] Pending action store initialized (in-memory)");
+log.info("Pending action store initialized");
 
 // ---------- 7. Orchestrator ----------
 const orchestrator = new Orchestrator(bus, agentRegistry, {
@@ -193,9 +198,10 @@ for (const task of MVP_BACKGROUND_TASKS) {
   scheduler.register(task);
 }
 scheduler.start();
-console.log(
-  `[backend] Registered ${MVP_BACKGROUND_TASKS.length} background tasks: ${MVP_BACKGROUND_TASKS.map((t) => t.id).join(", ")}`,
-);
+log.info("Background tasks registered", {
+  taskCount: MVP_BACKGROUND_TASKS.length,
+  tasks: MVP_BACKGROUND_TASKS.map((t) => t.id),
+});
 
 // ---------- 10. Route user events to orchestrator ----------
 const USER_EVENT_PATTERNS = [
@@ -219,16 +225,14 @@ for (const pattern of USER_EVENT_PATTERNS) {
     if (PASSIVE_OBSERVATION_TYPES.has(event.type)) return;
 
     const traceId = event.traceId;
-    console.log(
-      `[backend] [trace:${traceId}] Routing event "${event.type}" to orchestrator`,
-    );
+    log.child({ traceId }).info("Routing event to orchestrator", { eventType: event.type });
     try {
       await orchestrator.processEvent(event);
     } catch (err) {
-      console.error(
-        `[backend] [trace:${traceId}] Orchestrator error for "${event.type}":`,
-        err,
-      );
+      log.child({ traceId }).error("Orchestrator error", {
+        eventType: event.type,
+        error: err instanceof Error ? err.message : String(err),
+      });
       // Send error to all clients with partial status
       const errorMessage =
         err instanceof Error ? err.message : "Unknown orchestrator error";
@@ -265,9 +269,7 @@ bus.on("surface.composed", (event: WaibEvent) => {
     type: "surface.update",
     payload: event.payload as ComposedLayout,
   };
-  console.log(
-    `[backend] [trace:${event.traceId}] Broadcasting surface.composed to WebSocket clients`,
-  );
+  log.child({ traceId: event.traceId }).debug("Broadcasting surface.composed to WebSocket clients");
   broadcast(message);
 });
 
@@ -275,16 +277,14 @@ bus.on("surface.composed", (event: WaibEvent) => {
 const server = startServer({ eventBus: bus, orchestrator, memoryStore, scheduler, mcpRegistry, connectorRegistry, db, pendingActionStore });
 
 const PORT = Number(process.env.PORT) || 3001;
-console.log(`[backend] WaibSpace backend started`);
-console.log(`[backend] HTTP & WebSocket listening on port ${PORT}`);
-console.log(`[backend] Started at ${new Date().toISOString()}`);
+log.info("WaibSpace backend started", { port: PORT });
 
 // ---------- 13. Graceful Shutdown ----------
 function handleShutdown(signal: string) {
-  console.log(`[backend] Received ${signal}, shutting down gracefully...`);
+  log.info("Shutting down", { signal });
   scheduler.stop();
   server.stop();
-  console.log("[backend] Shutdown complete");
+  log.info("Shutdown complete");
   process.exit(0);
 }
 

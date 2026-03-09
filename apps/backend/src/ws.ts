@@ -4,6 +4,9 @@ import { isValidClientMessage } from "@waibspace/ui-renderer-contract";
 import { EventBus, createEvent, createTraceId } from "@waibspace/event-bus";
 import type { MemoryStore } from "@waibspace/memory";
 import type { SurfaceSpec } from "@waibspace/types";
+import { createLogger } from "@waibspace/logger";
+
+const log = createLogger("ws");
 
 export interface WebSocketData {
   connectionId: string;
@@ -25,10 +28,10 @@ export function broadcast(message: ServerMessage): void {
     try {
       ws.send(raw);
     } catch (err) {
-      console.error(
-        `[ws] broadcast send failed for ${ws.data.connectionId}:`,
-        err,
-      );
+      log.error("Broadcast send failed", {
+        connectionId: ws.data.connectionId,
+        error: err instanceof Error ? err.message : String(err),
+      });
       clients.delete(ws);
     }
   }
@@ -123,10 +126,11 @@ async function sendPendingSurfaces(
     key: e.key,
     preparedAt: e.updatedAt,
   }));
-  console.log(
-    `[ws] [trace:${traceId}] Sent ${surfaces.length} pending surface(s) to ${ws.data.connectionId}`,
+  log.child({ traceId }).info("Sent pending surfaces", {
+    connectionId: ws.data.connectionId,
+    surfaceCount: surfaces.length,
     preparedAt,
-  );
+  });
 }
 
 /**
@@ -136,17 +140,15 @@ export function createWebSocketHandlers(bus: EventBus, memoryStore?: MemoryStore
   return {
     open(ws: ServerWebSocket<WebSocketData>) {
       clients.add(ws);
-      console.log(
-        `[ws] client connected: ${ws.data.connectionId} (total: ${clients.size})`,
-      );
+      log.info("Client connected", { connectionId: ws.data.connectionId, totalClients: clients.size });
 
       // Send any pre-prepared surfaces to the newly connected client
       if (memoryStore) {
         sendPendingSurfaces(ws, memoryStore).catch((err) => {
-          console.error(
-            `[ws] Failed to send pending surfaces to ${ws.data.connectionId}:`,
-            err,
-          );
+          log.error("Failed to send pending surfaces", {
+            connectionId: ws.data.connectionId,
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
       }
     },
@@ -159,7 +161,7 @@ export function createWebSocketHandlers(bus: EventBus, memoryStore?: MemoryStore
       try {
         parsed = JSON.parse(raw);
       } catch {
-        console.error(`[ws] [trace:${traceId}] Invalid JSON from ${ws.data.connectionId}`);
+        log.child({ traceId }).error("Invalid JSON from client", { connectionId: ws.data.connectionId });
         const errorMsg: ServerMessage = {
           type: "error",
           payload: { message: "Invalid JSON", code: "INVALID_JSON" },
@@ -169,7 +171,7 @@ export function createWebSocketHandlers(bus: EventBus, memoryStore?: MemoryStore
       }
 
       if (!isValidClientMessage(parsed)) {
-        console.error(`[ws] [trace:${traceId}] Invalid message format from ${ws.data.connectionId}`);
+        log.child({ traceId }).error("Invalid message format", { connectionId: ws.data.connectionId });
         const errorMsg: ServerMessage = {
           type: "error",
           payload: {
@@ -185,16 +187,16 @@ export function createWebSocketHandlers(bus: EventBus, memoryStore?: MemoryStore
       const eventType = mapClientMessageToEventType(clientMsg);
       const source = `ws:${ws.data.connectionId}`;
 
-      console.log(
-        `[ws] [trace:${traceId}] message from ${ws.data.connectionId}: ${clientMsg.type} -> ${eventType}`,
-      );
+      log.child({ traceId }).debug("Message received", {
+        connectionId: ws.data.connectionId,
+        messageType: clientMsg.type,
+        eventType,
+      });
 
       // If this is a user.interaction with a batch, emit individual events for each observation
       if (clientMsg.type === "user.interaction" && clientMsg.payload.batch && clientMsg.payload.batch.length > 0) {
         const { batch, ...basePayload } = clientMsg.payload;
-        console.log(
-          `[ws] [trace:${traceId}] Processing observation batch of ${batch.length} item(s)`,
-        );
+        log.child({ traceId }).debug("Processing observation batch", { batchSize: batch.length });
         for (const observation of batch) {
           const obsEventType = `user.interaction.${observation.interactionType}`;
           const obsPayload = {
@@ -225,13 +227,11 @@ export function createWebSocketHandlers(bus: EventBus, memoryStore?: MemoryStore
 
     close(ws: ServerWebSocket<WebSocketData>) {
       clients.delete(ws);
-      console.log(
-        `[ws] client disconnected: ${ws.data.connectionId} (total: ${clients.size})`,
-      );
+      log.info("Client disconnected", { connectionId: ws.data.connectionId, totalClients: clients.size });
     },
 
     error(ws: ServerWebSocket<WebSocketData>, error: Error) {
-      console.error(`[ws] error for ${ws.data.connectionId}:`, error);
+      log.error("WebSocket error", { connectionId: ws.data.connectionId, error: error.message });
       clients.delete(ws);
     },
   };

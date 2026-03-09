@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@waibspace/db": "workspace:*",
+    "@waibspace/logger": "workspace:*",
     "@waibspace/types": "workspace:*",
     "@waibspace/event-bus": "workspace:*",
     "@waibspace/orchestrator": "workspace:*",
