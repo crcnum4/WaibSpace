@@ -1,0 +1,122 @@
+/* ================================ */
+/* Theme System                     */
+/* ================================ */
+
+/*
+ * The :root vars in global.css define the dark theme (default).
+ * This file provides overrides for [data-theme="light"] and
+ * a system-preference media query for [data-theme="auto"].
+ */
+
+/* ---- Light theme ---- */
+[data-theme="light"] {
+  /* Backgrounds */
+  --color-bg: #f5f6f8;
+  --color-bg-elevated: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f0f1f4;
+  --color-surface-active: #e5e7ec;
+
+  /* Borders */
+  --color-border: rgba(0, 0, 0, 0.10);
+  --color-border-subtle: rgba(0, 0, 0, 0.05);
+  --color-border-strong: rgba(0, 0, 0, 0.18);
+
+  /* Text */
+  --color-text: #1a1d26;
+  --color-text-secondary: #5a5f6d;
+  --color-muted: #8b8f9c;
+
+  /* Accent — keep hue, slightly deeper for readability on white */
+  --color-accent: #4f46e5;
+  --color-accent-hover: #6366f1;
+  --color-accent-subtle: rgba(79, 70, 229, 0.10);
+  --color-accent-muted: rgba(79, 70, 229, 0.05);
+
+  /* Semantic — keep hues, adjust for light bg readability */
+  --color-success: #16a34a;
+  --color-success-subtle: rgba(22, 163, 74, 0.10);
+  --color-success-text: #15803d;
+
+  --color-warning: #ca8a04;
+  --color-warning-subtle: rgba(202, 138, 4, 0.10);
+  --color-warning-text: #a16207;
+
+  --color-danger: #dc2626;
+  --color-danger-subtle: rgba(220, 38, 38, 0.08);
+  --color-danger-text: #b91c1c;
+
+  --color-info: #2563eb;
+  --color-info-subtle: rgba(37, 99, 235, 0.10);
+  --color-info-text: #1d4ed8;
+
+  --color-neutral: #6b7280;
+  --color-neutral-subtle: rgba(107, 114, 128, 0.10);
+
+  /* Shadows — lighter for light bg */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.16);
+  --shadow-glow-accent: 0 0 20px rgba(79, 70, 229, 0.12);
+  --shadow-glow-success: 0 0 20px rgba(22, 163, 74, 0.10);
+  --shadow-glow-danger: 0 0 20px rgba(220, 38, 38, 0.10);
+
+  /* Block card theming */
+  --block-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --block-card-border: 1px solid rgba(0, 0, 0, 0.10);
+}
+
+/* ---- Auto theme: respect OS preference ---- */
+@media (prefers-color-scheme: light) {
+  [data-theme="auto"] {
+    --color-bg: #f5f6f8;
+    --color-bg-elevated: #ffffff;
+    --color-surface: #ffffff;
+    --color-surface-hover: #f0f1f4;
+    --color-surface-active: #e5e7ec;
+
+    --color-border: rgba(0, 0, 0, 0.10);
+    --color-border-subtle: rgba(0, 0, 0, 0.05);
+    --color-border-strong: rgba(0, 0, 0, 0.18);
+
+    --color-text: #1a1d26;
+    --color-text-secondary: #5a5f6d;
+    --color-muted: #8b8f9c;
+
+    --color-accent: #4f46e5;
+    --color-accent-hover: #6366f1;
+    --color-accent-subtle: rgba(79, 70, 229, 0.10);
+    --color-accent-muted: rgba(79, 70, 229, 0.05);
+
+    --color-success: #16a34a;
+    --color-success-subtle: rgba(22, 163, 74, 0.10);
+    --color-success-text: #15803d;
+
+    --color-warning: #ca8a04;
+    --color-warning-subtle: rgba(202, 138, 4, 0.10);
+    --color-warning-text: #a16207;
+
+    --color-danger: #dc2626;
+    --color-danger-subtle: rgba(220, 38, 38, 0.08);
+    --color-danger-text: #b91c1c;
+
+    --color-info: #2563eb;
+    --color-info-subtle: rgba(37, 99, 235, 0.10);
+    --color-info-text: #1d4ed8;
+
+    --color-neutral: #6b7280;
+    --color-neutral-subtle: rgba(107, 114, 128, 0.10);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+    --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.16);
+    --shadow-glow-accent: 0 0 20px rgba(79, 70, 229, 0.12);
+    --shadow-glow-success: 0 0 20px rgba(22, 163, 74, 0.10);
+    --shadow-glow-danger: 0 0 20px rgba(220, 38, 38, 0.10);
+
+    --block-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --block-card-border: 1px solid rgba(0, 0, 0, 0.10);
+  }
+}

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { ConnectionManager } from "../components/ConnectionManager";
+import { useTheme, type Theme } from "../hooks/useTheme";
 
 type SettingsSection = "connections" | "preferences" | "about";
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSection>("connections");
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const { theme, setTheme } = useTheme();
   const [notifyErrors, setNotifyErrors] = useState(true);
   const [notifyTaskComplete, setNotifyTaskComplete] = useState(true);
 
@@ -46,22 +47,19 @@ export default function SettingsPage() {
                 <div className="settings-row__info">
                   <span className="settings-row__label">Theme</span>
                   <span className="settings-row__description">
-                    Choose between dark and light mode
+                    Choose dark, light, or auto (follows system preference)
                   </span>
                 </div>
                 <div className="settings-toggle-group">
-                  <button
-                    className={`settings-toggle-group__btn ${theme === "dark" ? "settings-toggle-group__btn--active" : ""}`}
-                    onClick={() => setTheme("dark")}
-                  >
-                    Dark
-                  </button>
-                  <button
-                    className={`settings-toggle-group__btn ${theme === "light" ? "settings-toggle-group__btn--active" : ""}`}
-                    onClick={() => setTheme("light")}
-                  >
-                    Light
-                  </button>
+                  {(["dark", "light", "auto"] as Theme[]).map((opt) => (
+                    <button
+                      key={opt}
+                      className={`settings-toggle-group__btn ${theme === opt ? "settings-toggle-group__btn--active" : ""}`}
+                      onClick={() => setTheme(opt)}
+                    >
+                      {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
