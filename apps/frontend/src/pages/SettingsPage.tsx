@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { ConnectionManager } from "../components/ConnectionManager";
 import { ConnectorHealthDashboard } from "../components/ConnectorHealthDashboard";
+import { MCPMarketplace } from "../components/MCPMarketplace";
 import { useTheme, type Theme } from "../hooks/useTheme";
 
-type SettingsSection = "connections" | "health" | "preferences" | "about";
+type SettingsSection = "marketplace" | "connections" | "health" | "preferences" | "about";
 
 export default function SettingsPage() {
-  const [activeSection, setActiveSection] = useState<SettingsSection>("connections");
+  const [activeSection, setActiveSection] = useState<SettingsSection>("marketplace");
   const { theme, setTheme } = useTheme();
   const [notifyErrors, setNotifyErrors] = useState(true);
   const [notifyTaskComplete, setNotifyTaskComplete] = useState(true);
 
   const sections: { id: SettingsSection; label: string }[] = [
+    { id: "marketplace", label: "Marketplace" },
     { id: "connections", label: "Connections" },
     { id: "health", label: "Health" },
     { id: "preferences", label: "Preferences" },
@@ -35,6 +37,12 @@ export default function SettingsPage() {
       </nav>
 
       <div className="settings-content">
+        {activeSection === "marketplace" && (
+          <section className="settings-section">
+            <MCPMarketplace />
+          </section>
+        )}
+
         {activeSection === "connections" && (
           <section className="settings-section">
             <ConnectionManager />

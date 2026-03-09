@@ -290,6 +290,23 @@ export function startServer(deps: ServerDeps) {
         );
       }
 
+      // GET /api/mcp/catalog/:id — get full template details (including credential specs)
+      const catalogDetailMatch = url.pathname.match(/^\/api\/mcp\/catalog\/([^/]+)$/);
+      if (catalogDetailMatch && req.method === "GET") {
+        const template = findTemplate(catalogDetailMatch[1]);
+        if (!template) {
+          return jsonResponse({ error: "Template not found" }, 404);
+        }
+        return jsonResponse({
+          id: template.id,
+          name: template.name,
+          description: template.description,
+          icon: template.icon,
+          categories: template.categories,
+          requiredCredentials: template.requiredCredentials,
+        });
+      }
+
       // POST /api/mcp/setup — set up an MCP server from catalog template
       if (url.pathname === "/api/mcp/setup" && req.method === "POST") {
         if (!deps.mcpRegistry) {
