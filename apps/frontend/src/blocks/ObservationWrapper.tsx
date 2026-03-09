@@ -37,7 +37,6 @@ export function ObservationWrapper({
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Mutable tracking refs — never cause re-renders
-  const hoverStartRef = useRef<number>(0);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const dragRecordedRef = useRef(false);
@@ -138,21 +137,10 @@ export function ObservationWrapper({
   );
 
   // -------------------------------------------------------------------------
-  // 4. Hover (mouse enter / leave with dwell time)
+  // 4. Hover — DISABLED for now. Hover is an interest/engagement signal,
+  // not an intent signal. Re-enable post-demo as an "interest metric"
+  // rather than feeding it into the intent parser.
   // -------------------------------------------------------------------------
-
-  const handleMouseEnter = useCallback(() => {
-    hoverStartRef.current = Date.now();
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    const dwellMs = Date.now() - hoverStartRef.current;
-    hoverStartRef.current = 0;
-    // Only record hover if dwell time is meaningful (>200ms) to avoid noise
-    if (dwellMs > 200) {
-      executeIfPlanned("hover", block.events?.onHover, { dwellMs });
-    }
-  }, [block.events?.onHover, executeIfPlanned]);
 
   // -------------------------------------------------------------------------
   // 5. Long-press (500ms pointer hold)
@@ -238,8 +226,6 @@ export function ObservationWrapper({
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
       onPointerDown={handlePointerDown}
       onPointerUp={clearLongPress}
       onPointerCancel={clearLongPress}
