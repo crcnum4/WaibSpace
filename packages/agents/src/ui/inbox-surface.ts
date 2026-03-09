@@ -93,13 +93,39 @@ export class InboxSurfaceAgent extends BaseAgent {
 
     const { data: gmailData, totalUnread: gmailTotalUnread } = this.extractGmailData(retrievalOutput);
 
-    // If no email data found, return empty
+    // If no email data found, return an empty inbox surface (not null)
     if (!gmailData || (Array.isArray(gmailData) && gmailData.length === 0)) {
-      this.log("No email data found, skipping inbox surface");
-      return this.createOutput(null, 0, {
-        dataState: "raw",
+      this.log("No email data found, returning empty inbox surface");
+
+      const emptySurfaceData: InboxSurfaceData = {
+        emails: [],
+        totalCount: 0,
+        unreadCount: 0,
+      };
+
+      const provenance = {
+        sourceType: "agent" as const,
+        sourceId: this.id,
+        trustLevel: "trusted" as const,
         timestamp: startMs,
-      });
+        freshness: "realtime" as const,
+        dataState: "raw" as const,
+      };
+
+      const surfaceSpec = SurfaceFactory.inbox(emptySurfaceData, provenance);
+
+      return {
+        ...this.createOutput(
+          { surfaceSpec, summary: "Your inbox is empty" },
+          0.85,
+          provenance,
+        ),
+        timing: {
+          startMs,
+          endMs: Date.now(),
+          durationMs: Date.now() - startMs,
+        },
+      };
     }
 
     // Truncate to 20 emails max
