@@ -76,16 +76,34 @@ export class DataRetrievalAgent extends BaseAgent {
           );
         }
 
+        this.log("Fetching from connector", {
+          connectorId: retrieval.connectorId,
+          operation: retrieval.operation,
+          params: retrieval.params,
+        });
+
         const response: ConnectorResponse = await connector.fetch({
           operation: retrieval.operation,
           params: retrieval.params,
           traceId: context.traceId,
         });
 
+        const truncated = this.truncateData(response.data);
+
+        // Log response shape for debugging MCP data flow
+        const dataShape = Array.isArray(truncated)
+          ? `array[${truncated.length}]`
+          : typeof truncated;
+        this.log("Received data", {
+          connectorId: retrieval.connectorId,
+          operation: retrieval.operation,
+          dataShape,
+        });
+
         return {
           connectorId: retrieval.connectorId,
           operation: retrieval.operation,
-          data: this.truncateData(response.data),
+          data: truncated,
           provenance: response.provenance,
           metadata: response.metadata,
         };
@@ -166,6 +184,8 @@ export class DataRetrievalAgent extends BaseAgent {
    */
   private truncateData(data: unknown): unknown {
     const MAX_DATA_SIZE = 50_000;
+    const MAX_ITEMS = 20;
+    const MAX_FIELD_LENGTH = 500;
 
     // MCP tools return [{type: "text", text: "..."}] — truncate the text content
     if (Array.isArray(data)) {
@@ -182,13 +202,24 @@ export class DataRetrievalAgent extends BaseAgent {
             try {
               const parsed = JSON.parse(text);
               if (Array.isArray(parsed)) {
-                let truncated = parsed.slice(0, 20);
-                let serialized = JSON.stringify(truncated);
-                while (serialized.length > MAX_DATA_SIZE && truncated.length > 1) {
-                  truncated = truncated.slice(0, Math.ceil(truncated.length / 2));
-                  serialized = JSON.stringify(truncated);
-                }
-                return { type: "text", text: serialized };
+                // Take first N items, then strip large fields from each
+                const truncated = parsed.slice(0, MAX_ITEMS).map((entry: unknown) => {
+                  if (typeof entry === "object" && entry !== null) {
+                    return this.trimObjectFields(
+                      entry as Record<string, unknown>,
+                      MAX_FIELD_LENGTH,
+                    );
+                  }
+                  return entry;
+                });
+
+                this.log("Truncated MCP array data", {
+                  originalCount: parsed.length,
+                  keptCount: truncated.length,
+                  serializedSize: JSON.stringify(truncated).length,
+                });
+
+                return { type: "text", text: JSON.stringify(truncated) };
               }
             } catch {
               // Not JSON, just truncate raw text
@@ -205,6 +236,32 @@ export class DataRetrievalAgent extends BaseAgent {
       return JSON.parse(str.slice(0, MAX_DATA_SIZE));
     }
     return data;
+  }
+
+  /**
+   * Trim long string fields in an object to keep data compact.
+   * Preserves short fields (headers, IDs, dates) while truncating
+   * large fields (body, html, content).
+   */
+  private trimObjectFields(
+    obj: Record<string, unknown>,
+    maxLen: number,
+  ): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (typeof value === "string" && value.length > maxLen) {
+        result[key] = value.slice(0, maxLen) + "...";
+      } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+        // Recurse one level for nested objects (e.g., headers)
+        result[key] = this.trimObjectFields(
+          value as Record<string, unknown>,
+          maxLen,
+        );
+      } else {
+        result[key] = value;
+      }
+    }
+    return result;
   }
 
   private findFinalizedPlan(

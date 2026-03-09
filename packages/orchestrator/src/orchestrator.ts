@@ -170,6 +170,27 @@ export class Orchestrator {
 
       // Accumulate outputs for the next phase
       priorOutputs = [...priorOutputs, ...phaseOutputs];
+
+      // Emit phase progress so the frontend can show incremental loading state
+      const agentStatuses = phase.agents.map((agent, i) => {
+        const result = results[i];
+        return {
+          agentId: agent.id,
+          state: result.status === "fulfilled"
+            ? ("complete" as const)
+            : ("error" as const),
+        };
+      });
+      const progressEvent = createEvent(
+        "pipeline.phase.complete",
+        {
+          phase: phase.category,
+          agents: agentStatuses,
+        },
+        "orchestrator",
+        traceId,
+      );
+      this.eventBus.emit(progressEvent);
     }
 
     const endMs = Date.now();

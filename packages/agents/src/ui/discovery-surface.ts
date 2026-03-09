@@ -102,6 +102,15 @@ export class DiscoverySurfaceAgent extends BaseAgent {
 
     const webData = this.extractWebData(retrievalOutput);
 
+    // If no web data found, skip — don't hallucinate discovery results from nothing
+    if (!webData || (Array.isArray(webData) && webData.length === 0)) {
+      this.log("No web data found, skipping discovery surface");
+      return this.createOutput(null, 0, {
+        dataState: "raw",
+        timestamp: startMs,
+      });
+    }
+
     this.log("Building discovery surface", {
       resultCount: Array.isArray(webData) ? webData.length : 0,
       hasIntent: intentClassification !== undefined,
@@ -201,14 +210,11 @@ export class DiscoverySurfaceAgent extends BaseAgent {
   }
 
   private extractWebData(retrieval: DataRetrievalOutput): unknown {
+    // Only match actual web fetch/search connectors — NOT email or other MCP connectors
     const webResults = retrieval.results.filter(
       (r) =>
         r.status === "fulfilled" &&
-        (r.connectorId === "web" ||
-          r.connectorId === "web-fetch" ||
-          r.operation.includes("search") ||
-          r.operation.includes("web") ||
-          r.operation.includes("fetch")),
+        (r.connectorId === "web" || r.connectorId === "web-fetch"),
     );
     if (webResults.length === 0) return [];
     // Return all web data if multiple results, or the single result's data

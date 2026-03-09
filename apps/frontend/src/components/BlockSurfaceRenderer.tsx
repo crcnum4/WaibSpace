@@ -19,6 +19,11 @@ import { ErrorSurface } from "./ErrorSurface";
 // Props — identical to SurfaceRenderer
 // ---------------------------------------------------------------------------
 
+interface ConnectedService {
+  id: string;
+  name: string;
+}
+
 interface BlockSurfaceRendererProps {
   layout: ComposedLayout | null;
   onAction: (action: SurfaceAction) => void;
@@ -30,6 +35,9 @@ interface BlockSurfaceRendererProps {
     context?: unknown,
   ) => void;
   isLoading?: boolean;
+  pipelinePhase?: string | null;
+  /** When loading with no data yet, show named loading cards per service */
+  loadingServices?: ConnectedService[];
 }
 
 // ---------------------------------------------------------------------------
@@ -72,6 +80,18 @@ function buildSkeletonBlocks(): ComponentBlock[] {
 }
 
 // ---------------------------------------------------------------------------
+// Phase labels for loading indicator
+// ---------------------------------------------------------------------------
+
+const PHASE_LABELS: Record<string, string> = {
+  perception: "Understanding your request...",
+  reasoning: "Analyzing intent...",
+  context: "Fetching data from services...",
+  ui: "Building your view...",
+  safety: "Verifying safety...",
+};
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -80,6 +100,8 @@ export function BlockSurfaceRenderer({
   onAction,
   onInteraction,
   isLoading,
+  pipelinePhase,
+  loadingServices,
 }: BlockSurfaceRendererProps) {
   // Transform ComposedLayout into ComponentBlock[] per surface
   const surfaceBlocks = useMemo<
@@ -171,11 +193,52 @@ export function BlockSurfaceRenderer({
     [onAction, onInteraction],
   );
 
-  // Loading state: show skeleton blocks
-  if (isLoading && (!layout || layout.surfaces.length === 0)) {
+  // Loading state: show per-service loading cards when we have no data yet.
+  // If we already have surfaces, keep showing them (dimmed) while new data loads.
+  if (isLoading && surfaceBlocks.length === 0) {
+    const phaseLabel = pipelinePhase
+      ? PHASE_LABELS[pipelinePhase] ?? pipelinePhase
+      : "Connecting to services...";
+
+    // If we know which services are loading, show a card per service
+    if (loadingServices && loadingServices.length > 0) {
+      return (
+        <div className="surface-grid">
+          {loadingServices.map((svc) => (
+            <div key={svc.id} className="surface-cell half">
+              <div className="surface-wrapper">
+                <div className="surface loading-service-card">
+                  <div className="loading-service-header">
+                    <h3>Loading {svc.name}...</h3>
+                  </div>
+                  <div className="loading-service-body">
+                    <div className="loading-spinner" />
+                    <p className="loading-label">{phaseLabel}</p>
+                  </div>
+                  <div className="loading-service-skeleton">
+                    <div className="skeleton-line" />
+                    <div className="skeleton-line short" />
+                    <div className="skeleton-line" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Fallback: generic loading with skeleton blocks
     return (
       <div className="surface-grid">
-        <WaibRenderer blocks={buildSkeletonBlocks()} send={send} />
+        <div className="surface-cell full">
+          <div className="surface-wrapper">
+            <div className="surface loading-surface">
+              <div className="loading-spinner" />
+              <p className="loading-label">{phaseLabel}</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -197,7 +260,15 @@ export function BlockSurfaceRenderer({
   const hasErrors = (layout.errors?.length ?? 0) > 0;
 
   return (
-    <div className="surface-grid">
+    <div className="surface-grid" style={isLoading ? { opacity: 0.7, transition: "opacity 0.3s ease" } : undefined}>
+      {isLoading && pipelinePhase && (
+        <div className="surface-cell full" style={{ order: -1 }}>
+          <div className="loading-banner">
+            <div className="loading-spinner small" />
+            <span>{PHASE_LABELS[pipelinePhase] ?? pipelinePhase}</span>
+          </div>
+        </div>
+      )}
       {hasErrors && layout.errors && (
         <div className="surface-cell full">
           <ErrorSurface errors={layout.errors} />

@@ -1,12 +1,11 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import type {
   ComposedLayout,
   AgentStatus as AgentStatusType,
 } from "@waibspace/ui-renderer-contract";
 import type { SurfaceAction } from "@waibspace/types";
 import { useWebSocket } from "../hooks/useWebSocket";
-import { SurfaceRenderer } from "../components/SurfaceRenderer";
 import { BlockSurfaceRenderer } from "../components/BlockSurfaceRenderer";
 import { AgentStatus } from "../components/AgentStatus";
 import { ChatInput } from "../components/ChatInput";
@@ -16,49 +15,75 @@ import { BlockInspector, BlockInspectorToggle } from "../blocks/BlockInspector";
 import { composedLayoutToBlocks } from "../blocks/transformers";
 
 const WS_URL = `ws://${window.location.hostname}:${import.meta.env.VITE_WS_PORT || 3001}/ws`;
+const API_BASE = `http://${window.location.hostname}:${import.meta.env.VITE_WS_PORT || 3001}`;
+
+interface ConnectedService {
+  id: string;
+  name: string;
+}
 
 export default function HomePage() {
   const { send, lastMessage, status } = useWebSocket(WS_URL);
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [layout, setLayout] = useState<ComposedLayout | null>(null);
   const [agents, setAgents] = useState<AgentStatusType[]>([]);
-  const [hasRequestedAmbient, setHasRequestedAmbient] = useState(false);
+  const [hasCheckedConnections, setHasCheckedConnections] = useState(false);
+  const [connectedServices, setConnectedServices] = useState<ConnectedService[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [pipelinePhase, setPipelinePhase] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [observations, setObservations] = useState<
     Array<{ type: string; payload: unknown; time: string }>
   >([]);
 
-  const useBlocks = searchParams.get("renderer") === "blocks";
-
-  const toggleRenderer = useCallback(() => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (next.get("renderer") === "blocks") {
-        next.delete("renderer");
-      } else {
-        next.set("renderer", "blocks");
-      }
-      return next;
-    });
-  }, [setSearchParams]);
-
   // Derive block tree for the inspector
   const inspectorBlocks = useMemo(() => {
-    if (!useBlocks || !layout || layout.surfaces.length === 0) return [];
+    if (!layout || layout.surfaces.length === 0) return [];
     return composedLayoutToBlocks(layout);
-  }, [useBlocks, layout]);
+  }, [layout]);
 
-  // Request ambient state on initial connection
+  // On initial connection, check what services are connected
+  // Show WelcomeState immediately, then trigger data fetch in background
   useEffect(() => {
-    if (status === "connected" && !hasRequestedAmbient) {
-      send("user.message", { text: "show ambient state" });
-      setHasRequestedAmbient(true);
-      setIsLoading(true);
-    }
-  }, [status, hasRequestedAmbient, send]);
+    if (status !== "connected" || hasCheckedConnections) return;
+    setHasCheckedConnections(true);
+
+    fetch(`${API_BASE}/api/mcp/servers`)
+      .then((res) => res.json())
+      .then((servers: Array<{ config: { id: string; name: string }; connected: boolean }>) => {
+        const connected = servers
+          .filter((s) => s.connected)
+          .map((s) => ({ id: s.config.id, name: s.config.name }));
+
+        setConnectedServices(connected);
+
+        if (connected.length === 0) return; // Stay on WelcomeState
+
+        // Build a targeted request for connected services only
+        const parts: string[] = [];
+        for (const svc of connected) {
+          const lower = svc.name.toLowerCase();
+          if (lower.includes("gmail") || lower.includes("mail") || lower.includes("email")) {
+            parts.push("my latest emails");
+          } else if (lower.includes("calendar")) {
+            parts.push("my upcoming calendar events");
+          } else if (lower.includes("github")) {
+            parts.push("my recent GitHub activity");
+          } else if (lower.includes("slack")) {
+            parts.push("my recent Slack messages");
+          } else {
+            parts.push(`my latest data from ${svc.name}`);
+          }
+        }
+
+        setIsLoading(true);
+        send("user.message", { text: `Show me ${parts.join(" and ")}` });
+      })
+      .catch(() => {
+        // API unavailable — stay on WelcomeState
+      });
+  }, [status, hasCheckedConnections, send]);
 
   // Handle messages from the global input bar
   useEffect(() => {
@@ -79,7 +104,6 @@ export default function HomePage() {
     if (state?.pendingMessage && status === "connected") {
       send("user.message", { text: state.pendingMessage });
       setIsLoading(true);
-      // Clear the state so it doesn't re-send on re-render
       window.history.replaceState({}, "");
     }
   }, [location.state, status, send]);
@@ -88,17 +112,23 @@ export default function HomePage() {
     if (!lastMessage) return;
 
     switch (lastMessage.type) {
-      case "surface.update":
-        setLayout(lastMessage.payload as ComposedLayout);
-        setIsLoading(false);
-        setErrorMessage(null);
+      case "surface.update": {
+        const newLayout = lastMessage.payload as ComposedLayout;
+        if (newLayout.surfaces.length > 0) {
+          setLayout(newLayout);
+          setIsLoading(false);
+          setPipelinePhase(null);
+          setErrorMessage(null);
+        }
         break;
+      }
       case "status": {
         const statusPayload = lastMessage.payload as {
           phase: string;
           agents: AgentStatusType[];
         };
         setAgents(statusPayload.agents);
+        setPipelinePhase(statusPayload.phase);
         break;
       }
       case "error": {
@@ -107,6 +137,7 @@ export default function HomePage() {
           code: string;
         };
         setErrorMessage(errorPayload.message);
+        setIsLoading(false);
         break;
       }
     }
@@ -132,7 +163,6 @@ export default function HomePage() {
       surfaceType: string,
       context?: unknown,
     ) => {
-      // Approval surfaces: emit approval.response instead of user.interaction
       if (
         surfaceType === "approval" &&
         (interaction === "approve" || interaction === "deny")
@@ -144,7 +174,6 @@ export default function HomePage() {
         return;
       }
 
-      // Email send-reply: emit with full context for policy evaluation
       send("user.interaction", {
         interaction,
         target,
@@ -190,23 +219,6 @@ export default function HomePage() {
               : "Disconnected"}
         </span>
         <AgentStatus agents={agents} />
-
-        <button
-          onClick={toggleRenderer}
-          style={{
-            marginLeft: "auto",
-            padding: "4px 10px",
-            fontSize: 12,
-            borderRadius: 6,
-            border: "1px solid var(--border, #333)",
-            background: useBlocks ? "var(--accent, #7dd3fc)" : "transparent",
-            color: useBlocks ? "#000" : "var(--text-secondary, #aaa)",
-            cursor: "pointer",
-          }}
-          title="Toggle between SurfaceRenderer and BlockSurfaceRenderer"
-        >
-          {useBlocks ? "Blocks" : "Surfaces"}
-        </button>
       </div>
 
       <div className="home-content">
@@ -222,21 +234,14 @@ export default function HomePage() {
           />
         )}
         {hasSurfaces || isLoading ? (
-          useBlocks ? (
-            <BlockSurfaceRenderer
-              layout={layout}
-              onAction={handleAction}
-              onInteraction={handleInteraction}
-              isLoading={isLoading}
-            />
-          ) : (
-            <SurfaceRenderer
-              layout={layout}
-              onAction={handleAction}
-              onInteraction={handleInteraction}
-              isLoading={isLoading}
-            />
-          )
+          <BlockSurfaceRenderer
+            layout={layout}
+            onAction={handleAction}
+            onInteraction={handleInteraction}
+            isLoading={isLoading}
+            pipelinePhase={pipelinePhase}
+            loadingServices={isLoading && !hasSurfaces ? connectedServices : undefined}
+          />
         ) : (
           <WelcomeState onSuggest={handleSend} />
         )}
@@ -246,17 +251,13 @@ export default function HomePage() {
         <ChatInput onSend={handleSend} placeholder="Ask WaibSpace anything..." />
       </div>
 
-      {useBlocks && (
-        <>
-          <BlockInspectorToggle onClick={() => setInspectorOpen((o) => !o)} />
-          <BlockInspector
-            blocks={inspectorBlocks}
-            observations={observations}
-            isOpen={inspectorOpen}
-            onToggle={() => setInspectorOpen((o) => !o)}
-          />
-        </>
-      )}
+      <BlockInspectorToggle onClick={() => setInspectorOpen((o) => !o)} />
+      <BlockInspector
+        blocks={inspectorBlocks}
+        observations={observations}
+        isOpen={inspectorOpen}
+        onToggle={() => setInspectorOpen((o) => !o)}
+      />
     </div>
   );
 }

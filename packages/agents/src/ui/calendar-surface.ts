@@ -114,6 +114,16 @@ export class CalendarSurfaceAgent extends BaseAgent {
     }
 
     const calendarData = this.extractCalendarData(retrievalOutput);
+
+    // If no calendar data found, skip — don't hallucinate a calendar from nothing
+    if (!calendarData || (Array.isArray(calendarData) && calendarData.length === 0)) {
+      this.log("No calendar data found, skipping calendar surface");
+      return this.createOutput(null, 0, {
+        dataState: "raw",
+        timestamp: startMs,
+      });
+    }
+
     const emailContext = this.extractEmailContext(input);
 
     this.log("Building calendar surface", {
@@ -186,8 +196,9 @@ export class CalendarSurfaceAgent extends BaseAgent {
     const calendarResult = retrieval.results.find(
       (r) =>
         r.status === "fulfilled" &&
-        (r.connectorId === "google-calendar" ||
-          r.operation.includes("calendar")),
+        (r.connectorId.includes("calendar") ||
+          r.operation.includes("calendar") ||
+          r.operation.includes("event")),
     );
     return calendarResult?.data ?? [];
   }

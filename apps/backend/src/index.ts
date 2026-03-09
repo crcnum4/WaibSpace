@@ -22,6 +22,7 @@ import {
   DiscoverySurfaceAgent,
   ApprovalSurfaceAgent,
   ConnectionSurfaceAgent,
+  GenericDataSurfaceAgent,
   LayoutComposerAgent,
   // Safety agents
   ProvenanceAnnotatorAgent,
@@ -125,6 +126,7 @@ agentRegistry.register(new CalendarSurfaceAgent());
 agentRegistry.register(new DiscoverySurfaceAgent());
 agentRegistry.register(new ApprovalSurfaceAgent());
 agentRegistry.register(new ConnectionSurfaceAgent());
+agentRegistry.register(new GenericDataSurfaceAgent());
 agentRegistry.register(new LayoutComposerAgent());
 
 // Safety agents
@@ -201,7 +203,22 @@ for (const pattern of USER_EVENT_PATTERNS) {
   });
 }
 
-// ---------- 11. Broadcast composed surfaces to WebSocket clients ----------
+// ---------- 11. Broadcast pipeline progress + composed surfaces ----------
+bus.on("pipeline.phase.complete", (event: WaibEvent) => {
+  const payload = event.payload as {
+    phase: string;
+    agents: Array<{ agentId: string; state: string }>;
+  };
+  const message: ServerMessage = {
+    type: "status",
+    payload: {
+      phase: payload.phase,
+      agents: payload.agents,
+    },
+  };
+  broadcast(message);
+});
+
 bus.on("surface.composed", (event: WaibEvent) => {
   const message: ServerMessage = {
     type: "surface.update",
