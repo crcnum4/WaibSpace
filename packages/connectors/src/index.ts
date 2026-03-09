@@ -20,6 +20,7 @@ export type {
 } from "./gmail";
 export {
   GoogleCalendarConnector,
+  MockCalendarConnector,
   type GoogleCalendarConnectorConfig,
   type CalendarEvent,
   type FreeSlot,
