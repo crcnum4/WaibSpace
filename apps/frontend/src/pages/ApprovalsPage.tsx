@@ -1,8 +1,15 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+
 export default function ApprovalsPage() {
-  return (
-    <div className="page approvals-page">
-      <h1>Approvals</h1>
-      <p className="placeholder">Approvals content will be placed here.</p>
-    </div>
-  );
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    navigate("/", {
+      state: { pendingMessage: "Show my pending approvals" },
+      replace: true,
+    });
+  }, [navigate]);
+
+  return null;
 }
