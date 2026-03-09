@@ -22,7 +22,15 @@ export function getClients(): Set<ServerWebSocket<WebSocketData>> {
 export function broadcast(message: ServerMessage): void {
   const raw = JSON.stringify(message);
   for (const ws of clients) {
-    ws.send(raw);
+    try {
+      ws.send(raw);
+    } catch (err) {
+      console.error(
+        `[ws] broadcast send failed for ${ws.data.connectionId}:`,
+        err,
+      );
+      clients.delete(ws);
+    }
   }
 }
 
