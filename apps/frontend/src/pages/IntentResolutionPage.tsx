@@ -118,7 +118,7 @@ export default function IntentResolutionPage() {
         </div>
         <div className="intent-status-bar">
           <span
-            className={`connection-dot ${status === "connected" ? "connected" : status === "connecting" ? "connecting" : "disconnected"}`}
+            className={`connection-dot ${status === "connected" ? "connected" : status === "reconnecting" || status === "connecting" ? "connecting" : "disconnected"}`}
           />
           <AgentStatus agents={agents} />
         </div>
@@ -142,9 +142,9 @@ export default function IntentResolutionPage() {
               Agents working on your request
             </p>
           )}
-          {status === "connecting" && (
+          {(status === "connecting" || status === "reconnecting") && (
             <p className="intent-loading-agents">
-              Connecting to backend...
+              {status === "reconnecting" ? "Reconnecting to backend..." : "Connecting to backend..."}
             </p>
           )}
         </div>
