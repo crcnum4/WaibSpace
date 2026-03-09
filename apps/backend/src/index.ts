@@ -175,8 +175,21 @@ const USER_EVENT_PATTERNS = [
   "policy.approval.*",
 ];
 
+/**
+ * Passive observation event types that should NOT trigger the orchestration
+ * pipeline. These are telemetry events processed by the ObservationProcessor
+ * only (e.g. scroll-view fired by IntersectionObserver as the user scrolls).
+ */
+const PASSIVE_OBSERVATION_TYPES = new Set([
+  "user.interaction.scroll-view",
+]);
+
 for (const pattern of USER_EVENT_PATTERNS) {
   bus.on(pattern, async (event: WaibEvent) => {
+    // Skip passive observation events — they are handled by the
+    // ObservationProcessor and should not re-trigger the full pipeline.
+    if (PASSIVE_OBSERVATION_TYPES.has(event.type)) return;
+
     const traceId = event.traceId;
     console.log(
       `[backend] [trace:${traceId}] Routing event "${event.type}" to orchestrator`,
