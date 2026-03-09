@@ -35,6 +35,7 @@ import {
   MCPServerRegistry,
   GmailConnector,
   MockGmailConnector,
+  MockCalendarConnector,
 } from "@waibspace/connectors";
 import { PolicyEngine, DEFAULT_POLICY_RULES } from "@waibspace/policy";
 import {
@@ -79,6 +80,11 @@ if (process.env.MOCK_CONNECTORS === "true") {
   await mockGmail.connect();
   connectorRegistry.register(mockGmail);
   console.log("[backend] MockGmailConnector registered (MOCK_CONNECTORS=true)");
+
+  const mockCalendar = new MockCalendarConnector();
+  await mockCalendar.connect();
+  connectorRegistry.register(mockCalendar);
+  console.log("[backend] MockCalendarConnector registered (MOCK_CONNECTORS=true)");
 } else {
   const gmailConnector = new GmailConnector();
   await gmailConnector.connect();
