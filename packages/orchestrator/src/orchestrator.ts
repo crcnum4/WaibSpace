@@ -1,4 +1,4 @@
-import type { WaibEvent, AgentOutput, AgentCategory } from "@waibspace/types";
+import type { WaibEvent, AgentOutput, AgentCategory, IPendingActionStore } from "@waibspace/types";
 import { EventBus, createEvent } from "@waibspace/event-bus";
 import { executeAgent } from "@waibspace/agents";
 import type { ModelProviderRegistry } from "@waibspace/model-provider";
@@ -16,6 +16,7 @@ export interface OrchestratorOptions {
   memoryStore?: MemoryStore;
   connectorRegistry?: ConnectorRegistry;
   policyEngine?: PolicyEngine;
+  pendingActionStore?: IPendingActionStore;
   db?: WaibDatabase;
 }
 
@@ -89,6 +90,9 @@ export class Orchestrator {
             : {}),
           ...(this.options?.policyEngine
             ? { policyEngine: this.options.policyEngine }
+            : {}),
+          ...(this.options?.pendingActionStore
+            ? { pendingActionStore: this.options.pendingActionStore }
             : {}),
         },
       };

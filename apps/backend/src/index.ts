@@ -1,7 +1,7 @@
 import { EventBus } from "@waibspace/event-bus";
 import type { WaibEvent } from "@waibspace/types";
 import type { ServerMessage, ComposedLayout } from "@waibspace/ui-renderer-contract";
-import { Orchestrator, AgentRegistry } from "@waibspace/orchestrator";
+import { Orchestrator, AgentRegistry, InMemoryPendingActionStore } from "@waibspace/orchestrator";
 import {
   // Perception agents
   InputNormalizerAgent,
@@ -165,12 +165,17 @@ console.log(
 // ---------- 6. Memory Store ----------
 const memoryStore = new MemoryStore(db, bus);
 
+// ---------- 6b. Pending Action Store ----------
+const pendingActionStore = new InMemoryPendingActionStore();
+console.log("[backend] Pending action store initialized (in-memory)");
+
 // ---------- 7. Orchestrator ----------
 const orchestrator = new Orchestrator(bus, agentRegistry, {
   modelProvider: modelRegistry,
   memoryStore,
   connectorRegistry,
   policyEngine,
+  pendingActionStore,
   db,
 });
 
@@ -267,7 +272,7 @@ bus.on("surface.composed", (event: WaibEvent) => {
 });
 
 // ---------- 12. Start HTTP/WebSocket server ----------
-const server = startServer({ eventBus: bus, orchestrator, memoryStore, scheduler, mcpRegistry, connectorRegistry, db });
+const server = startServer({ eventBus: bus, orchestrator, memoryStore, scheduler, mcpRegistry, connectorRegistry, db, pendingActionStore });
 
 const PORT = Number(process.env.PORT) || 3001;
 console.log(`[backend] WaibSpace backend started`);

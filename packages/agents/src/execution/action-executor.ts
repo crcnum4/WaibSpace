@@ -1,9 +1,8 @@
-import type { AgentOutput } from "@waibspace/types";
+import type { AgentOutput, IPendingActionStore } from "@waibspace/types";
 import type { ConnectorRegistry, ConnectorAction } from "@waibspace/connectors";
 import { SurfaceFactory } from "@waibspace/surfaces";
 import { BaseAgent } from "../base-agent";
 import type { AgentInput, AgentContext } from "../types";
-import { pendingActionStore } from "./pending-action-store";
 
 /**
  * Executes approved actions by invoking the appropriate connector.
@@ -36,18 +35,38 @@ export class ActionExecutorAgent extends BaseAgent {
     const approved = payload.approved as boolean;
     const approvalId = payload.approvalId as string;
 
+    const pendingActionStore = context.config?.["pendingActionStore"] as
+      | IPendingActionStore
+      | undefined;
+
+    // Look up the pending action from the store
+    const pendingAction = pendingActionStore?.get(approvalId);
+    if (pendingAction) {
+      this.log("Found pending action in store", {
+        approvalId,
+        actionType: pendingAction.actionType,
+        riskClass: pendingAction.riskClass,
+      });
+    } else {
+      this.log("No pending action found in store", { approvalId });
+    }
+
     if (!approved) {
       this.log("Action denied by user", { approvalId });
 
-      // Clean up the pending action
-      pendingActionStore.remove(approvalId);
+      // Update the store lifecycle
+      try {
+        pendingActionStore?.deny(approvalId, "Denied by user");
+      } catch {
+        // Store update failure is non-critical
+      }
 
-      // Build a confirmation surface showing the action was denied
       const confirmSurface = SurfaceFactory.generic(
         "Action Denied",
         {
           message: "The action was denied.",
           approvalId,
+          actionType: pendingAction?.actionType,
           status: "denied",
         },
         {
@@ -76,11 +95,23 @@ export class ActionExecutorAgent extends BaseAgent {
 
     this.log("Action approved, executing", { approvalId });
 
+    // Transition to approved in the store
+    try {
+      pendingActionStore?.approve(approvalId);
+    } catch {
+      // Store update failure is non-critical
+    }
+
     const registry = context.config?.["connectorRegistry"] as
       | ConnectorRegistry
       | undefined;
 
     if (!registry) {
+      try {
+        pendingActionStore?.markFailed(approvalId, "No connector registry available");
+      } catch {
+        // non-critical
+      }
       return this.buildResult(
         "No connector registry available to execute action",
         false,
@@ -88,11 +119,7 @@ export class ActionExecutorAgent extends BaseAgent {
       );
     }
 
-    // Look up the pending action stored when the approval surface was created
-    const pendingAction = pendingActionStore.get(approvalId);
-
     if (!pendingAction) {
-      this.log("No pending action found for approvalId", { approvalId });
       return this.buildResult(
         `No pending action found for approval "${approvalId}". It may have expired.`,
         false,
@@ -100,19 +127,36 @@ export class ActionExecutorAgent extends BaseAgent {
       );
     }
 
-    // Remove from store now that we're executing (prevents duplicate execution)
-    pendingActionStore.remove(approvalId);
+    // Extract connector routing from the action context
+    const actionCtx = pendingAction.actionContext as Record<string, unknown> | undefined;
+    const connectorId = actionCtx?.connectorId as string | undefined;
+    const operation = actionCtx?.operation as string | undefined;
+    const params = actionCtx?.params as Record<string, unknown> | undefined;
+
+    if (!connectorId || !operation) {
+      try {
+        pendingActionStore?.markFailed(approvalId, "Missing connector routing info");
+      } catch {
+        // non-critical
+      }
+      return this.buildResult(
+        `Cannot execute action "${pendingAction.actionType}": missing connector routing info`,
+        false,
+        startMs,
+      );
+    }
 
     // Look up the connector
-    const connector = registry.get(pendingAction.connectorId);
+    const connector = registry.get(connectorId);
 
     if (!connector) {
-      this.log("Connector not found", {
-        connectorId: pendingAction.connectorId,
-        approvalId,
-      });
+      try {
+        pendingActionStore?.markFailed(approvalId, `Connector "${connectorId}" not found`);
+      } catch {
+        // non-critical
+      }
       return this.buildResult(
-        `Connector "${pendingAction.connectorId}" not found in registry`,
+        `Connector "${connectorId}" not found in registry`,
         false,
         startMs,
       );
@@ -120,8 +164,8 @@ export class ActionExecutorAgent extends BaseAgent {
 
     // Build the ConnectorAction with an approved policy decision
     const connectorAction: ConnectorAction = {
-      operation: pendingAction.operation,
-      params: pendingAction.params,
+      operation,
+      params: params ?? {},
       policyDecision: {
         action: pendingAction.actionType,
         riskClass: "C",
@@ -132,8 +176,8 @@ export class ActionExecutorAgent extends BaseAgent {
     };
 
     this.log("Executing action via connector", {
-      connectorId: pendingAction.connectorId,
-      operation: pendingAction.operation,
+      connectorId,
+      operation,
       approvalId,
     });
 
@@ -146,14 +190,20 @@ export class ActionExecutorAgent extends BaseAgent {
           error: result.error,
         });
 
+        try {
+          pendingActionStore?.markFailed(approvalId, result.error ?? "Connector execution failed");
+        } catch {
+          // non-critical
+        }
+
         const errorSurface = SurfaceFactory.generic(
           "Action Failed",
           {
             message: result.error ?? "The action could not be completed.",
             approvalId,
             status: "error",
-            operation: pendingAction.operation,
-            connectorId: pendingAction.connectorId,
+            operation,
+            connectorId,
           },
           {
             sourceType: "system",
@@ -181,14 +231,20 @@ export class ActionExecutorAgent extends BaseAgent {
         result: result.result,
       });
 
+      try {
+        pendingActionStore?.markExecuted(approvalId);
+      } catch {
+        // non-critical
+      }
+
       const successSurface = SurfaceFactory.generic(
         "Action Executed",
         {
-          message: this.describeSuccess(pendingAction.operation, result.result),
+          message: this.describeSuccess(operation, result.result),
           approvalId,
           status: "executed",
-          operation: pendingAction.operation,
-          connectorId: pendingAction.connectorId,
+          operation,
+          connectorId,
           result: result.result,
         },
         {
@@ -217,14 +273,20 @@ export class ActionExecutorAgent extends BaseAgent {
         error: errorMsg,
       });
 
+      try {
+        pendingActionStore?.markFailed(approvalId, errorMsg);
+      } catch {
+        // non-critical
+      }
+
       const errorSurface = SurfaceFactory.generic(
         "Action Failed",
         {
           message: `An unexpected error occurred: ${errorMsg}`,
           approvalId,
           status: "error",
-          operation: pendingAction.operation,
-          connectorId: pendingAction.connectorId,
+          operation,
+          connectorId,
         },
         {
           sourceType: "system",
