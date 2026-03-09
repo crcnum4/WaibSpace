@@ -56,7 +56,7 @@ export function discoveryToBlocks(spec: SurfaceSpec): ComponentBlock[] {
         {
           id: `${sid}-result-stack-${i}`,
           type: "Stack",
-          props: {},
+          props: { gap: "4px" },
           children: [
             {
               id: `${sid}-result-title-${i}`,
@@ -100,16 +100,19 @@ export function discoveryToBlocks(spec: SurfaceSpec): ComponentBlock[] {
 
   // Actions
   if (spec.actions.length > 0) {
-    children.push(
-      ...spec.actions.map((action, i) => actionToButton(action, sid, i)),
-    );
+    children.push({
+      id: `${sid}-actions-row`,
+      type: "Row",
+      props: { gap: "8px" },
+      children: spec.actions.map((action, i) => actionToButton(action, sid, i)),
+    });
   }
 
   return [
     {
       id: `${sid}-root`,
       type: "Container",
-      props: {},
+      props: { direction: "column", gap: "12px", padding: "var(--space-5)" },
       children,
       meta: {
         surfaceId: spec.surfaceId,

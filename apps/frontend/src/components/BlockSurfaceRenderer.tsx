@@ -8,11 +8,11 @@
  * the onInteraction/onAction callbacks that HomePage expects.
  */
 
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useEffect, useRef, useState } from "react";
 import type { ComposedLayout } from "@waibspace/ui-renderer-contract";
 import type { SurfaceAction, ComponentBlock } from "@waibspace/types";
 import { WaibRenderer } from "../blocks/WaibRenderer";
-import { composedLayoutToBlocks } from "../blocks/transformers";
+import { transformSurface } from "../blocks/transformers";
 import { ErrorSurface } from "./ErrorSurface";
 
 // ---------------------------------------------------------------------------
@@ -81,10 +81,47 @@ export function BlockSurfaceRenderer({
   onInteraction,
   isLoading,
 }: BlockSurfaceRendererProps) {
-  // Transform ComposedLayout into ComponentBlock[]
-  const blocks = useMemo<ComponentBlock[]>(() => {
+  // Transform ComposedLayout into ComponentBlock[] per surface
+  const surfaceBlocks = useMemo<
+    Array<{ blocks: ComponentBlock[]; width: string; prominence: string; surfaceId: string; position: number }>
+  >(() => {
     if (!layout || layout.surfaces.length === 0) return [];
-    return composedLayoutToBlocks(layout);
+    const directiveMap = new Map(
+      layout.layout.map((d) => [d.surfaceId, d]),
+    );
+    return layout.surfaces.map((spec, index) => {
+      const directive = directiveMap.get(spec.surfaceId);
+      const blocks = transformSurface(spec);
+      if (import.meta.env.DEV) {
+        console.log(`[BlockRenderer] ${spec.surfaceType}/${spec.surfaceId}`, blocks);
+      }
+      return {
+        blocks,
+        width: directive?.width ?? "full",
+        prominence: directive?.prominence ?? "standard",
+        surfaceId: spec.surfaceId,
+        position: directive?.position ?? index,
+      };
+    });
+  }, [layout]);
+
+  // Progressive reveal animation
+  const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
+  const prevSurfaceIdsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    if (!layout) return;
+    const currentIds = layout.surfaces.map((s) => s.surfaceId);
+    const prevIds = prevSurfaceIdsRef.current;
+    const newIds = currentIds.filter((id) => !prevIds.includes(id));
+    if (newIds.length > 0) {
+      newIds.forEach((id, i) => {
+        setTimeout(() => {
+          setRevealedIds((prev) => new Set([...prev, id]));
+        }, i * 150);
+      });
+    }
+    prevSurfaceIdsRef.current = currentIds;
   }, [layout]);
 
   // Bridge send function: maps WaibRenderer events back to
@@ -166,7 +203,22 @@ export function BlockSurfaceRenderer({
           <ErrorSurface errors={layout.errors} />
         </div>
       )}
-      <WaibRenderer blocks={blocks} send={send} />
+      {surfaceBlocks.map((surface) => {
+        const isRevealed = revealedIds.has(surface.surfaceId);
+        return (
+          <div
+            key={surface.surfaceId}
+            className={`surface-cell ${surface.width} ${surface.prominence} ${isRevealed ? "surface-revealed" : "surface-entering"}`}
+            style={{ order: surface.position }}
+          >
+            <div className="surface-wrapper">
+              <div className="surface">
+                <WaibRenderer blocks={surface.blocks} send={send} />
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

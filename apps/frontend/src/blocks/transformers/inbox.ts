@@ -56,7 +56,7 @@ export function inboxToBlocks(spec: SurfaceSpec): ComponentBlock[] {
   children.push({
     id: `${sid}-header`,
     type: "Text",
-    props: { content: spec.title, variant: "h3" },
+    props: { content: spec.title, variant: "h3", color: "var(--color-text)" },
   });
 
   // Email list
@@ -71,7 +71,7 @@ export function inboxToBlocks(spec: SurfaceSpec): ComponentBlock[] {
         {
           id: `${sid}-email-stack-${i}`,
           type: "Stack",
-          props: {},
+          props: { gap: "2px" },
           children: [
             {
               id: `${sid}-email-from-${i}`,
@@ -96,7 +96,7 @@ export function inboxToBlocks(spec: SurfaceSpec): ComponentBlock[] {
         {
           id: `${sid}-email-row-${i}`,
           type: "Row",
-          props: {},
+          props: { gap: "12px", align: "center" },
           children: rowChildren,
         },
       ];
@@ -155,16 +155,19 @@ export function inboxToBlocks(spec: SurfaceSpec): ComponentBlock[] {
 
   // Actions
   if (spec.actions.length > 0) {
-    children.push(
-      ...spec.actions.map((action, i) => actionToButton(action, sid, i)),
-    );
+    children.push({
+      id: `${sid}-actions-row`,
+      type: "Row",
+      props: { gap: "8px" },
+      children: spec.actions.map((action, i) => actionToButton(action, sid, i)),
+    });
   }
 
   return [
     {
       id: `${sid}-root`,
       type: "Container",
-      props: {},
+      props: { direction: "column", gap: "12px", padding: "var(--space-5)" },
       children,
       meta: {
         surfaceId: spec.surfaceId,

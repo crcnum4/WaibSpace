@@ -53,7 +53,7 @@ export function approvalToBlocks(spec: SurfaceSpec): ComponentBlock[] {
   children.push({
     id: `${sid}-buttons`,
     type: "Row",
-    props: {},
+    props: { gap: "8px" },
     children: [
       {
         id: `${sid}-approve-btn`,
@@ -92,7 +92,7 @@ export function approvalToBlocks(spec: SurfaceSpec): ComponentBlock[] {
     {
       id: `${sid}-root`,
       type: "Container",
-      props: {},
+      props: { direction: "column", gap: "12px", padding: "var(--space-5)" },
       children,
       meta: {
         surfaceId: spec.surfaceId,

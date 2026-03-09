@@ -200,7 +200,7 @@ export function connectionGuideToBlocks(
     {
       id: `${sid}-root`,
       type: "Container",
-      props: {},
+      props: { direction: "column", gap: "12px", padding: "var(--space-5)" },
       children: [
         {
           id: `${sid}-header`,

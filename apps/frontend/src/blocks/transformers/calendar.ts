@@ -11,7 +11,7 @@ export function calendarToBlocks(spec: SurfaceSpec): ComponentBlock[] {
   children.push({
     id: `${sid}-header`,
     type: "Text",
-    props: { content: spec.title, variant: "h3" },
+    props: { content: spec.title, variant: "h3", color: "var(--color-text)" },
   });
 
   // Events list
@@ -29,7 +29,7 @@ export function calendarToBlocks(spec: SurfaceSpec): ComponentBlock[] {
         {
           id: `${sid}-event-stack-${i}`,
           type: "Stack",
-          props: {},
+          props: { gap: "2px" },
           children: [
             {
               id: `${sid}-event-title-${i}`,
@@ -69,7 +69,7 @@ export function calendarToBlocks(spec: SurfaceSpec): ComponentBlock[] {
           {
             id: `${sid}-event-row-${i}`,
             type: "Row",
-            props: {},
+            props: { gap: "12px", align: "center" },
             children: rowChildren,
           },
         ],
@@ -120,7 +120,7 @@ export function calendarToBlocks(spec: SurfaceSpec): ComponentBlock[] {
     {
       id: `${sid}-root`,
       type: "Container",
-      props: {},
+      props: { direction: "column", gap: "12px", padding: "var(--space-5)" },
       children,
       meta: {
         surfaceId: spec.surfaceId,
