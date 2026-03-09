@@ -3085,6 +3085,11 @@ body {
   background-color: var(--color-surface-active) !important;
 }
 
+.block-list-item .block-row > .block-stack {
+  flex: 1;
+  min-width: 0;
+}
+
 /* ----------------------------- */
 /* Divider                       */
 /* ----------------------------- */
