@@ -18,6 +18,9 @@ import { BlockInspector, BlockInspectorToggle } from "../blocks/BlockInspector";
 import { composedLayoutToBlocks } from "../blocks/transformers";
 import { useNotifications } from "../hooks/useNotifications";
 import { NotificationStack } from "../components/NotificationToast";
+import { useActionHistory } from "../hooks/useActionHistory";
+import type { ReversibleAction } from "../hooks/useActionHistory";
+import { UndoToast } from "../components/UndoToast";
 
 const WS_URL = `ws://${window.location.hostname}:${import.meta.env.VITE_WS_PORT || 3001}/ws`;
 const API_BASE = `http://${window.location.hostname}:${import.meta.env.VITE_WS_PORT || 3001}`;
@@ -32,6 +35,14 @@ interface FailedService {
   name: string;
   error: string;
 }
+
+const REVERSIBLE_INTERACTIONS = new Set(["archive", "mark_read", "snooze"]);
+
+const UNDO_MAP: Record<string, string> = {
+  archive: "unarchive",
+  mark_read: "mark_unread",
+  snooze: "unsnooze",
+};
 
 export default function HomePage() {
   const { send, lastMessage, status, pendingCount } = useWebSocket(WS_URL);
@@ -55,6 +66,33 @@ export default function HomePage() {
     return composedLayoutToBlocks(layout);
   }, [layout]);
 
+  // Undo/redo action history
+  const handleUndoAction = useCallback(
+    (action: ReversibleAction) => {
+      send("user.interaction", {
+        interaction: "undo",
+        target: action.id,
+        context: action.undoPayload,
+        timestamp: Date.now(),
+      });
+    },
+    [send],
+  );
+
+  const handleRedoAction = useCallback(
+    (action: ReversibleAction) => {
+      send("user.interaction", {
+        interaction: "action",
+        target: action.id,
+        context: action.forwardPayload,
+        timestamp: Date.now(),
+      });
+    },
+    [send],
+  );
+
+  const actionHistory = useActionHistory(handleUndoAction, handleRedoAction);
+
   // Keyboard navigation for email lists
   const hasSurfaces = layout && layout.surfaces.length > 0;
 
@@ -68,16 +106,23 @@ export default function HomePage() {
 
   const handleEmailArchive = useCallback(
     (_index: number, _element: HTMLElement) => {
-      send("user.interaction", {
+      const payload = {
         interaction: "archive",
         target: "keyboard-shortcut",
         surfaceId: "gmail-inbox",
         surfaceType: "gmail",
         context: { source: "keyboard" },
         timestamp: Date.now(),
+      };
+      send("user.interaction", payload);
+      actionHistory.push({
+        type: "archive",
+        label: "archive on gmail",
+        forwardPayload: payload,
+        undoPayload: { ...payload, interaction: "unarchive" },
       });
     },
-    [send],
+    [send, actionHistory],
   );
 
   const handleEmailReply = useCallback(
@@ -242,16 +287,31 @@ export default function HomePage() {
         return;
       }
 
-      send("user.interaction", {
+      const payload = {
         interaction,
         target,
         surfaceId,
         surfaceType,
         context,
         timestamp: Date.now(),
-      });
+      };
+
+      send("user.interaction", payload);
+
+      // Track reversible actions for undo/redo.
+      if (REVERSIBLE_INTERACTIONS.has(interaction)) {
+        actionHistory.push({
+          type: interaction as "archive" | "mark_read" | "snooze",
+          label: `${interaction} on ${surfaceType}`,
+          forwardPayload: payload,
+          undoPayload: {
+            ...payload,
+            interaction: UNDO_MAP[interaction] || `undo_${interaction}`,
+          },
+        });
+      }
     },
-    [send],
+    [send, actionHistory],
   );
 
   const handleSend = useCallback(
@@ -337,6 +397,12 @@ export default function HomePage() {
         observations={observations}
         isOpen={inspectorOpen}
         onToggle={() => setInspectorOpen((o) => !o)}
+      />
+
+      <UndoToast
+        action={actionHistory.lastUndone}
+        onRedo={actionHistory.redo}
+        onDismiss={actionHistory.dismissUndo}
       />
 
       <KeyboardShortcutHelp visible={helpVisible} onDismiss={dismissHelp} />
