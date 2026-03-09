@@ -5,6 +5,74 @@ import {
 } from "@waibspace/surfaces";
 import { BaseAgent } from "../base-agent";
 import type { AgentInput, AgentContext } from "../types";
+import { pendingActionStore } from "../execution/pending-action-store";
+
+/**
+ * Map action types (from PolicyGateAgent) to connector IDs and operations.
+ *
+ * Action types use a "service.verb" convention (e.g. "email.send",
+ * "calendar.create"). This mapping translates them to the connector ID
+ * and operation name that the connector understands.
+ */
+function resolveConnectorAction(
+  actionType: string,
+  context: Record<string, unknown>,
+): { connectorId: string; operation: string; params: Record<string, unknown> } | undefined {
+  if (actionType === "email.send") {
+    return {
+      connectorId: "gmail",
+      operation: "send-email",
+      params: {
+        to: context.to ?? context.from,
+        subject: context.subject,
+        body: context.body ?? context.replyBody ?? context.draftBody,
+        draftId: context.draftId,
+        inReplyTo: context.inReplyTo ?? context.messageId,
+      },
+    };
+  }
+
+  if (actionType === "email.draft") {
+    return {
+      connectorId: "gmail",
+      operation: "create-draft",
+      params: {
+        to: context.to ?? context.from,
+        subject: context.subject,
+        body: context.body ?? context.draftBody,
+        inReplyTo: context.inReplyTo ?? context.messageId,
+      },
+    };
+  }
+
+  if (actionType === "calendar.create") {
+    return {
+      connectorId: "google-calendar",
+      operation: "create-event",
+      params: {
+        summary: context.summary ?? context.title,
+        start: context.start ?? context.startTime,
+        end: context.end ?? context.endTime,
+        description: context.description,
+        attendees: context.attendees,
+        location: context.location,
+      },
+    };
+  }
+
+  if (actionType === "calendar.update") {
+    return {
+      connectorId: "google-calendar",
+      operation: "update-event",
+      params: {
+        eventId: context.eventId,
+        updates: context.updates ?? context,
+      },
+    };
+  }
+
+  return undefined;
+}
 
 export class ApprovalSurfaceAgent extends BaseAgent {
   constructor() {
@@ -50,6 +118,32 @@ export class ApprovalSurfaceAgent extends BaseAgent {
       },
       consequences,
     };
+
+    // Store the pending action so the ActionExecutorAgent can execute it
+    // when the user approves.
+    const actionContext = (policyDecision.requiredApproval?.context ?? {}) as Record<string, unknown>;
+    const resolved = resolveConnectorAction(policyDecision.action, actionContext);
+
+    if (resolved) {
+      pendingActionStore.set({
+        approvalId,
+        connectorId: resolved.connectorId,
+        operation: resolved.operation,
+        params: resolved.params,
+        actionType: policyDecision.action,
+        createdAt: Date.now(),
+      });
+      this.log("Stored pending action for approval", {
+        approvalId,
+        connectorId: resolved.connectorId,
+        operation: resolved.operation,
+      });
+    } else {
+      this.log("Could not resolve connector action for action type", {
+        actionType: policyDecision.action,
+        approvalId,
+      });
+    }
 
     const surfaceSpec = SurfaceFactory.approval(surfaceData);
 
