@@ -30,6 +30,7 @@ export interface ConnectorResponse {
   data: unknown;
   provenance: ProvenanceMetadata;
   raw?: unknown;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ConnectorAction {

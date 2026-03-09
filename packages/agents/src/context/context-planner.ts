@@ -22,9 +22,11 @@ Given an intent classification, determine which data sources need to be queried 
 Available connectors and their operations:
 
 - **gmail**:
-  - list-emails: List recent emails. Params: maxResults (number), labelIds (string[])
+  - list-emails: List emails. Params: maxResults (number, default 10), labelIds (string[] e.g. ["INBOX"], ["UNREAD"], ["STARRED"]), query (string, supports Gmail search syntax: "is:unread", "newer_than:7d", "from:address", "subject:text", "in:inbox", etc.)
+    - For inbox/email intents with no specific filter, default to query: "is:unread newer_than:7d" with maxResults: 10 to show recent unread emails
   - get-email: Get a specific email. Params: emailId (string)
   - search-emails: Search emails by query. Params: query (string), maxResults (number)
+  - get-inbox-stats: Get inbox label statistics including total unread count. No params required.
 
 - **google-calendar**:
   - list-events: List upcoming calendar events. Params: timeMin (string), timeMax (string), maxResults (number)

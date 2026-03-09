@@ -81,7 +81,7 @@ export class GmailConnector extends BaseConnector {
       capabilities: {
         connectorId: "gmail",
         connectorType: "api",
-        actions: ["list-emails", "get-email", "search-emails", "create-draft", "send-email"],
+        actions: ["list-emails", "get-email", "search-emails", "get-inbox-stats", "create-draft", "send-email"],
         dataTypes: ["email"],
         trustLevel: "trusted",
       },
@@ -132,6 +132,8 @@ export class GmailConnector extends BaseConnector {
         return this.getEmail(request.params as unknown as GetEmailParams);
       case "search-emails":
         return this.searchEmails(request.params as unknown as SearchEmailsParams);
+      case "get-inbox-stats":
+        return this.getInboxStats();
       default:
         throw new Error(`Unknown fetch operation: ${request.operation}`);
     }
@@ -163,10 +165,11 @@ export class GmailConnector extends BaseConnector {
   // --- Fetch Operations (Class A) ---
 
   private async listEmails(params: ListEmailsParams): Promise<ConnectorResponse> {
+    const query = params.query ?? "is:unread";
     const res = await this.gmail!.users.messages.list({
       userId: "me",
-      maxResults: params.maxResults ?? 20,
-      q: params.query,
+      maxResults: params.maxResults ?? 10,
+      q: query,
       labelIds: params.labelIds,
     });
 
@@ -175,10 +178,23 @@ export class GmailConnector extends BaseConnector {
       messages.map((m) => this.fetchMessageSummary(m.id!)),
     );
 
+    // Fetch total unread count from INBOX label stats
+    let totalUnread: number | undefined;
+    try {
+      const labelRes = await this.gmail!.users.labels.get({
+        userId: "me",
+        id: "INBOX",
+      });
+      totalUnread = labelRes.data.messagesUnread ?? undefined;
+    } catch {
+      // Non-critical — continue without total unread count
+    }
+
     return {
       data: summaries,
       provenance: this.createProvenance(),
       raw: res.data,
+      metadata: { totalUnread },
     };
   }
 
@@ -204,6 +220,24 @@ export class GmailConnector extends BaseConnector {
       query: params.query,
       maxResults: params.maxResults,
     });
+  }
+
+  private async getInboxStats(): Promise<ConnectorResponse> {
+    const labelRes = await this.gmail!.users.labels.get({
+      userId: "me",
+      id: "INBOX",
+    });
+
+    return {
+      data: {
+        messagesTotal: labelRes.data.messagesTotal ?? 0,
+        messagesUnread: labelRes.data.messagesUnread ?? 0,
+        threadsTotal: labelRes.data.threadsTotal ?? 0,
+        threadsUnread: labelRes.data.threadsUnread ?? 0,
+      },
+      provenance: this.createProvenance(),
+      raw: labelRes.data,
+    };
   }
 
   // --- Execute Operations (Class C) ---
