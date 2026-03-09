@@ -4,7 +4,10 @@ import type {
   EmailSummary,
   ListEmailsParams,
   GetEmailParams,
+  GetThreadParams,
   SearchEmailsParams,
+  ThreadMessage,
+  ThreadData,
 } from "./types";
 import { FIXTURE_EMAILS, FIXTURE_BODIES } from "./fixtures";
 
@@ -24,7 +27,7 @@ export class MockGmailConnector extends BaseConnector {
       capabilities: {
         connectorId: "gmail",
         connectorType: "api",
-        actions: ["list-emails", "get-email", "search-emails", "get-inbox-stats", "create-draft", "send-email"],
+        actions: ["list-emails", "get-email", "get-thread", "search-emails", "get-inbox-stats", "create-draft", "send-email"],
         dataTypes: ["email"],
         trustLevel: "trusted",
       },
@@ -59,6 +62,8 @@ export class MockGmailConnector extends BaseConnector {
         return this.listEmails(request.params as unknown as ListEmailsParams);
       case "get-email":
         return this.getEmail(request.params as unknown as GetEmailParams);
+      case "get-thread":
+        return this.getThread(request.params as unknown as GetThreadParams);
       case "search-emails":
         return this.searchEmails(request.params as unknown as SearchEmailsParams);
       case "get-inbox-stats":
@@ -145,6 +150,38 @@ export class MockGmailConnector extends BaseConnector {
       query: params.query,
       maxResults: params.maxResults,
     });
+  }
+
+  private async getThread(params: GetThreadParams): Promise<ConnectorResponse> {
+    const threadEmails = this.emails.filter((e) => e.threadId === params.threadId);
+    if (threadEmails.length === 0) {
+      throw new Error(`Thread not found: ${params.threadId}`);
+    }
+
+    const subject = threadEmails[0].subject;
+
+    // Build thread messages — use fixture body if available, otherwise snippet
+    const messages: ThreadMessage[] = threadEmails.map((e) => ({
+      id: e.id,
+      from: e.from,
+      to: e.to,
+      date: e.date,
+      body: FIXTURE_BODIES[e.id] ?? e.snippet,
+      snippet: e.snippet,
+      isUnread: e.isUnread,
+    }));
+
+    const threadData: ThreadData = {
+      threadId: params.threadId,
+      subject,
+      messageCount: messages.length,
+      messages,
+    };
+
+    return {
+      data: threadData,
+      provenance: this.createProvenance(),
+    };
   }
 
   private async getInboxStats(): Promise<ConnectorResponse> {

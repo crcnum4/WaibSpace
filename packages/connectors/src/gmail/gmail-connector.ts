@@ -6,9 +6,12 @@ import type {
   EmailSummary,
   ListEmailsParams,
   GetEmailParams,
+  GetThreadParams,
   SearchEmailsParams,
   CreateDraftParams,
   SendEmailParams,
+  ThreadMessage,
+  ThreadData,
 } from "./types";
 
 function getGmailClient(): { gmail: gmail_v1.Gmail; auth: OAuth2Client } {
@@ -81,7 +84,7 @@ export class GmailConnector extends BaseConnector {
       capabilities: {
         connectorId: "gmail",
         connectorType: "api",
-        actions: ["list-emails", "get-email", "search-emails", "get-inbox-stats", "create-draft", "send-email"],
+        actions: ["list-emails", "get-email", "get-thread", "search-emails", "get-inbox-stats", "create-draft", "send-email"],
         dataTypes: ["email"],
         trustLevel: "trusted",
       },
@@ -130,6 +133,8 @@ export class GmailConnector extends BaseConnector {
         return this.listEmails(request.params as unknown as ListEmailsParams);
       case "get-email":
         return this.getEmail(request.params as unknown as GetEmailParams);
+      case "get-thread":
+        return this.getThread(request.params as unknown as GetThreadParams);
       case "search-emails":
         return this.searchEmails(request.params as unknown as SearchEmailsParams);
       case "get-inbox-stats":
@@ -286,6 +291,45 @@ export class GmailConnector extends BaseConnector {
     return {
       success: true,
       result: { messageId: res.data.id, threadId: res.data.threadId },
+    };
+  }
+
+  private async getThread(params: GetThreadParams): Promise<ConnectorResponse> {
+    const res = await this.gmail!.users.threads.get({
+      userId: "me",
+      id: params.threadId,
+      format: "full",
+    });
+
+    const thread = res.data;
+    const messages: ThreadMessage[] = (thread.messages ?? []).map((msg) => {
+      const headers = msg.payload?.headers;
+      return {
+        id: msg.id ?? "",
+        from: getHeader(headers, "From"),
+        to: getHeader(headers, "To"),
+        date: getHeader(headers, "Date"),
+        body: this.extractBody(msg),
+        snippet: msg.snippet ?? "",
+        isUnread: msg.labelIds?.includes("UNREAD") ?? false,
+      };
+    });
+
+    const subject = messages.length > 0
+      ? getHeader(thread.messages?.[0]?.payload?.headers, "Subject")
+      : "";
+
+    const threadData: ThreadData = {
+      threadId: params.threadId,
+      subject,
+      messageCount: messages.length,
+      messages,
+    };
+
+    return {
+      data: threadData,
+      provenance: this.createProvenance(),
+      raw: res.data,
     };
   }
 

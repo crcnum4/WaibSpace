@@ -3,6 +3,7 @@ import type { BlockProps } from "../../../registry";
 
 interface GmailEmailCardProps {
   emailId: string;
+  threadId?: string;
   from: string;
   subject: string;
   snippet: string;
@@ -36,6 +37,7 @@ function getInitials(name: string): string {
 export function GmailEmailCard({ block, onEvent }: BlockProps) {
   const {
     emailId,
+    threadId,
     from,
     subject,
     snippet,
@@ -67,8 +69,14 @@ export function GmailEmailCard({ block, onEvent }: BlockProps) {
     [onEvent, emailId, from, subject],
   );
 
+  const handleCardClick = useCallback(() => {
+    if (threadId) {
+      onEvent?.("open-thread", { threadId, emailId, subject, from });
+    }
+  }, [onEvent, threadId, emailId, subject, from]);
+
   return (
-    <div className={cardClass} role="listitem" tabIndex={0} aria-label={`${isUnread ? "Unread: " : ""}${subject || "No Subject"} from ${from}`}>
+    <div className={cardClass} role="listitem" tabIndex={0} aria-label={`${isUnread ? "Unread: " : ""}${subject || "No Subject"} from ${from}`} onClick={handleCardClick} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleCardClick(); }}>
       <div
         className="gmail-email-card__avatar"
         style={{ backgroundColor: avatarBg }}

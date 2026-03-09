@@ -38,3 +38,24 @@ export interface SendEmailParams {
   body?: string;
   draftId?: string;
 }
+
+export interface GetThreadParams {
+  threadId: string;
+}
+
+export interface ThreadMessage {
+  id: string;
+  from: string;
+  to: string;
+  date: string;
+  body: string;
+  snippet: string;
+  isUnread: boolean;
+}
+
+export interface ThreadData {
+  threadId: string;
+  subject: string;
+  messageCount: number;
+  messages: ThreadMessage[];
+}
