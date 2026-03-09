@@ -205,7 +205,7 @@ export function inboxToBlocks(spec: SurfaceSpec): ComponentBlock[] {
         {
           id: `${sid}-email-row-${i}`,
           type: "Row",
-          props: { gap: "12px", align: "flex-start" },
+          props: { gap: "12px", align: "center" },
           children: rowChildren,
         },
       ];
