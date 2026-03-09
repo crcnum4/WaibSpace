@@ -8,6 +8,7 @@ export function ListItem({ block, children }: BlockProps) {
 
   return (
     <div
+      role="listitem"
       className={`block-list-item ${className}`.trim()}
       data-swipeable={swipeable || undefined}
     >

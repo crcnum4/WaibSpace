@@ -20,12 +20,12 @@ export function GmailInboxList({ block, children, onEvent }: BlockProps) {
   };
 
   return (
-    <div className="gmail-inbox-list">
+    <div className="gmail-inbox-list" role="region" aria-label="Gmail Inbox">
       <div className="gmail-inbox-list__header">
         <div className="gmail-inbox-list__title-row">
           <h3 className="gmail-inbox-list__title">Inbox</h3>
           {!error && unreadCount > 0 && (
-            <span className="gmail-inbox-list__badge">{unreadCount}</span>
+            <span className="gmail-inbox-list__badge" aria-label={`${unreadCount} unread`}>{unreadCount}</span>
           )}
         </div>
         {!isScanned && !error && (
@@ -46,11 +46,11 @@ export function GmailInboxList({ block, children, onEvent }: BlockProps) {
         )}
       </div>
       {error ? (
-        <div className="gmail-inbox-list__error">
+        <div className="gmail-inbox-list__error" role="alert">
           <p className="gmail-inbox-list__error-text">{error}</p>
         </div>
       ) : (
-        <div className="gmail-inbox-list__cards">{children}</div>
+        <div className="gmail-inbox-list__cards" role="list" aria-label="Email messages">{children}</div>
       )}
       {isTruncated && fullCount && (
         <p className="gmail-inbox-list__truncated">

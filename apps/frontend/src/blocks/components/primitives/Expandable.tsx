@@ -13,6 +13,7 @@ export function Expandable({ block, children }: BlockProps) {
     <div className="block-expandable">
       <button
         className="block-expandable__header"
+        aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
         style={{
           display: "flex",

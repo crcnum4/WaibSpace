@@ -31,6 +31,7 @@ export function TextInput({ block, onEvent }: BlockProps) {
       <textarea
         className="block-text-input"
         placeholder={placeholder}
+        aria-label={placeholder || "Text input"}
         defaultValue={value}
         rows={rows}
         onChange={handleChange}
@@ -44,6 +45,7 @@ export function TextInput({ block, onEvent }: BlockProps) {
       type="text"
       className="block-text-input"
       placeholder={placeholder}
+      aria-label={placeholder || "Text input"}
       defaultValue={value}
       onChange={handleChange}
       style={{ ...sharedStyle, resize: undefined }}
