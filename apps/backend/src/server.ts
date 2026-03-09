@@ -6,6 +6,7 @@ import type { WaibDatabase } from "@waibspace/db";
 import type { MCPServerRegistry, MCPServerConfig } from "@waibspace/connectors";
 import { findTemplate, MCP_SERVER_CATALOG } from "@waibspace/connectors";
 import type { ConnectorRegistry } from "@waibspace/connectors";
+import type { IPendingActionStore, PendingActionStatus } from "@waibspace/types";
 import {
   createWebSocketHandlers,
   type WebSocketData,
@@ -34,6 +35,7 @@ export interface ServerDeps {
   mcpRegistry?: MCPServerRegistry;
   connectorRegistry?: ConnectorRegistry;
   db?: WaibDatabase;
+  pendingActionStore?: IPendingActionStore;
 }
 
 const startTime = Date.now();
@@ -306,6 +308,68 @@ export function startServer(deps: ServerDeps) {
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           return jsonResponse({ error: message }, 500);
+        }
+      }
+
+      // ---------- Pending Action Store endpoints ----------
+
+      // GET /api/actions/pending — list pending actions (optionally filter by ?status=)
+      if (url.pathname === "/api/actions/pending" && req.method === "GET") {
+        if (!deps.pendingActionStore) {
+          return jsonResponse({ error: "Pending action store not available" }, 503);
+        }
+        const status = url.searchParams.get("status") as PendingActionStatus | null;
+        const actions = deps.pendingActionStore.list(status ?? undefined);
+        return jsonResponse(actions);
+      }
+
+      // GET /api/actions/pending/:approvalId — get a single pending action
+      const actionGetMatch = url.pathname.match(/^\/api\/actions\/pending\/([^/]+)$/);
+      if (actionGetMatch && req.method === "GET") {
+        if (!deps.pendingActionStore) {
+          return jsonResponse({ error: "Pending action store not available" }, 503);
+        }
+        const action = deps.pendingActionStore.get(actionGetMatch[1]);
+        if (!action) {
+          return jsonResponse({ error: "Action not found" }, 404);
+        }
+        return jsonResponse(action);
+      }
+
+      // POST /api/actions/pending/:approvalId/approve — approve a pending action
+      const actionApproveMatch = url.pathname.match(/^\/api\/actions\/pending\/([^/]+)\/approve$/);
+      if (actionApproveMatch && req.method === "POST") {
+        if (!deps.pendingActionStore) {
+          return jsonResponse({ error: "Pending action store not available" }, 503);
+        }
+        try {
+          const updated = deps.pendingActionStore.approve(actionApproveMatch[1]);
+          return jsonResponse(updated);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          return jsonResponse({ error: message }, 400);
+        }
+      }
+
+      // POST /api/actions/pending/:approvalId/deny — deny a pending action
+      const actionDenyMatch = url.pathname.match(/^\/api\/actions\/pending\/([^/]+)\/deny$/);
+      if (actionDenyMatch && req.method === "POST") {
+        if (!deps.pendingActionStore) {
+          return jsonResponse({ error: "Pending action store not available" }, 503);
+        }
+        try {
+          let reason: string | undefined;
+          try {
+            const body = await req.json() as { reason?: string };
+            reason = body.reason;
+          } catch {
+            // No body or invalid JSON — that's fine, reason is optional
+          }
+          const updated = deps.pendingActionStore.deny(actionDenyMatch[1], reason);
+          return jsonResponse(updated);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          return jsonResponse({ error: message }, 400);
         }
       }
 

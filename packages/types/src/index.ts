@@ -6,3 +6,4 @@ export * from "./provenance";
 export * from "./connectors";
 export * from "./memory";
 export * from "./blocks";
+export * from "./pending-actions";

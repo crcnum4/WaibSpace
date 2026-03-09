@@ -1,11 +1,10 @@
-import type { AgentOutput, PolicyDecision } from "@waibspace/types";
+import type { AgentOutput, PolicyDecision, IPendingActionStore } from "@waibspace/types";
 import {
   SurfaceFactory,
   type ApprovalSurfaceData,
 } from "@waibspace/surfaces";
 import { BaseAgent } from "../base-agent";
 import type { AgentInput, AgentContext } from "../types";
-import { pendingActionStore } from "../execution/pending-action-store";
 
 /**
  * Map action types (from PolicyGateAgent) to connector IDs and operations.
@@ -86,7 +85,7 @@ export class ApprovalSurfaceAgent extends BaseAgent {
 
   async execute(
     input: AgentInput,
-    _context: AgentContext,
+    context: AgentContext,
   ): Promise<AgentOutput> {
     const startMs = Date.now();
 
@@ -107,10 +106,12 @@ export class ApprovalSurfaceAgent extends BaseAgent {
 
     const consequences = this.deriveConsequences(policyDecision);
 
+    const description = policyDecision.requiredApproval?.prompt
+      ?? `Action "${policyDecision.action}" requires your approval`;
+
     const surfaceData: ApprovalSurfaceData = {
       approvalId,
-      actionDescription: policyDecision.requiredApproval?.prompt
-        ?? `Action "${policyDecision.action}" requires your approval`,
+      actionDescription: description,
       riskClass: policyDecision.riskClass,
       context: policyDecision.requiredApproval?.context ?? {
         action: policyDecision.action,
@@ -119,30 +120,46 @@ export class ApprovalSurfaceAgent extends BaseAgent {
       consequences,
     };
 
-    // Store the pending action so the ActionExecutorAgent can execute it
-    // when the user approves.
-    const actionContext = (policyDecision.requiredApproval?.context ?? {}) as Record<string, unknown>;
-    const resolved = resolveConnectorAction(policyDecision.action, actionContext);
+    // Resolve the connector action so the executor knows how to run it
+    const rawContext = (policyDecision.requiredApproval?.context ?? {}) as Record<string, unknown>;
+    const resolved = resolveConnectorAction(policyDecision.action, rawContext);
 
-    if (resolved) {
-      pendingActionStore.set({
-        approvalId,
-        connectorId: resolved.connectorId,
-        operation: resolved.operation,
-        params: resolved.params,
-        actionType: policyDecision.action,
-        createdAt: Date.now(),
-      });
-      this.log("Stored pending action for approval", {
-        approvalId,
-        connectorId: resolved.connectorId,
-        operation: resolved.operation,
-      });
+    // Register the pending action in the store so ActionExecutor can
+    // retrieve the full context when the user approves/denies.
+    const pendingActionStore = context.config?.["pendingActionStore"] as
+      | IPendingActionStore
+      | undefined;
+
+    if (pendingActionStore) {
+      try {
+        pendingActionStore.add({
+          approvalId,
+          actionType: policyDecision.action,
+          description,
+          riskClass: policyDecision.riskClass,
+          status: "pending",
+          sourceSurface: this.id,
+          actionContext: resolved
+            ? { connectorId: resolved.connectorId, operation: resolved.operation, params: resolved.params }
+            : { action: policyDecision.action, ...rawContext },
+          traceId: context.traceId,
+          createdAt: startMs,
+          updatedAt: startMs,
+        });
+        this.log("Registered pending action", {
+          approvalId,
+          connectorId: resolved?.connectorId,
+          operation: resolved?.operation,
+        });
+      } catch (err) {
+        // Store errors should not break the approval flow
+        this.log("Failed to register pending action", {
+          approvalId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     } else {
-      this.log("Could not resolve connector action for action type", {
-        actionType: policyDecision.action,
-        approvalId,
-      });
+      this.log("No pending action store available", { approvalId });
     }
 
     const surfaceSpec = SurfaceFactory.approval(surfaceData);
