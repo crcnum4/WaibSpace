@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { SurfaceProps } from "./registry";
 import type { ApprovalSurfaceData } from "@waibspace/surfaces";
 
@@ -19,17 +20,36 @@ export function ApprovalSurface({
   onInteraction,
 }: SurfaceProps) {
   const data = spec.data as ApprovalSurfaceData;
+  const [response, setResponse] = useState<"approved" | "denied" | null>(null);
 
   const handleApprove = () => {
-    // Emit approval.response via the onInteraction callback
-    // The HomePage will detect the "approve" interaction on an approval surface
-    // and send an approval.response message
+    setResponse("approved");
     onInteraction("approve", data.approvalId, { approved: true });
   };
 
   const handleDeny = () => {
+    setResponse("denied");
     onInteraction("deny", data.approvalId, { approved: false });
   };
+
+  // Show feedback after responding, then auto-dismiss
+  if (response) {
+    return (
+      <div className="approval-overlay">
+        <div className="approval-backdrop" />
+        <div className="approval-modal approval-modal--responded">
+          <div className={`approval-response approval-response--${response}`}>
+            <span className="approval-response__icon">
+              {response === "approved" ? "\u2713" : "\u2717"}
+            </span>
+            <p className="approval-response__text">
+              {response === "approved" ? "Action approved" : "Action denied"}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="approval-overlay">
