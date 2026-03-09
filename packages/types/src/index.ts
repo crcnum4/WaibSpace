@@ -5,3 +5,4 @@ export * from "./policy";
 export * from "./provenance";
 export * from "./connectors";
 export * from "./memory";
+export * from "./blocks";
