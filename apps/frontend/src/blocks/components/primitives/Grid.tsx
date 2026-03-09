@@ -14,11 +14,7 @@ export function Grid({ block, children }: BlockProps) {
   return (
     <div
       className="block-grid"
-      style={{
-        display: "grid",
-        gridTemplateColumns,
-        gap,
-      }}
+      style={{ gridTemplateColumns, gap }}
     >
       {children}
     </div>

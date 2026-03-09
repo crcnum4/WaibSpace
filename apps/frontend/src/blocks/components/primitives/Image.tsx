@@ -14,41 +14,24 @@ export function Image({ block }: BlockProps) {
 
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
 
+  // Only inline styles for truly dynamic per-instance values
+  const wrapperStyle: React.CSSProperties = {};
+  if (width) wrapperStyle.width = width;
+  if (height) wrapperStyle.height = height;
+  if (aspectRatio) wrapperStyle.aspectRatio = aspectRatio;
+
   return (
     <div
       className="block-image"
-      style={{ width: width ?? "100%", height, aspectRatio, position: "relative" }}
+      style={Object.keys(wrapperStyle).length > 0 ? wrapperStyle : undefined}
     >
       {status === "loading" && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "var(--color-surface)",
-            color: "var(--color-muted)",
-            fontSize: "var(--text-sm)",
-            borderRadius: "var(--radius-sm, 4px)",
-          }}
-        >
-          Loading...
-        </div>
+        <div className="block-image__loading">Loading...</div>
       )}
       {status === "error" ? (
         <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "100%",
-            height: height ?? 120,
-            backgroundColor: "var(--color-surface)",
-            color: "var(--color-muted)",
-            fontSize: "var(--text-sm)",
-            borderRadius: "var(--radius-sm, 4px)",
-          }}
+          className="block-image__error"
+          style={height ? { height } : undefined}
         >
           {fallback}
         </div>
@@ -58,13 +41,7 @@ export function Image({ block }: BlockProps) {
           alt={alt}
           onLoad={() => setStatus("loaded")}
           onError={() => setStatus("error")}
-          style={{
-            display: status === "loaded" ? "block" : "none",
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            borderRadius: "var(--radius-sm, 4px)",
-          }}
+          className={`block-image__img${status === "loaded" ? " block-image__img--loaded" : ""}`}
         />
       )}
     </div>

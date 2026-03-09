@@ -9,33 +9,24 @@ export function Badge({ block }: BlockProps) {
     };
 
   if (variant === "dot") {
+    const style: React.CSSProperties = {};
+    if (color) style.backgroundColor = color;
+
     return (
       <span
         className="block-badge block-badge--dot"
-        style={{
-          display: "inline-block",
-          width: 8,
-          height: 8,
-          borderRadius: "50%",
-          backgroundColor: color,
-        }}
+        style={Object.keys(style).length > 0 ? style : undefined}
       />
     );
   }
 
+  const style: React.CSSProperties = {};
+  if (color) style.color = color;
+
   return (
     <span
       className={`block-badge block-badge--${variant}`}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "2px 8px",
-        borderRadius: variant === "count" ? "9999px" : "var(--radius-sm, 4px)",
-        backgroundColor: "var(--color-accent-subtle)",
-        color,
-        fontSize: "var(--text-xs)",
-        fontWeight: "var(--weight-medium)",
-      }}
+      style={Object.keys(style).length > 0 ? style : undefined}
     >
       {content}
     </span>

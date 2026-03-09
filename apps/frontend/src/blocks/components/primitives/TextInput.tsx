@@ -1,18 +1,5 @@
 import type { BlockProps } from "../../registry";
 
-const sharedStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "8px 12px",
-  backgroundColor: "var(--color-surface)",
-  border: "1px solid var(--color-border)",
-  borderRadius: "var(--radius-sm, 4px)",
-  color: "var(--color-text)",
-  fontSize: "var(--text-sm)",
-  fontFamily: "var(--font-sans)",
-  outline: "none",
-  resize: "vertical",
-};
-
 export function TextInput({ block, onEvent }: BlockProps) {
   const { placeholder = "", rows, value = "" } = block.props as {
     placeholder?: string;
@@ -34,7 +21,6 @@ export function TextInput({ block, onEvent }: BlockProps) {
         defaultValue={value}
         rows={rows}
         onChange={handleChange}
-        style={sharedStyle}
       />
     );
   }
@@ -46,7 +32,6 @@ export function TextInput({ block, onEvent }: BlockProps) {
       placeholder={placeholder}
       defaultValue={value}
       onChange={handleChange}
-      style={{ ...sharedStyle, resize: undefined }}
     />
   );
 }

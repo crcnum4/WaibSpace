@@ -14,22 +14,8 @@ export function Expandable({ block, children }: BlockProps) {
       <button
         className="block-expandable__header"
         onClick={() => setOpen((prev) => !prev)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          width: "100%",
-          padding: "8px 0",
-          background: "none",
-          border: "none",
-          color: "var(--color-text)",
-          fontSize: "var(--text-sm)",
-          fontWeight: "var(--weight-medium)",
-          fontFamily: "var(--font-sans)",
-          cursor: "pointer",
-        }}
       >
-        <span style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>
+        <span className={`block-expandable__chevron${open ? " block-expandable__chevron--open" : ""}`}>
           &#9654;
         </span>
         {header}
