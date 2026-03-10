@@ -62,32 +62,42 @@ export function extractSurfaces(outputs: AgentOutput[]): SurfaceSpec[] {
 /**
  * Extract TriageOutput from prior agent outputs, if any triage agent ran.
  */
+function isTriageOutput(obj: unknown): obj is TriageOutput {
+  if (!obj || typeof obj !== "object") return false;
+  const v = obj as Record<string, unknown>;
+  return (
+    Array.isArray(v["items"]) &&
+    v["stats"] != null &&
+    typeof v["classifierId"] === "string" &&
+    typeof v["connectorId"] === "string"
+  );
+}
+
 function extractTriageOutput(outputs: AgentOutput[]): TriageOutput | null {
   for (const out of outputs) {
-    const value = out.output as Record<string, unknown> | undefined;
-    if (!value || typeof value !== "object") continue;
+    const value = out.output;
+    if (!value) continue;
 
-    // TriageOutput has items[], stats, classifierId, connectorId
-    if (
-      Array.isArray(value["items"]) &&
-      value["stats"] &&
-      typeof value["classifierId"] === "string" &&
-      typeof value["connectorId"] === "string"
-    ) {
-      return value as unknown as TriageOutput;
+    // Prefer outputs from the triage category
+    const isTriage = out.category === "triage";
+
+    // DataTriageAgent outputs TriageOutput[] (an array)
+    if (Array.isArray(value)) {
+      const first = value.find((item: unknown) => isTriageOutput(item));
+      if (first) return first as TriageOutput;
+      if (!isTriage) continue;
     }
 
-    // Check nested `triageOutput` or `triage` fields
-    for (const key of ["triageOutput", "triage"] as const) {
-      const nested = value[key] as Record<string, unknown> | undefined;
-      if (
-        nested &&
-        typeof nested === "object" &&
-        Array.isArray(nested["items"]) &&
-        nested["stats"] &&
-        typeof nested["classifierId"] === "string"
-      ) {
-        return nested as unknown as TriageOutput;
+    // Single TriageOutput object
+    if (isTriageOutput(value)) {
+      return value;
+    }
+
+    // Check nested fields
+    if (typeof value === "object" && !Array.isArray(value)) {
+      for (const key of ["triageOutput", "triage"] as const) {
+        const nested = (value as Record<string, unknown>)[key];
+        if (isTriageOutput(nested)) return nested;
       }
     }
   }
