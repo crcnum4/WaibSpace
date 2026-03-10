@@ -69,3 +69,9 @@ export {
   type MemoryCandidate,
 } from "./triage";
 export { ActionExecutorAgent } from "./execution";
+export {
+  ApprovalTracker,
+  type ApprovalRecord,
+  type ApprovalStats,
+  type TrustEscalation,
+} from "./trust";
