@@ -325,15 +325,16 @@ The total memory overhead is a few background LLM calls per day for compaction. 
 3. ~~Proactive overlay alerts via WebSocket push for high-urgency items~~ — PR #321: AlertEmitter with 5-min dedup, orchestrator emits triage results to bus, WebSocket broadcast, OverlayAlerts component with slide-in animation and 30s auto-dismiss
 4. "While you were away" summary — deferred to Phase 6 (requires accumulated background logs over time)
 
-### Phase 5: Trust Training
-1. Track approval/rejection patterns per action type per domain
-2. Suggest trust escalation after N consistent approvals
-3. User-defined rules ("always reply to my boss with acknowledgment")
-4. Feedback loop — user corrects autonomous action → adjusts mid-term memory + trust model
+### Phase 5: Trust Training ✅ Complete
+1. ~~Track approval/rejection patterns per action type per domain~~ — PR #325: ApprovalTracker with in-memory records, consecutive approval counting, stats persisted to mid-term memory
+2. ~~Suggest trust escalation after N consistent approvals~~ — PR #326: EscalationEngine with auto-approve rules, PolicyGateAgent checks rules before requiring approval, rules persisted to mid-term memory
+3. ~~User-defined rules~~ — PR #327: UserRulesManager with LongTermMemory storage, condition matching (sender, topic), soft-delete for rule removal
+4. ~~Feedback loop — user corrections adjust trust~~ — PR #327: CorrectionFeedback tracking in MidTermMemory with natural decay, isTrustDegraded() for threshold detection
 
-### Phase 6: Expanded Capabilities
-1. Agent spawning for parallel tasks (coding agents, research agents)
-2. Component generation pipeline — Waib can request or create new UI components
-3. Multi-connector cross-referencing (email mentions meeting → pull calendar + Slack context)
-4. Autonomous workflows (GitHub issue → coding agent → PR → review request)
-5. Long-term memory recall in conversation ("remember Mark Doe?" → FTS search → context injection)
+### Phase 6: Expanded Capabilities ✅ Complete
+1. ~~Agent spawning for parallel tasks~~ — PR #330: AgentSpawner with configurable concurrency limits, per-request timeouts, event-bus integration for spawn.request/complete
+2. Component generation pipeline — deferred (future: Waib flags need for new components)
+3. ~~Multi-connector cross-referencing~~ — PR #331: MemoryRecallAgent searches long-term memory during user.message.received, cross-domain recall via keyword extraction
+4. Autonomous workflows — deferred (future: GitHub issue → coding agent → PR pipeline)
+5. ~~Long-term memory recall in conversation~~ — PR #331: MemoryRecallAgent with quoted phrase, "remember X", proper noun extraction → FTS search → context injection
+6. ~~"While you were away" summary~~ — PR #331: AwayTracker with 30-min threshold, accumulated background events, LayoutComposer away-summary briefing mode
