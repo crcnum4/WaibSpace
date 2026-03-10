@@ -49,6 +49,7 @@ import {
 import { MemoryStore, MemoryUpdatePipeline, ObservationProcessor, ConversationContextStore, EngagementTracker, BehavioralTracker, BehavioralModel } from "@waibspace/memory";
 import { WaibDatabase } from "@waibspace/db";
 import { BackgroundTaskScheduler, MVP_BACKGROUND_TASKS } from "./background";
+import { TaskScheduler } from "./scheduler";
 import { startServer } from "./server";
 import { broadcast } from "./ws";
 
@@ -249,6 +250,28 @@ log.info("Background tasks registered", {
   tasks: MVP_BACKGROUND_TASKS.map((t) => t.id),
 });
 
+// ---------- 9b. Connector Polling Scheduler ----------
+const pollingScheduler = new TaskScheduler((event) => {
+  const traceId = event.traceId;
+  log.child({ traceId }).info("Polling event emitted", { eventType: event.type, payload: event.payload });
+  orchestrator.processEvent(event).catch((err: unknown) => {
+    const payload = event.payload as { connectorId?: string; operation?: string } | undefined;
+    const taskId = payload ? `${payload.connectorId}:${payload.operation}` : "unknown";
+    pollingScheduler.recordFailure(taskId);
+    log.child({ traceId }).error("Poll event processing failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  });
+});
+
+// Register default polling tasks for connected services
+pollingScheduler.register("mcp-gmail", "get_unseen_messages", 5 * 60 * 1000);      // Email: every 5 minutes
+pollingScheduler.register("mcp-google-calendar", "get_events", 15 * 60 * 1000);    // Calendar: every 15 minutes
+pollingScheduler.start();
+log.info("Connector polling scheduler started", {
+  tasks: pollingScheduler.status().map((t) => `${t.connectorId}:${t.operation}`),
+});
+
 // ---------- 10. Route user events to orchestrator ----------
 const USER_EVENT_PATTERNS = [
   "user.*",
@@ -350,6 +373,7 @@ function handleShutdown(signal: string) {
   log.info("Shutting down", { signal });
   mcpRegistry.stopHealthChecks();
   scheduler.stop();
+  pollingScheduler.stop();
   conversationContextStore.stopCleanup();
   server.stop();
   log.info("Shutdown complete");
