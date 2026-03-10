@@ -140,6 +140,51 @@ export class WaibDatabase {
       CREATE INDEX IF NOT EXISTS idx_midterm_domain ON midterm_memory(domain);
       CREATE INDEX IF NOT EXISTS idx_midterm_relevance ON midterm_memory(relevance_score);
     `);
+
+    // Long-term memory table (three-tier memory model)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS longterm_memory (
+        id TEXT PRIMARY KEY,
+        domain TEXT NOT NULL,
+        keywords TEXT NOT NULL,
+        blurb TEXT NOT NULL,
+        source_context TEXT,
+        created_at INTEGER NOT NULL,
+        last_accessed_at INTEGER NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_longterm_domain ON longterm_memory(domain);
+      CREATE INDEX IF NOT EXISTS idx_longterm_accessed ON longterm_memory(last_accessed_at);
+    `);
+
+    // FTS5 virtual table for full-text search on long-term memory
+    this.db.exec(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS longterm_memory_fts USING fts5(
+        keywords, blurb,
+        content=longterm_memory,
+        content_rowid=rowid
+      );
+    `);
+
+    // Triggers to keep long-term memory FTS in sync (same pattern as memory_fts)
+    this.db.exec(`
+      CREATE TRIGGER IF NOT EXISTS longterm_memory_ai AFTER INSERT ON longterm_memory BEGIN
+        INSERT INTO longterm_memory_fts(rowid, keywords, blurb)
+        VALUES (new.rowid, new.keywords, new.blurb);
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS longterm_memory_ad AFTER DELETE ON longterm_memory BEGIN
+        INSERT INTO longterm_memory_fts(longterm_memory_fts, rowid, keywords, blurb)
+        VALUES ('delete', old.rowid, old.keywords, old.blurb);
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS longterm_memory_au AFTER UPDATE ON longterm_memory BEGIN
+        INSERT INTO longterm_memory_fts(longterm_memory_fts, rowid, keywords, blurb)
+        VALUES ('delete', old.rowid, old.keywords, old.blurb);
+        INSERT INTO longterm_memory_fts(rowid, keywords, blurb)
+        VALUES (new.rowid, new.keywords, new.blurb);
+      END;
+    `);
   }
 
   // ---- Memory CRUD ----
@@ -310,6 +355,11 @@ export class WaibDatabase {
   /** Get all rows from a read query. */
   getAll(sql: string, params?: Record<string, string | number | null>): unknown[] {
     return this.db.query(sql).all(params ?? {});
+  }
+
+  /** Expose underlying Database for packages that need raw SQL (e.g. LongTermMemory). */
+  getRawDb(): Database {
+    return this.db;
   }
 
   close(): void {
