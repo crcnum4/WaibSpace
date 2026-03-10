@@ -161,7 +161,7 @@ export class InboxSurfaceAgent extends BaseAgent {
       };
     }
 
-    // Truncate to 20 emails max
+    // Truncate to 10 emails max for initial display
     const originalCount = Array.isArray(gmailData) ? gmailData.length : 1;
     const truncatedData = this.truncateEmailData(gmailData);
 
@@ -187,17 +187,31 @@ export class InboxSurfaceAgent extends BaseAgent {
       );
     }
 
+    // Log the first email's actual fields to diagnose MCP format mismatches
+    if (rawEmails.length > 0) {
+      const sample = rawEmails[0];
+      this.log("Sample email field mapping", {
+        availableFields: Object.keys(sample),
+        fromValue: sample.from ?? sample.From ?? sample.sender ?? "(missing)",
+        subjectValue: sample.subject ?? sample.Subject ?? "(missing)",
+        idValue: sample.id ?? sample.uid ?? sample.messageId ?? "(missing)",
+        dateValue: sample.date ?? sample.Date ?? sample.receivedAt ?? "(missing)",
+      });
+    }
+
     // Default path: map raw email fields directly — no LLM involved
     // Apply lightweight heuristic urgency scoring (no LLM cost)
+    // Normalize field names to handle MCP format variations (capitalized, nested, etc.)
     const emails: InboxSurfaceData["emails"] = rawEmails.map((email, i) => {
-      const { urgency } = classifyEmailUrgency(email);
+      const normalized = this.normalizeEmailFields(email);
+      const { urgency } = classifyEmailUrgency(normalized);
       return {
-        id: String(email.id ?? email.messageId ?? `email-${i}`),
-        from: String(email.from || email.sender || "Unknown"),
-        subject: String(email.subject || "No Subject"),
-        snippet: String(email.snippet ?? email.text ?? email.body ?? "").slice(0, 200),
-        date: String(email.date ?? email.receivedAt ?? ""),
-        isUnread: Boolean(email.isUnread ?? email.unread ?? true),
+        id: String(normalized.id ?? `email-${i}`),
+        from: String(normalized.from || "Unknown"),
+        subject: String(normalized.subject || "No Subject"),
+        snippet: String(normalized.snippet ?? normalized.text ?? normalized.body ?? "").slice(0, 200),
+        date: String(normalized.date ?? ""),
+        isUnread: Boolean(normalized.isUnread ?? true),
         urgency,
       };
     });
@@ -369,14 +383,15 @@ export class InboxSurfaceAgent extends BaseAgent {
       const rawEmails = (Array.isArray(truncatedData) ? truncatedData : [truncatedData]) as Record<string, unknown>[];
       return {
         emails: rawEmails.map((email, i) => {
-          const { urgency } = classifyEmailUrgency(email);
+          const normalized = this.normalizeEmailFields(email);
+          const { urgency } = classifyEmailUrgency(normalized);
           return {
-            id: String(email.id ?? email.messageId ?? `email-${i}`),
-            from: String(email.from || email.sender || "Unknown"),
-            subject: String(email.subject || "No Subject"),
-            snippet: String(email.snippet ?? email.text ?? email.body ?? "").slice(0, 200),
-            date: String(email.date ?? email.receivedAt ?? ""),
-            isUnread: Boolean(email.isUnread ?? email.unread ?? true),
+            id: String(normalized.id ?? `email-${i}`),
+            from: String(normalized.from || "Unknown"),
+            subject: String(normalized.subject || "No Subject"),
+            snippet: String(normalized.snippet ?? normalized.text ?? normalized.body ?? "").slice(0, 200),
+            date: String(normalized.date ?? ""),
+            isUnread: Boolean(normalized.isUnread ?? true),
             urgency,
           };
         }),
@@ -521,11 +536,65 @@ export class InboxSurfaceAgent extends BaseAgent {
   }
 
   /**
-   * Truncate email data to keep within limits.
-   * Keeps at most 20 emails, truncates body text to 500 chars each.
+   * Normalize email field names to handle different MCP server formats.
+   * Maps common variations (capitalized, camelCase, nested objects) to
+   * the canonical field names expected by the inbox pipeline.
+   */
+  private normalizeEmailFields(email: Record<string, unknown>): Record<string, unknown> {
+    const normalized: Record<string, unknown> = { ...email };
+
+    // ID normalization: uid, messageId, Id → id
+    if (!normalized.id) {
+      normalized.id = email.uid ?? email.messageId ?? email.Id ?? email.ID;
+    }
+
+    // From normalization: From, sender, fromAddress, from (object) → from (string)
+    if (!normalized.from || (typeof normalized.from === "object")) {
+      const raw = email.from ?? email.From ?? email.sender ?? email.fromAddress ?? email.from_address;
+      if (typeof raw === "object" && raw !== null) {
+        // Handle {name: "...", address: "..."} or {text: "..."} formats
+        const obj = raw as Record<string, unknown>;
+        normalized.from = obj.address ?? obj.email ?? obj.text ?? obj.name ?? String(raw);
+      } else {
+        normalized.from = raw;
+      }
+    }
+
+    // Subject normalization: Subject, title → subject
+    if (!normalized.subject) {
+      normalized.subject = email.Subject ?? email.title ?? email.Title;
+    }
+
+    // Date normalization: Date, receivedAt, sentDate, internalDate → date
+    if (!normalized.date) {
+      normalized.date = email.Date ?? email.receivedAt ?? email.sentDate ?? email.internalDate ?? email.received;
+    }
+
+    // Body normalization: text, html, body, textBody, htmlBody → snippet
+    if (!normalized.snippet) {
+      normalized.snippet = email.snippet ?? email.text ?? email.body ?? email.textBody ?? email.preview;
+    }
+
+    // Unread normalization: isUnread, unread, unseen, flags → isUnread
+    if (normalized.isUnread === undefined) {
+      if (email.unread !== undefined) normalized.isUnread = email.unread;
+      else if (email.unseen !== undefined) normalized.isUnread = email.unseen;
+      else if (Array.isArray(email.flags)) {
+        normalized.isUnread = !(email.flags as string[]).includes("\\Seen");
+      } else {
+        normalized.isUnread = true; // default to unread
+      }
+    }
+
+    return normalized;
+  }
+
+  /**
+   * Truncate email data to keep within limits for LLM analysis.
+   * Keeps at most 10 emails, truncates body text to 500 chars each.
    */
   private truncateEmailData(data: unknown): unknown {
-    const MAX_EMAILS = 20;
+    const MAX_EMAILS = 10;
     const MAX_BODY_LENGTH = 500;
     const MAX_TOTAL_LENGTH = 50_000; // ~12k tokens
 
