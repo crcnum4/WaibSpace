@@ -21,6 +21,7 @@ import { NotificationStack } from "../components/NotificationToast";
 import { useActionHistory } from "../hooks/useActionHistory";
 import type { ReversibleAction } from "../hooks/useActionHistory";
 import { UndoToast } from "../components/UndoToast";
+import { OverlayAlerts } from "../components/OverlayAlerts";
 
 const WS_URL = `ws://${window.location.hostname}:${import.meta.env.VITE_WS_PORT || 3001}/ws`;
 const API_BASE = `http://${window.location.hostname}:${import.meta.env.VITE_WS_PORT || 3001}`;
@@ -324,6 +325,7 @@ export default function HomePage() {
 
   return (
     <div className="page home-page">
+      <OverlayAlerts lastMessage={lastMessage} />
       <NotificationStack notifications={notifications} onDismiss={dismissNotification} />
       {status !== "connected" && (
         <div className={`connection-banner ${status === "reconnecting" ? "connecting" : status}`}>
