@@ -15,13 +15,13 @@
  *                         └─ children BlockNodes (recursive)
  */
 
-import { memo, useCallback, useContext, useEffect, type ReactNode } from "react";
+import { memo, useCallback, useContext, type ReactNode } from "react";
 import type { ComponentBlock, ComponentEventAction } from "@waibspace/types";
 import { ObservationCollectorProvider } from "./ObservationCollector";
 import { BlockStateProvider, BlockStateContext } from "./BlockStateStore";
 import { ObservationWrapper } from "./ObservationWrapper";
 import { getBlockComponent } from "./registry";
-import { registerPrimitiveBlocks, registerDomainComponents, FallbackBlock } from "./components";
+import { FallbackBlock } from "./components";
 import { BlockErrorBoundary } from "../components/BlockErrorBoundary";
 
 // ---------------------------------------------------------------------------
@@ -34,11 +34,6 @@ export interface WaibRendererProps {
 }
 
 export const WaibRenderer = memo(function WaibRenderer({ blocks, send }: WaibRendererProps) {
-  useEffect(() => {
-    registerPrimitiveBlocks();
-    registerDomainComponents();
-  }, []);
-
   return (
     <ObservationCollectorProvider send={send}>
       <BlockStateProvider>
