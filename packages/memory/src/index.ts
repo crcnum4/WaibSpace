@@ -30,3 +30,5 @@ export type {
   LearnedPreference,
   BehavioralModelOptions,
 } from "./behavioral-model";
+export { ShortTermMemoryManager } from "./short-term-memory";
+export type { ShortTermStore } from "./short-term-memory";
