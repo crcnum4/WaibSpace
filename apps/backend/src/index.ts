@@ -33,6 +33,9 @@ import {
   ProvenanceAnnotatorAgent,
   // Execution agents
   ActionExecutorAgent,
+  // Triage agents
+  DataTriageAgent,
+  EmailTriageClassifier,
 } from "@waibspace/agents";
 import {
   ConnectorRegistry,
@@ -148,6 +151,11 @@ agentRegistry.register(new ConnectorSelectionAgent());
 agentRegistry.register(new DataRetrievalAgent());
 agentRegistry.register(new PolicyGateAgent());
 agentRegistry.register(new BehavioralPreferenceAgent());
+
+// Triage agents
+const dataTriageAgent = new DataTriageAgent();
+dataTriageAgent.registerClassifier(new EmailTriageClassifier());
+agentRegistry.register(dataTriageAgent);
 
 // UI agents
 agentRegistry.register(new InboxSurfaceAgent());

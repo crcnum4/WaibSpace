@@ -55,6 +55,12 @@ const AGENT_ORDERINGS: Record<string, AgentOrdering[]> = {
       ],
     },
     {
+      category: "triage",
+      groups: [
+        ["triage.data-classifier"],
+      ],
+    },
+    {
       category: "ui",
       groups: [
         ["ui.inbox-surface", "ui.calendar-surface", "ui.generic-data-surface"],
@@ -69,6 +75,12 @@ const AGENT_ORDERINGS: Record<string, AgentOrdering[]> = {
         ["context.planner"],
         ["context.connector-selection"],
         ["context.data-retrieval"],
+      ],
+    },
+    {
+      category: "triage",
+      groups: [
+        ["triage.data-classifier"],
       ],
     },
     {
@@ -90,11 +102,11 @@ function getPipelineForEvent(eventType: string): AgentCategory[] {
     eventType === "user.message.received" ||
     eventType === "user.intent.url_received"
   ) {
-    return ["perception", "reasoning", "context", "ui", "safety"];
+    return ["perception", "reasoning", "context", "triage", "ui", "safety"];
   }
 
   if (eventType.startsWith("user.interaction.")) {
-    return ["perception", "reasoning", "context", "ui", "safety"];
+    return ["perception", "reasoning", "context", "triage", "ui", "safety"];
   }
 
   if (eventType === "policy.approval.response") {
@@ -104,11 +116,11 @@ function getPipelineForEvent(eventType: string): AgentCategory[] {
   // system.poll events already know the intent (check for updates) — skip
   // perception and reasoning, go straight to context + ui + safety.
   if (eventType === "system.poll") {
-    return ["context", "ui", "safety"];
+    return ["context", "triage", "ui", "safety"];
   }
 
   // Default pipeline
-  return ["perception", "reasoning", "context", "ui", "safety"];
+  return ["perception", "reasoning", "context", "triage", "ui", "safety"];
 }
 
 /**

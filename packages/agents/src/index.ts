@@ -49,4 +49,15 @@ export {
   LayoutComposerAgent,
   extractSurfaces,
 } from "./ui";
+export {
+  DataTriageAgent,
+  EmailTriageClassifier,
+  type TriageOutput,
+  type TriageResult,
+  type TriagedItem,
+  type TriageClassifier,
+  type TriageContext,
+  type UrgencyLevel,
+  type TriageCategory,
+} from "./triage";
 export { ActionExecutorAgent } from "./execution";
