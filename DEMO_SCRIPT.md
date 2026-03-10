@@ -13,8 +13,7 @@ WaibSpace is an AI-native operating environment that turns fragmented apps, inbo
 ### Environment
 
 - [ ] `.env` file configured with `ANTHROPIC_API_KEY` (required)
-- [ ] Gmail credentials configured (`GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`) — optional but recommended
-- [ ] Google Calendar credentials configured (`GCAL_CLIENT_ID`, `GCAL_CLIENT_SECRET`, `GCAL_REFRESH_TOKEN`) — optional but recommended
+- [ ] Gmail connected via MCP (Settings → Marketplace → Gmail — requires Google App Password)
 - [ ] Dependencies installed: `bun install`
 
 ### Running Services

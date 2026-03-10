@@ -38,7 +38,6 @@ import {
   ConnectorRegistry,
   WebFetchConnector,
   MCPServerRegistry,
-  GmailConnector,
   MockGmailConnector,
   MockCalendarConnector,
 } from "@waibspace/connectors";
@@ -80,7 +79,8 @@ await webFetchConnector.connect();
 connectorRegistry.register(webFetchConnector);
 log.info("WebFetch connector registered");
 
-// Gmail connector — use mock fixture data when MOCK_CONNECTORS is enabled
+// Mock connectors — use fixture data when MOCK_CONNECTORS is enabled
+// Real Gmail/Calendar connections are handled via MCP servers (Settings → Marketplace)
 if (process.env.MOCK_CONNECTORS === "true") {
   const mockGmail = new MockGmailConnector();
   await mockGmail.connect();
@@ -91,13 +91,6 @@ if (process.env.MOCK_CONNECTORS === "true") {
   await mockCalendar.connect();
   connectorRegistry.register(mockCalendar);
   log.info("MockCalendarConnector registered", { mock: true });
-} else {
-  const gmailConnector = new GmailConnector();
-  await gmailConnector.connect();
-  if (gmailConnector.isConnected()) {
-    connectorRegistry.register(gmailConnector);
-    log.info("GmailConnector registered");
-  }
 }
 
 // ---------- 4. Policy Engine ----------
