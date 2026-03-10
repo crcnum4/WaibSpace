@@ -13,3 +13,8 @@ export {
   type BenchmarkSummary,
   type PercentileStats,
 } from "./benchmark";
+export {
+  AgentSpawner,
+  type SpawnRequest,
+  type SpawnResult,
+} from "./agent-spawner";

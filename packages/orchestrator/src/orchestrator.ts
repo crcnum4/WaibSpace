@@ -11,6 +11,7 @@ import { AgentRegistry } from "./agent-registry";
 import { buildExecutionPlan } from "./execution-planner";
 import { createPipelineTrace, logTrace } from "./trace";
 import { BenchmarkCollector } from "./benchmark";
+import type { AgentSpawner } from "./agent-spawner";
 import type { TriageOutput, MemoryCandidate } from "@waibspace/agents";
 
 export interface OrchestratorOptions {
@@ -40,6 +41,8 @@ export interface OrchestratorOptions {
   userRulesManager?: unknown;
   /** Trust escalation engine — auto-approves actions based on approval patterns */
   escalationEngine?: unknown;
+  /** Agent spawner — enables agents to spawn sub-agents for parallel tasks */
+  agentSpawner?: AgentSpawner;
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -148,6 +151,9 @@ export class Orchestrator {
             : {}),
           ...(this.options?.escalationEngine
             ? { escalationEngine: this.options.escalationEngine }
+            : {}),
+          ...(this.options?.agentSpawner
+            ? { agentSpawner: this.options.agentSpawner }
             : {}),
         },
       };

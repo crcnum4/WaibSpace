@@ -20,7 +20,9 @@ export type WaibEventType =
   | "background.task.complete"
   | "system.poll"
   | "briefing.alert"
-  | "memory.updated";
+  | "memory.updated"
+  | "agent.spawn.request"
+  | "agent.spawn.complete";
 
 export interface WaibEvent {
   id: string;
