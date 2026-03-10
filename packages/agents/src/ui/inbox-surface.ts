@@ -161,7 +161,7 @@ export class InboxSurfaceAgent extends BaseAgent {
       };
     }
 
-    // Truncate to 20 emails max
+    // Truncate to 10 emails max
     const originalCount = Array.isArray(gmailData) ? gmailData.length : 1;
     const truncatedData = this.truncateEmailData(gmailData);
 
@@ -190,14 +190,10 @@ export class InboxSurfaceAgent extends BaseAgent {
     // Default path: map raw email fields directly — no LLM involved
     // Apply lightweight heuristic urgency scoring (no LLM cost)
     const emails: InboxSurfaceData["emails"] = rawEmails.map((email, i) => {
+      const normalized = this.normalizeEmailFields(email, i);
       const { urgency } = classifyEmailUrgency(email);
       return {
-        id: String(email.id ?? email.messageId ?? `email-${i}`),
-        from: String(email.from || email.sender || "Unknown"),
-        subject: String(email.subject || "No Subject"),
-        snippet: String(email.snippet ?? email.text ?? email.body ?? "").slice(0, 200),
-        date: String(email.date ?? email.receivedAt ?? ""),
-        isUnread: Boolean(email.isUnread ?? email.unread ?? true),
+        ...normalized,
         urgency,
       };
     });
@@ -369,20 +365,160 @@ export class InboxSurfaceAgent extends BaseAgent {
       const rawEmails = (Array.isArray(truncatedData) ? truncatedData : [truncatedData]) as Record<string, unknown>[];
       return {
         emails: rawEmails.map((email, i) => {
+          const normalized = this.normalizeEmailFields(email, i);
           const { urgency } = classifyEmailUrgency(email);
           return {
-            id: String(email.id ?? email.messageId ?? `email-${i}`),
-            from: String(email.from || email.sender || "Unknown"),
-            subject: String(email.subject || "No Subject"),
-            snippet: String(email.snippet ?? email.text ?? email.body ?? "").slice(0, 200),
-            date: String(email.date ?? email.receivedAt ?? ""),
-            isUnread: Boolean(email.isUnread ?? email.unread ?? true),
+            ...normalized,
             urgency,
           };
         }),
         overallSummary: `${rawEmails.length} emails (LLM analysis unavailable, heuristic urgency applied)`,
       };
     }
+  }
+
+  /**
+   * Normalize email fields from raw MCP data.
+   *
+   * MCP mail servers (e.g. mcp-mail-server) sometimes return empty from/subject
+   * fields while the actual headers are embedded in the raw MIME `text` field.
+   * This method:
+   * 1. Tries standard field names, then alternative names (From, sender, uid, etc.)
+   * 2. If `from` is still empty, attempts to parse From: header from MIME text
+   * 3. If `subject` is empty/"No Subject", attempts to parse Subject: header from MIME text
+   * 4. Handles `from` being an object ({name, address})
+   * 5. Normalizes unread status from IMAP flags
+   */
+  private normalizeEmailFields(
+    email: Record<string, unknown>,
+    index: number,
+  ): Omit<EmailSummary, "urgency" | "suggestedReply"> {
+    // --- ID ---
+    const id = String(
+      email.id ?? email.uid ?? email.messageId ?? email.message_id ?? `email-${index}`,
+    );
+
+    // --- FROM ---
+    let from = "";
+    // Try standard fields
+    const rawFrom = email.from ?? email.From ?? email.sender ?? email.Sender;
+    if (rawFrom) {
+      if (typeof rawFrom === "string") {
+        from = rawFrom;
+      } else if (typeof rawFrom === "object" && rawFrom !== null) {
+        // Handle {name, address} or {value: [{name, address}]}
+        const obj = rawFrom as Record<string, unknown>;
+        if (obj.address) {
+          from = obj.name ? `${obj.name} <${obj.address}>` : String(obj.address);
+        } else if (obj.name) {
+          from = String(obj.name);
+        } else if (Array.isArray(obj.value)) {
+          const first = obj.value[0] as Record<string, unknown> | undefined;
+          if (first?.address) {
+            from = first.name ? `${first.name} <${first.address}>` : String(first.address);
+          }
+        }
+      }
+    }
+    // If still empty, try to extract From: header from MIME text
+    if (!from) {
+      from = this.extractMimeHeader(email, "From") || "Unknown";
+    }
+
+    // --- SUBJECT ---
+    let subject = String(email.subject ?? email.Subject ?? "");
+    if (!subject || subject === "No Subject") {
+      const parsed = this.extractMimeHeader(email, "Subject");
+      if (parsed) subject = parsed;
+    }
+    if (!subject) subject = "No Subject";
+
+    // --- DATE ---
+    const date = String(
+      email.date ?? email.Date ?? email.receivedAt ?? email.received_at ?? "",
+    );
+
+    // --- SNIPPET ---
+    let snippet = String(
+      email.snippet ?? email.text ?? email.body ?? email.textBody ?? "",
+    );
+    // Strip MIME headers from snippet if they leaked into it
+    snippet = snippet.replace(/^(From:|To:|Subject:|Date:|MIME-Version:|Content-Type:)[^\n]*\n/gm, "").trim();
+    snippet = snippet.slice(0, 200);
+
+    // --- UNREAD ---
+    let isUnread: boolean;
+    if (typeof email.isUnread === "boolean") {
+      isUnread = email.isUnread;
+    } else if (typeof email.unread === "boolean") {
+      isUnread = email.unread;
+    } else if (Array.isArray(email.flags)) {
+      // IMAP flags: if \\Seen is present, it's read
+      isUnread = !(email.flags as string[]).some(
+        (f) => f === "\\Seen" || f === "\\seen" || f.toLowerCase() === "\\seen",
+      );
+    } else {
+      isUnread = true;
+    }
+
+    return { id, from, subject, snippet, date, isUnread };
+  }
+
+  /**
+   * Extract a specific header value from raw MIME text embedded in email fields.
+   * Handles formats like:
+   *   From: "John Doe" <john@example.com>
+   *   From: john@example.com
+   *   From: "Google Workspace Team" [workspace-noreply@google.com]
+   */
+  private extractMimeHeader(
+    email: Record<string, unknown>,
+    headerName: string,
+  ): string | undefined {
+    // Look in text, body, textBody, content fields
+    const textContent = String(email.text ?? email.body ?? email.textBody ?? email.content ?? "");
+    if (!textContent) return undefined;
+
+    // Try exact header line match
+    const lineRegex = new RegExp(`^${headerName}:\\s*(.+)$`, "m");
+    const lineMatch = textContent.match(lineRegex);
+    if (lineMatch) {
+      const raw = lineMatch[1].trim();
+      if (headerName === "From") {
+        return this.parseFromValue(raw);
+      }
+      return raw;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Parse a From header value into a clean display string.
+   * Handles:
+   *   "John Doe" <john@example.com>  -> John Doe <john@example.com>
+   *   john@example.com               -> john@example.com
+   *   "Team Name" [addr@example.com] -> Team Name <addr@example.com>
+   */
+  private parseFromValue(raw: string): string {
+    // Pattern: "Display Name" <email@addr> or Display Name <email@addr>
+    const angleBracket = raw.match(/"?([^"<]+)"?\s*<([^>]+)>/);
+    if (angleBracket) {
+      const name = angleBracket[1].trim();
+      const addr = angleBracket[2].trim();
+      return name ? `${name} <${addr}>` : addr;
+    }
+
+    // Pattern: "Display Name" [email@addr] (seen in some MCP servers)
+    const squareBracket = raw.match(/"?([^"[\]]+)"?\s*\[([^\]]+)\]/);
+    if (squareBracket) {
+      const name = squareBracket[1].trim();
+      const addr = squareBracket[2].trim();
+      return name ? `${name} <${addr}>` : addr;
+    }
+
+    // Plain email or text
+    return raw.trim();
   }
 
   private findDataRetrieval(
@@ -522,10 +658,10 @@ export class InboxSurfaceAgent extends BaseAgent {
 
   /**
    * Truncate email data to keep within limits.
-   * Keeps at most 20 emails, truncates body text to 500 chars each.
+   * Keeps at most 10 emails, truncates body text to 500 chars each.
    */
   private truncateEmailData(data: unknown): unknown {
-    const MAX_EMAILS = 20;
+    const MAX_EMAILS = 10;
     const MAX_BODY_LENGTH = 500;
     const MAX_TOTAL_LENGTH = 50_000; // ~12k tokens
 

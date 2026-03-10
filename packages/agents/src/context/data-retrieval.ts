@@ -184,7 +184,7 @@ export class DataRetrievalAgent extends BaseAgent {
    */
   private truncateData(data: unknown): unknown {
     const MAX_DATA_SIZE = 50_000;
-    const MAX_ITEMS = 20;
+    const MAX_ITEMS = 10;
     const MAX_FIELD_LENGTH = 500;
 
     // MCP tools return [{type: "text", text: "..."}] — truncate the text content
@@ -205,7 +205,7 @@ export class DataRetrievalAgent extends BaseAgent {
                 // Take first N items, then strip large fields from each
                 const truncated = parsed.slice(0, MAX_ITEMS).map((entry: unknown) => {
                   if (typeof entry === "object" && entry !== null) {
-                    return this.trimObjectFields(
+                    return this.trimBodyFields(
                       entry as Record<string, unknown>,
                       MAX_FIELD_LENGTH,
                     );
@@ -213,10 +213,13 @@ export class DataRetrievalAgent extends BaseAgent {
                   return entry;
                 });
 
+                // Log sample fields for debugging MCP data quality
+                const sample = truncated[0] as Record<string, unknown> | undefined;
                 this.log("Truncated MCP array data", {
                   originalCount: parsed.length,
                   keptCount: truncated.length,
                   serializedSize: JSON.stringify(truncated).length,
+                  sampleFields: sample ? Object.keys(sample) : [],
                 });
 
                 return { type: "text", text: JSON.stringify(truncated) };
@@ -239,25 +242,31 @@ export class DataRetrievalAgent extends BaseAgent {
   }
 
   /**
-   * Trim long string fields in an object to keep data compact.
-   * Preserves short fields (headers, IDs, dates) while truncating
-   * large fields (body, html, content).
+   * Trim only body/content fields in an object to keep data compact.
+   * Preserves ALL other fields exactly as-is (from, subject, to, date, etc.)
+   * so downstream agents receive unmangled header data.
+   *
+   * Only these known body field names are truncated:
+   * text, html, body, content, snippet, textBody, htmlBody
    */
-  private trimObjectFields(
+  private static readonly BODY_FIELDS = new Set([
+    "text", "html", "body", "content", "snippet", "textBody", "htmlBody",
+  ]);
+
+  private trimBodyFields(
     obj: Record<string, unknown>,
     maxLen: number,
   ): Record<string, unknown> {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
-      if (typeof value === "string" && value.length > maxLen) {
+      if (
+        DataRetrievalAgent.BODY_FIELDS.has(key) &&
+        typeof value === "string" &&
+        value.length > maxLen
+      ) {
         result[key] = value.slice(0, maxLen) + "...";
-      } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-        // Recurse one level for nested objects (e.g., headers)
-        result[key] = this.trimObjectFields(
-          value as Record<string, unknown>,
-          maxLen,
-        );
       } else {
+        // Preserve everything else exactly as-is — no recursive trimming
         result[key] = value;
       }
     }
