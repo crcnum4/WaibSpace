@@ -52,11 +52,16 @@ export {
 export {
   DataTriageAgent,
   EmailTriageClassifier,
+  TriageMemoryIntegrator,
+  TriageFeedbackTracker,
   type TriageOutput,
   type TriageResult,
   type TriagedItem,
   type TriageClassifier,
   type TriageContext,
+  type TriageMemoryUpdate,
+  type TriageFeedback,
+  type UserAction,
   type UrgencyLevel,
   type TriageCategory,
 } from "./triage";

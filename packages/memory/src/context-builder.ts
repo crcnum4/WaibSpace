@@ -60,3 +60,48 @@ export function extractKeywords(payload?: Record<string, unknown>): string[] {
 
   return keywords;
 }
+
+/**
+ * Build memory context specifically for the triage phase.
+ * Retrieves relevant mid-term and long-term memories BEFORE classification
+ * happens, so the classifier can make more informed decisions.
+ *
+ * For example: when triaging email from a known contact, include what we
+ * know about them so the classifier can adjust urgency.
+ */
+export function buildTriageContext(
+  domains: string[],
+  midTerm: MidTermMemory,
+  longTerm: LongTermMemory,
+): string {
+  const sections: string[] = [];
+
+  // Triage-relevant domains: always include preferences and contacts
+  const triageDomains = [
+    ...new Set([
+      ...domains,
+      "preferences:triage",
+      "contacts:email",
+      "email:promotional",
+      "email:informational",
+    ]),
+  ];
+
+  // Mid-term context: recent working knowledge for these domains
+  const mtContext = midTerm.toContext(triageDomains);
+  if (mtContext) sections.push(mtContext);
+
+  // Long-term context: known contacts and patterns
+  const contactEntries = longTerm.recallByDomain("contacts:email", undefined, 10);
+  if (contactEntries.length > 0) {
+    const contactLines = contactEntries.map(
+      (e) => `- [${e.keywords.join(", ")}]: ${e.blurb}`,
+    );
+    sections.push(
+      `## Known Contacts\n${contactLines.join("\n")}`,
+    );
+  }
+
+  if (sections.length === 0) return "";
+  return "## Triage Context\n\n" + sections.join("\n\n");
+}
