@@ -30,3 +30,5 @@ export type {
   LearnedPreference,
   BehavioralModelOptions,
 } from "./behavioral-model";
+export { MidTermMemory } from "./midterm-memory";
+export type { MidTermEntry } from "./midterm-memory";

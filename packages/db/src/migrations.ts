@@ -18,6 +18,11 @@ export function runMigrations(db: Database): void {
     migration001(db);
     db.run(`INSERT INTO schema_version (version) VALUES (1)`);
   }
+
+  if (currentVersion < 2) {
+    migration002(db);
+    db.run(`INSERT INTO schema_version (version) VALUES (2)`);
+  }
 }
 
 function migration001(db: Database): void {
@@ -125,5 +130,27 @@ function migration001(db: Database): void {
   );
   db.run(
     `CREATE INDEX IF NOT EXISTS idx_feedback_type ON user_feedback(surface_type, feedback_type)`
+  );
+}
+
+function migration002(db: Database): void {
+  // Mid-term memory: domain-scoped working knowledge with relevance decay
+  db.run(`CREATE TABLE IF NOT EXISTS midterm_memory (
+    id TEXT PRIMARY KEY,
+    domain TEXT NOT NULL,
+    key TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    relevance_score REAL DEFAULT 1.0,
+    access_count INTEGER DEFAULT 0,
+    reinforcement_count INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    last_accessed_at INTEGER NOT NULL
+  )`);
+  db.run(
+    `CREATE INDEX IF NOT EXISTS idx_midterm_domain ON midterm_memory(domain)`
+  );
+  db.run(
+    `CREATE INDEX IF NOT EXISTS idx_midterm_relevance ON midterm_memory(relevance_score)`
   );
 }

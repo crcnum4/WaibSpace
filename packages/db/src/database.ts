@@ -121,6 +121,25 @@ export class WaibDatabase {
         created_at  INTEGER NOT NULL
       );
     `);
+
+    // Mid-term memory: domain-scoped working knowledge with relevance decay
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS midterm_memory (
+        id                  TEXT PRIMARY KEY,
+        domain              TEXT NOT NULL,
+        key                 TEXT NOT NULL,
+        summary             TEXT NOT NULL,
+        relevance_score     REAL DEFAULT 1.0,
+        access_count        INTEGER DEFAULT 0,
+        reinforcement_count INTEGER DEFAULT 0,
+        created_at          INTEGER NOT NULL,
+        updated_at          INTEGER NOT NULL,
+        last_accessed_at    INTEGER NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_midterm_domain ON midterm_memory(domain);
+      CREATE INDEX IF NOT EXISTS idx_midterm_relevance ON midterm_memory(relevance_score);
+    `);
   }
 
   // ---- Memory CRUD ----
@@ -274,6 +293,23 @@ export class WaibDatabase {
     return this.db
       .query("SELECT * FROM event_log ORDER BY created_at DESC LIMIT $limit")
       .all({ $limit: limit }) as EventLogRow[];
+  }
+
+  // ---- Generic query helpers (for packages that manage their own tables) ----
+
+  /** Run a write query (INSERT, UPDATE, DELETE) with named parameters. */
+  run(sql: string, params?: Record<string, string | number | null>): void {
+    this.db.query(sql).run(params ?? {});
+  }
+
+  /** Get a single row from a read query. */
+  getOne(sql: string, params?: Record<string, string | number | null>): unknown {
+    return this.db.query(sql).get(params ?? {});
+  }
+
+  /** Get all rows from a read query. */
+  getAll(sql: string, params?: Record<string, string | number | null>): unknown[] {
+    return this.db.query(sql).all(params ?? {});
   }
 
   close(): void {
