@@ -30,3 +30,5 @@ export type {
   LearnedPreference,
   BehavioralModelOptions,
 } from "./behavioral-model";
+export { LongTermMemory } from "./longterm-memory";
+export type { LongTermEntry } from "./longterm-memory";
