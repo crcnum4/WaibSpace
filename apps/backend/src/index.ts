@@ -57,6 +57,7 @@ import { BackgroundTaskScheduler, MVP_BACKGROUND_TASKS } from "./background";
 import { TaskScheduler } from "./scheduler";
 import { startServer } from "./server";
 import { broadcast } from "./ws";
+import { AlertEmitter } from "./alert-emitter";
 
 // ---------- 1. Event Bus ----------
 const bus = new EventBus();
@@ -225,6 +226,28 @@ const orchestrator = new Orchestrator(bus, agentRegistry, {
   triageFeedbackTracker,
 });
 
+// ---------- 7b. Alert Emitter ----------
+const alertEmitter = new AlertEmitter(bus);
+
+// Subscribe to triage results with high-urgency items and emit proactive alerts
+bus.on("triage.high_urgency", (event: WaibEvent) => {
+  const payload = event.payload as {
+    triageItems: Array<{
+      raw: unknown;
+      triage: {
+        itemId: string;
+        urgency: string;
+        category: string;
+        reasoning?: string;
+        suggestedAction?: string;
+      };
+    }>;
+    connectorId: string;
+  };
+  alertEmitter.emitAlerts(payload.triageItems, payload.connectorId, event.traceId);
+});
+log.info("Alert emitter initialized");
+
 // ---------- 8. Memory Update Pipeline ----------
 const memoryPipeline = new MemoryUpdatePipeline(memoryStore, bus);
 memoryPipeline.start();
@@ -385,6 +408,29 @@ bus.on("background.task.complete", (event: WaibEvent) => {
   log.child({ traceId: event.traceId }).info("Broadcasting task.complete", {
     taskId: payload.taskId,
     success: payload.success,
+  });
+  broadcast(message);
+});
+
+// ---------- 11c. Broadcast proactive alerts to WebSocket clients ----------
+bus.on("briefing.alert", (event: WaibEvent) => {
+  const payload = event.payload as {
+    itemId: string;
+    cardType: string;
+    title: string;
+    context: string;
+    urgency: string;
+    source: string;
+    suggestedAction?: string;
+    timestamp: number;
+  };
+  const message: ServerMessage = {
+    type: "briefing.alert",
+    payload,
+  };
+  log.child({ traceId: event.traceId }).info("Broadcasting briefing.alert", {
+    itemId: payload.itemId,
+    title: payload.title,
   });
   broadcast(message);
 });

@@ -19,6 +19,7 @@ export type WaibEventType =
   | "background.task.triggered"
   | "background.task.complete"
   | "system.poll"
+  | "briefing.alert"
   | "memory.updated";
 
 export interface WaibEvent {

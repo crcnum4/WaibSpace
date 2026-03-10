@@ -225,9 +225,12 @@ export class Orchestrator {
       // Accumulate outputs for the next phase
       priorOutputs = [...priorOutputs, ...phaseOutputs];
 
-      // After triage phase: store memory candidates in mid-term memory
-      if (phase.category === "triage" && this.options?.midTermMemory) {
-        this.storeTriageMemoryCandidates(phaseOutputs, traceId);
+      // After triage phase: store memory candidates and emit triage results
+      if (phase.category === "triage") {
+        if (this.options?.midTermMemory) {
+          this.storeTriageMemoryCandidates(phaseOutputs, traceId);
+        }
+        this.emitTriageResults(phaseOutputs, event, traceId);
       }
 
       // Emit phase progress so the frontend can show incremental loading state
@@ -359,6 +362,45 @@ export class Orchestrator {
 
     // Clean up per-trace short-term memory
     this.options?.shortTermMemoryManager?.destroy(traceId);
+  }
+
+  /**
+   * Emit triage results onto the event bus so downstream consumers
+   * (e.g. AlertEmitter) can react to high-urgency items.
+   */
+  private emitTriageResults(
+    phaseOutputs: AgentOutput[],
+    event: WaibEvent,
+    traceId: string,
+  ): void {
+    for (const output of phaseOutputs) {
+      const triageOutputs = output.output as unknown;
+      if (!Array.isArray(triageOutputs)) continue;
+
+      for (const triageOutput of triageOutputs as TriageOutput[]) {
+        if (!triageOutput.items || triageOutput.items.length === 0) continue;
+
+        const hasHighUrgency = triageOutput.items.some(
+          (item) => item.triage.urgency === "high",
+        );
+        if (!hasHighUrgency) continue;
+
+        // Use createEvent with the type cast — "triage.high_urgency" is an
+        // internal bus event consumed by AlertEmitter; it is not a
+        // WaibEventType sent to clients.
+        const triageEvent = createEvent(
+          "triage.high_urgency" as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+          {
+            triageItems: triageOutput.items,
+            connectorId: triageOutput.connectorId,
+            eventType: event.type,
+          },
+          "orchestrator",
+          traceId,
+        );
+        this.eventBus.emit(triageEvent);
+      }
+    }
   }
 
   /**

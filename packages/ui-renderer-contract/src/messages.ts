@@ -23,6 +23,19 @@ export type ServerMessage =
         durationMs: number;
         error?: string;
       };
+    }
+  | {
+      type: "briefing.alert";
+      payload: {
+        itemId: string;
+        cardType: string;
+        title: string;
+        context: string;
+        urgency: string;
+        source: string;
+        suggestedAction?: string;
+        timestamp: number;
+      };
     };
 
 // Frontend → Backend messages
