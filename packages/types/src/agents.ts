@@ -4,6 +4,7 @@ export type AgentCategory =
   | "perception"
   | "reasoning"
   | "context"
+  | "triage"
   | "ui"
   | "safety"
   | "execution";
