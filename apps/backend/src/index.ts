@@ -38,6 +38,8 @@ import {
   EmailTriageClassifier,
   TriageMemoryIntegrator,
   TriageFeedbackTracker,
+  // Trust tracking
+  ApprovalTracker,
 } from "@waibspace/agents";
 import {
   ConnectorRegistry,
@@ -196,6 +198,10 @@ const triageMemoryIntegrator = new TriageMemoryIntegrator(midTermMemory, longTer
 const triageFeedbackTracker = new TriageFeedbackTracker(midTermMemory);
 log.info("Triage memory integrator and feedback tracker initialized");
 
+// ---------- 6. Approval Tracker ----------
+const approvalTracker = new ApprovalTracker(midTermMemory);
+log.info("Approval tracker initialized");
+
 // ---------- 6a. Engagement Tracker ----------
 const engagementTracker = new EngagementTracker(memoryStore);
 log.info("Engagement tracker initialized");
@@ -224,6 +230,7 @@ const orchestrator = new Orchestrator(bus, agentRegistry, {
   longTermMemory,
   triageMemoryIntegrator,
   triageFeedbackTracker,
+  approvalTracker,
 });
 
 // ---------- 7b. Alert Emitter ----------

@@ -3,6 +3,7 @@ import type { ConnectorRegistry, ConnectorAction } from "@waibspace/connectors";
 import { SurfaceFactory } from "@waibspace/surfaces";
 import { BaseAgent } from "../base-agent";
 import type { AgentInput, AgentContext } from "../types";
+import type { ApprovalTracker } from "../trust";
 
 /**
  * Executes approved actions by invoking the appropriate connector.
@@ -60,6 +61,9 @@ export class ActionExecutorAgent extends BaseAgent {
       } catch {
         // Store update failure is non-critical
       }
+
+      // Track the rejection decision
+      this.trackDecision(context, pendingAction, false);
 
       const confirmSurface = SurfaceFactory.generic(
         "Action Denied",
@@ -237,6 +241,9 @@ export class ActionExecutorAgent extends BaseAgent {
         // non-critical
       }
 
+      // Track the approval decision
+      this.trackDecision(context, pendingAction, true);
+
       const successSurface = SurfaceFactory.generic(
         "Action Executed",
         {
@@ -308,6 +315,43 @@ export class ActionExecutorAgent extends BaseAgent {
         timing: { startMs, endMs, durationMs: endMs - startMs },
       };
     }
+  }
+
+  /**
+   * Track an approval or rejection decision via the ApprovalTracker (if available).
+   */
+  private trackDecision(
+    context: AgentContext,
+    pendingAction: { actionType: string; actionContext?: unknown } | undefined,
+    approved: boolean,
+  ): void {
+    const approvalTracker = context.config?.["approvalTracker"] as
+      | ApprovalTracker
+      | undefined;
+    if (!approvalTracker || !pendingAction) return;
+
+    try {
+      const actionCtx = pendingAction.actionContext as Record<string, unknown> | undefined;
+      const domain = (actionCtx?.domain as string) ?? this.inferDomain(pendingAction.actionType);
+      approvalTracker.recordDecision({
+        actionType: pendingAction.actionType,
+        domain,
+        approved,
+        timestamp: Date.now(),
+        context: actionCtx,
+      });
+    } catch {
+      // Tracking failure is non-critical
+    }
+  }
+
+  /**
+   * Infer a domain from the action type when no explicit domain is available.
+   * e.g., "email.send" -> "email", "slack.reply" -> "slack"
+   */
+  private inferDomain(actionType: string): string {
+    const dotIndex = actionType.indexOf(".");
+    return dotIndex > 0 ? actionType.slice(0, dotIndex) : actionType;
   }
 
   /**
