@@ -36,6 +36,8 @@ import {
   // Triage agents
   DataTriageAgent,
   EmailTriageClassifier,
+  TriageMemoryIntegrator,
+  TriageFeedbackTracker,
 } from "@waibspace/agents";
 import {
   ConnectorRegistry,
@@ -188,6 +190,11 @@ const midTermMemory = new MidTermMemory(db);
 const longTermMemory = new LongTermMemory(db);
 log.info("Three-tier memory initialized (short/mid/long-term)");
 
+// ---------- 6. Triage Memory Integration ----------
+const triageMemoryIntegrator = new TriageMemoryIntegrator(midTermMemory, longTermMemory);
+const triageFeedbackTracker = new TriageFeedbackTracker(midTermMemory);
+log.info("Triage memory integrator and feedback tracker initialized");
+
 // ---------- 6a. Engagement Tracker ----------
 const engagementTracker = new EngagementTracker(memoryStore);
 log.info("Engagement tracker initialized");
@@ -214,6 +221,8 @@ const orchestrator = new Orchestrator(bus, agentRegistry, {
   shortTermMemoryManager,
   midTermMemory,
   longTermMemory,
+  triageMemoryIntegrator,
+  triageFeedbackTracker,
 });
 
 // ---------- 8. Memory Update Pipeline ----------

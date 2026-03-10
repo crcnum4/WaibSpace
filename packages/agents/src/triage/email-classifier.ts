@@ -156,17 +156,92 @@ function generateReasoning(
   return parts.join(". ");
 }
 
+/**
+ * Check if the memory context mentions a specific sender.
+ * Returns true if sender name/email appears in the context string.
+ */
+function isKnownInMemory(sender: string, memoryContext: string): boolean {
+  if (!memoryContext || !sender) return false;
+  const lower = memoryContext.toLowerCase();
+  const senderLower = sender.toLowerCase();
+
+  // Check full sender string
+  if (lower.includes(senderLower)) return true;
+
+  // Check just the email address or domain
+  const emailMatch = senderLower.match(/@([^.>]+)/);
+  if (emailMatch?.[1] && lower.includes(emailMatch[1])) return true;
+
+  // Check display name
+  const nameMatch = senderLower.match(/^(.+?)\s*</);
+  if (nameMatch?.[1]) {
+    const name = nameMatch[1].replace(/^["']|["']$/g, "").trim();
+    if (name.length > 2 && lower.includes(name)) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Apply memory-based urgency adjustments.
+ * Known VIP contacts get urgency boosted; known promotional senders stay low.
+ */
+function adjustUrgencyFromMemory(
+  urgency: UrgencyLevel,
+  sender: string,
+  subject: string,
+  memoryContext: string,
+): { urgency: UrgencyLevel; memoryBoost: boolean } {
+  if (!memoryContext) return { urgency, memoryBoost: false };
+
+  const lower = memoryContext.toLowerCase();
+  const senderKnown = isKnownInMemory(sender, memoryContext);
+
+  // If sender is known as important/high-urgency contact, boost
+  if (senderKnown && lower.includes("important")) {
+    if (urgency === "low") return { urgency: "medium", memoryBoost: true };
+    if (urgency === "medium") return { urgency: "high", memoryBoost: true };
+  }
+
+  // If memory mentions topic being tracked, boost relevance
+  const subjectWords = subject
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 3);
+  for (const word of subjectWords) {
+    if (lower.includes(word) && (lower.includes("track") || lower.includes("follow"))) {
+      if (urgency === "low") return { urgency: "medium", memoryBoost: true };
+      break;
+    }
+  }
+
+  return { urgency, memoryBoost: false };
+}
+
 export class EmailTriageClassifier implements TriageClassifier {
   readonly id = "email";
   readonly supportedConnectors = ["gmail", "mail", "email"];
 
   async classify(
     items: unknown[],
-    _context?: TriageContext,
+    context?: TriageContext,
   ): Promise<TriageResult[]> {
+    const memoryContext = context?.memoryContext ?? "";
+
     return items.map((item, index) => {
       const email = item as Record<string, unknown>;
-      const { urgency, score } = classifyEmailUrgency(email);
+      const { urgency: baseUrgency, score } = classifyEmailUrgency(email);
+
+      const sender = extractSender(email);
+      const subject = (email.subject as string) ?? "";
+
+      // Apply memory-based adjustments
+      const { urgency, memoryBoost } = adjustUrgencyFromMemory(
+        baseUrgency,
+        sender,
+        subject,
+        memoryContext,
+      );
 
       const category = classifyCategory(email, urgency);
       const action = suggestAction(category, urgency, email);
@@ -178,7 +253,13 @@ export class EmailTriageClassifier implements TriageClassifier {
         `email-${index}`;
 
       // Confidence based on score magnitude — higher absolute score = more confident
-      const confidence = Math.min(1, 0.5 + Math.abs(score) * 0.05);
+      let confidence = Math.min(1, 0.5 + Math.abs(score) * 0.05);
+      // Memory-backed classifications get a confidence boost
+      if (memoryBoost) confidence = Math.min(1, confidence + 0.1);
+
+      const reasoning = memoryBoost
+        ? `${generateReasoning(category, urgency, score)}. Urgency boosted by memory context`
+        : generateReasoning(category, urgency, score);
 
       return {
         itemId,
@@ -186,7 +267,7 @@ export class EmailTriageClassifier implements TriageClassifier {
         category,
         suggestedAction: action,
         confidence,
-        reasoning: generateReasoning(category, urgency, score),
+        reasoning,
         domain: "email",
       };
     });
