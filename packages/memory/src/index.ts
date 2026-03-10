@@ -38,3 +38,11 @@ export { LongTermMemory } from "./longterm-memory";
 export type { LongTermEntry } from "./longterm-memory";
 export { resolveMemoryDomains } from "./domain-resolver";
 export { buildMemoryContext, extractKeywords } from "./context-builder";
+export { MemoryCompactor } from "./memory-compactor";
+export type {
+  CompactorMessage,
+  CompactionInsight,
+  LongTermExtract,
+  StructuredCompletionFn,
+  CompactionStats,
+} from "./memory-compactor";
