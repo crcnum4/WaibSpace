@@ -3,7 +3,7 @@ import type { WaibEvent } from "@waibspace/types";
 import { createLogger } from "@waibspace/logger";
 
 import type { ServerMessage, ComposedLayout } from "@waibspace/ui-renderer-contract";
-import { Orchestrator, AgentRegistry, InMemoryPendingActionStore } from "@waibspace/orchestrator";
+import { Orchestrator, AgentRegistry, InMemoryPendingActionStore, AgentSpawner } from "@waibspace/orchestrator";
 import {
   // Perception agents
   InputNormalizerAgent,
@@ -227,6 +227,10 @@ log.info("Conversation context store initialized");
 const pendingActionStore = new InMemoryPendingActionStore();
 log.info("Pending action store initialized");
 
+// ---------- 6c. Agent Spawner ----------
+const agentSpawner = new AgentSpawner(bus, { maxConcurrent: 5 });
+log.info("Agent spawner initialized", { maxConcurrent: 5 });
+
 // ---------- 7. Orchestrator ----------
 const orchestrator = new Orchestrator(bus, agentRegistry, {
   modelProvider: modelRegistry,
@@ -245,6 +249,7 @@ const orchestrator = new Orchestrator(bus, agentRegistry, {
   approvalTracker,
   userRulesManager,
   escalationEngine,
+  agentSpawner,
 });
 
 // ---------- 7b. Alert Emitter ----------
@@ -465,6 +470,7 @@ log.info("WaibSpace backend started", { port: PORT });
 // ---------- 13. Graceful Shutdown ----------
 function handleShutdown(signal: string) {
   log.info("Shutting down", { signal });
+  agentSpawner.shutdown();
   mcpRegistry.stopHealthChecks();
   scheduler.stop();
   pollingScheduler.stop();
