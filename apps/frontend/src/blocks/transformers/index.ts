@@ -1,7 +1,6 @@
 import type { ComponentBlock, SurfaceSpec } from "@waibspace/types";
 import type { ComposedLayout } from "@waibspace/ui-renderer-contract";
 
-import { inboxToBlocks } from "./inbox";
 import { calendarToBlocks } from "./calendar";
 import { discoveryToBlocks } from "./discovery";
 import { approvalToBlocks } from "./approval";
@@ -11,7 +10,6 @@ import { searchToBlocks } from "./search";
 import { briefingToBlocks } from "./briefing";
 
 export {
-  inboxToBlocks,
   calendarToBlocks,
   discoveryToBlocks,
   approvalToBlocks,
@@ -25,7 +23,6 @@ const transformerMap: Record<
   string,
   (spec: SurfaceSpec) => ComponentBlock[]
 > = {
-  inbox: inboxToBlocks,
   calendar: calendarToBlocks,
   discovery: discoveryToBlocks,
   approval: approvalToBlocks,
