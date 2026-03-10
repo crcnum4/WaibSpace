@@ -30,6 +30,10 @@ export interface OrchestratorOptions {
   midTermMemory?: unknown;
   /** Three-tier memory: long-term FTS5 keyword-indexed recall */
   longTermMemory?: unknown;
+  /** Triage memory integrator — writes triage results to memory tiers */
+  triageMemoryIntegrator?: unknown;
+  /** Triage feedback tracker — learns from user interactions with triaged items */
+  triageFeedbackTracker?: unknown;
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -129,6 +133,12 @@ export class Orchestrator {
             : {}),
           ...(this.options?.longTermMemory
             ? { longTermMemory: this.options.longTermMemory }
+            : {}),
+          ...(this.options?.triageMemoryIntegrator
+            ? { triageMemoryIntegrator: this.options.triageMemoryIntegrator }
+            : {}),
+          ...(this.options?.triageFeedbackTracker
+            ? { triageFeedbackTracker: this.options.triageFeedbackTracker }
             : {}),
         },
       };
