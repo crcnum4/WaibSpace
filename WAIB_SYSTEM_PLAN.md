@@ -299,11 +299,11 @@ The total memory overhead is a few background LLM calls per day for compaction. 
 
 ## Implementation Sequence
 
-### Phase 1: Foundation
-1. Fix MCP mail server data issue (from/subject empty) — either fix upstream, fork, or parse from raw MIME
-2. Fix block registration timing (GmailInboxList "Unknown block" bug)
-3. Remove debug console.log statements
-4. Build background task scheduler (poll connectors on configurable intervals)
+### Phase 1: Foundation ✅ Complete
+1. ~~Fix MCP mail server data issue~~ — PR #298: MIME header extraction + field normalization, body-only truncation
+2. ~~Fix block registration timing~~ — Moved to main.tsx before createRoot (commit 9bceffb)
+3. ~~Remove debug console.log~~ — Only on feature branch, never reached main
+4. ~~Build background task scheduler~~ — PR #299: TaskScheduler with exponential backoff, system.poll event type
 
 ### Phase 2: Three-Tier Memory
 1. Implement short-term memory with task-scoped lifecycle (create on task start, destroy on complete)
