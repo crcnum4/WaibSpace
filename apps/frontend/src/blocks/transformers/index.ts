@@ -8,6 +8,7 @@ import { approvalToBlocks } from "./approval";
 import { connectionGuideToBlocks } from "./connection-guide";
 import { genericToBlocks } from "./generic";
 import { searchToBlocks } from "./search";
+import { briefingToBlocks } from "./briefing";
 
 export {
   inboxToBlocks,
@@ -17,6 +18,7 @@ export {
   connectionGuideToBlocks,
   genericToBlocks,
   searchToBlocks,
+  briefingToBlocks,
 };
 
 const transformerMap: Record<
@@ -29,6 +31,7 @@ const transformerMap: Record<
   approval: approvalToBlocks,
   "connection-guide": connectionGuideToBlocks,
   search: searchToBlocks,
+  briefing: briefingToBlocks,
 };
 
 /**
