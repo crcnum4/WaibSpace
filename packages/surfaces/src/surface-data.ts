@@ -150,3 +150,15 @@ export interface SearchSurfaceData {
   totalResults: number;
   sources: string[];
 }
+
+export interface BriefingCardSpec {
+  cardType: "briefing-card" | "action-card" | "insight-card" | "status-card";
+  data: Record<string, unknown>;
+  priority: number;
+}
+
+export interface BriefingSurfaceData {
+  cards: BriefingCardSpec[];
+  generatedAt: number;
+  mode: "initial" | "away-summary" | "update";
+}

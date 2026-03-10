@@ -8,6 +8,7 @@ import type {
   ConnectionGuideSurfaceData,
   MorningDigestSurfaceData,
   SearchSurfaceData,
+  BriefingSurfaceData,
 } from "./surface-data";
 
 export class SurfaceFactory {
@@ -192,6 +193,30 @@ export class SurfaceFactory {
       .setLayout({
         position: "primary",
         prominence: "hero",
+      })
+      .setProvenance(provenance)
+      .build();
+  }
+
+  static briefing(
+    data: BriefingSurfaceData,
+    provenance: ProvenanceMetadata
+  ): SurfaceSpec {
+    const cardCount = data.cards.length;
+    return new SurfaceSpecBuilder("briefing")
+      .setTitle("Your Briefing")
+      .setSummary(`${cardCount} card${cardCount !== 1 ? "s" : ""} ready`)
+      .setPriority(98)
+      .setData(data)
+      .setLayout({
+        position: "primary",
+        prominence: "hero",
+      })
+      .addAction({
+        id: "dismiss-briefing",
+        label: "Dismiss",
+        actionType: "briefing.dismiss",
+        riskClass: "A",
       })
       .setProvenance(provenance)
       .build();
