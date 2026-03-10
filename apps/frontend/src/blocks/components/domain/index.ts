@@ -1,5 +1,4 @@
 import { registerBlock, registerBlocks } from "../../registry";
-import { registerGmailComponents } from "./gmail";
 import { registerCalendarComponents } from "./gcal";
 import { ErrorSurface } from "./ErrorSurface";
 import { BriefingCard } from "./BriefingCard";
@@ -12,7 +11,6 @@ import { StatusCard } from "./StatusCard";
  * Call once at application startup alongside primitive block registration.
  */
 export function registerDomainComponents(): void {
-  registerGmailComponents();
   registerCalendarComponents();
 
   registerBlock("ErrorSurface", ErrorSurface, {
