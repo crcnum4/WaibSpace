@@ -46,7 +46,7 @@ import {
   ModelProviderRegistry,
   AnthropicProvider,
 } from "@waibspace/model-provider";
-import { MemoryStore, MemoryUpdatePipeline, ObservationProcessor, ConversationContextStore, EngagementTracker, BehavioralTracker, BehavioralModel } from "@waibspace/memory";
+import { MemoryStore, MemoryUpdatePipeline, ObservationProcessor, ConversationContextStore, EngagementTracker, BehavioralTracker, BehavioralModel, ShortTermMemoryManager, MidTermMemory, LongTermMemory } from "@waibspace/memory";
 import { WaibDatabase } from "@waibspace/db";
 import { BackgroundTaskScheduler, MVP_BACKGROUND_TASKS } from "./background";
 import { TaskScheduler } from "./scheduler";
@@ -173,6 +173,13 @@ log.info("Agent registry initialized", {
 // ---------- 6. Memory Store ----------
 const memoryStore = new MemoryStore(db, bus);
 
+// ---------- 6. Three-Tier Memory ----------
+const shortTermMemoryManager = new ShortTermMemoryManager();
+shortTermMemoryManager.startAutoCleanup();
+const midTermMemory = new MidTermMemory(db);
+const longTermMemory = new LongTermMemory(db);
+log.info("Three-tier memory initialized (short/mid/long-term)");
+
 // ---------- 6a. Engagement Tracker ----------
 const engagementTracker = new EngagementTracker(memoryStore);
 log.info("Engagement tracker initialized");
@@ -196,6 +203,9 @@ const orchestrator = new Orchestrator(bus, agentRegistry, {
   pendingActionStore,
   engagementTracker,
   db,
+  shortTermMemoryManager,
+  midTermMemory,
+  longTermMemory,
 });
 
 // ---------- 8. Memory Update Pipeline ----------
@@ -375,6 +385,7 @@ function handleShutdown(signal: string) {
   scheduler.stop();
   pollingScheduler.stop();
   conversationContextStore.stopCleanup();
+  shortTermMemoryManager.stopAutoCleanup();
   server.stop();
   log.info("Shutdown complete");
   process.exit(0);

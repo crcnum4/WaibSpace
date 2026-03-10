@@ -1,5 +1,6 @@
 import type { AgentOutput, MemoryEntry, MemoryCategory } from "@waibspace/types";
-import type { MemoryStore } from "@waibspace/memory";
+import type { MemoryStore, MidTermMemory, LongTermMemory, ShortTermStore } from "@waibspace/memory";
+import { resolveMemoryDomains, buildMemoryContext, extractKeywords } from "@waibspace/memory";
 import { BaseAgent } from "../base-agent";
 import type { AgentInput, AgentContext } from "../types";
 import type { IntentClassification } from "../reasoning";
@@ -10,13 +11,20 @@ export interface MemoryRetrievalOutput {
   memories: MemoryEntry[];
   categories: string[];
   totalRetrieved: number;
+  /** Combined memory context string from all tiers (for downstream LLM injection) */
+  memoryContext?: string;
+  /** Domains resolved for this event */
+  resolvedDomains?: string[];
 }
 
 /**
  * Deterministic (rule-based) agent that retrieves relevant memories
- * from the MemoryStore based on the current intent classification.
+ * from both the legacy MemoryStore and the three-tier memory system.
  *
- * Runs early in the context phase so downstream agents have memory available.
+ * When mid-term and long-term memory are available, it uses domain-selective
+ * injection via resolveMemoryDomains() and buildMemoryContext().
+ *
+ * Falls back to the legacy MemoryStore when tiers are not configured.
  */
 export class MemoryRetrievalAgent extends BaseAgent {
   constructor() {
@@ -34,6 +42,91 @@ export class MemoryRetrievalAgent extends BaseAgent {
   ): Promise<AgentOutput> {
     const startMs = Date.now();
 
+    const midTermMemory = context.config?.["midTermMemory"] as MidTermMemory | undefined;
+    const longTermMemory = context.config?.["longTermMemory"] as LongTermMemory | undefined;
+    const shortTermMemory = context.config?.["shortTermMemory"] as ShortTermStore | undefined;
+
+    // If three-tier memory is available, use domain-selective injection
+    if (midTermMemory && longTermMemory) {
+      return this.executeWithTiers(input, context, midTermMemory, longTermMemory, shortTermMemory, startMs);
+    }
+
+    // Legacy fallback: use the flat MemoryStore
+    return this.executeLegacy(input, context, startMs);
+  }
+
+  /**
+   * Three-tier memory retrieval with domain-selective injection.
+   */
+  private executeWithTiers(
+    input: AgentInput,
+    _context: AgentContext,
+    midTerm: MidTermMemory,
+    longTerm: LongTermMemory,
+    shortTerm: ShortTermStore | undefined,
+    startMs: number,
+  ): AgentOutput {
+    const intent = this.findIntentClassification(input);
+    const payload = input.event.payload as Record<string, unknown> | undefined;
+
+    // Resolve which memory domains are relevant for this event
+    const domains = resolveMemoryDomains(
+      input.event.type,
+      payload,
+      intent?.intentCategory,
+    );
+
+    // Extract keywords from the event payload for long-term recall
+    const keywords = extractKeywords(payload);
+
+    this.log("Three-tier memory retrieval", {
+      domains,
+      keywords,
+      intentCategory: intent?.intentCategory,
+      hasShortTerm: !!shortTerm,
+    });
+
+    // Build the combined memory context string
+    const memoryContext = buildMemoryContext(
+      shortTerm,
+      midTerm,
+      longTerm,
+      domains,
+      keywords.length > 0 ? keywords : undefined,
+    );
+
+    const output: MemoryRetrievalOutput = {
+      memories: [], // Legacy field — tiered memories are in memoryContext
+      categories: domains,
+      totalRetrieved: 0,
+      memoryContext: memoryContext || undefined,
+      resolvedDomains: domains,
+    };
+
+    return {
+      ...this.createOutput(output, memoryContext ? 1.0 : 0.5, {
+        sourceType: "memory",
+        dataState: "raw",
+        freshness: "recent",
+        timestamp: startMs,
+      }),
+      timing: {
+        startMs,
+        endMs: Date.now(),
+        durationMs: Date.now() - startMs,
+      },
+    };
+  }
+
+  /**
+   * Legacy memory retrieval using the flat MemoryStore.
+   * Preserved for backward compatibility when tiers are not configured.
+   */
+  private executeLegacy(
+    input: AgentInput,
+    context: AgentContext,
+    startMs: number,
+  ): AgentOutput {
     const memoryStore = context.config?.["memoryStore"] as
       | MemoryStore
       | undefined;

@@ -26,3 +26,20 @@ export interface AgentContext {
   /** Optional model provider registry for agents that need LLM access */
   modelProvider?: ModelProviderRegistry;
 }
+
+/**
+ * Well-known config keys for memory tiers.
+ * These are passed via context.config by the backend.
+ */
+export interface MemoryTierConfig {
+  /** Legacy flat memory store */
+  memoryStore?: unknown;
+  /** Per-pipeline ephemeral scratch space */
+  shortTermMemory?: unknown;
+  /** SQLite domain-scoped working knowledge */
+  midTermMemory?: unknown;
+  /** SQLite FTS5 keyword-indexed long-term recall */
+  longTermMemory?: unknown;
+  /** ShortTermMemoryManager for creating per-trace stores */
+  shortTermMemoryManager?: unknown;
+}

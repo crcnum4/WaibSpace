@@ -23,6 +23,12 @@ export interface OrchestratorOptions {
   db?: WaibDatabase;
   /** Engagement tracker for adaptive layout based on user interaction patterns */
   engagementTracker?: unknown;
+  /** Three-tier memory: short-term manager for per-trace ephemeral stores */
+  shortTermMemoryManager?: { create(traceId: string): unknown; destroy(traceId: string): void };
+  /** Three-tier memory: mid-term domain-scoped working knowledge */
+  midTermMemory?: unknown;
+  /** Three-tier memory: long-term FTS5 keyword-indexed recall */
+  longTermMemory?: unknown;
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -86,6 +92,9 @@ export class Orchestrator {
     }> = [];
     const errors: Array<{ agentId: string; error: string; phase: string }> = [];
 
+    // Create a short-term memory store for this pipeline run
+    const shortTermStore = this.options?.shortTermMemoryManager?.create(traceId);
+
     for (const phase of plan.phases) {
       const phaseStartMs = Date.now();
       const input = { event, priorOutputs };
@@ -110,6 +119,15 @@ export class Orchestrator {
             : {}),
           ...(this.options?.engagementTracker
             ? { engagementTracker: this.options.engagementTracker }
+            : {}),
+          ...(shortTermStore
+            ? { shortTermMemory: shortTermStore }
+            : {}),
+          ...(this.options?.midTermMemory
+            ? { midTermMemory: this.options.midTermMemory }
+            : {}),
+          ...(this.options?.longTermMemory
+            ? { longTermMemory: this.options.longTermMemory }
             : {}),
         },
       };
@@ -322,5 +340,8 @@ export class Orchestrator {
         failedAgents: errors.map((e) => e.agentId),
       });
     }
+
+    // Clean up per-trace short-term memory
+    this.options?.shortTermMemoryManager?.destroy(traceId);
   }
 }
