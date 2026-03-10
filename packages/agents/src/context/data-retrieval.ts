@@ -184,8 +184,7 @@ export class DataRetrievalAgent extends BaseAgent {
    */
   private truncateData(data: unknown): unknown {
     const MAX_DATA_SIZE = 50_000;
-    const MAX_ITEMS = 20;
-    const MAX_FIELD_LENGTH = 500;
+    const MAX_ITEMS = 10;
 
     // MCP tools return [{type: "text", text: "..."}] — truncate the text content
     if (Array.isArray(data)) {
@@ -202,12 +201,11 @@ export class DataRetrievalAgent extends BaseAgent {
             try {
               const parsed = JSON.parse(text);
               if (Array.isArray(parsed)) {
-                // Take first N items, then strip large fields from each
+                // Take most recent N items, trim ONLY body content — preserve all headers
                 const truncated = parsed.slice(0, MAX_ITEMS).map((entry: unknown) => {
                   if (typeof entry === "object" && entry !== null) {
-                    return this.trimObjectFields(
+                    return this.trimBodyFields(
                       entry as Record<string, unknown>,
-                      MAX_FIELD_LENGTH,
                     );
                   }
                   return entry;
@@ -217,6 +215,7 @@ export class DataRetrievalAgent extends BaseAgent {
                   originalCount: parsed.length,
                   keptCount: truncated.length,
                   serializedSize: JSON.stringify(truncated).length,
+                  sampleFields: truncated[0] ? Object.keys(truncated[0] as Record<string, unknown>) : [],
                 });
 
                 return { type: "text", text: JSON.stringify(truncated) };
@@ -239,25 +238,22 @@ export class DataRetrievalAgent extends BaseAgent {
   }
 
   /**
-   * Trim long string fields in an object to keep data compact.
-   * Preserves short fields (headers, IDs, dates) while truncating
-   * large fields (body, html, content).
+   * Trim only large body/content fields, preserving ALL header/metadata fields
+   * intact (from, subject, date, id, etc.). This ensures the UI always has
+   * accurate display data while keeping overall payload size manageable.
    */
-  private trimObjectFields(
+  private trimBodyFields(
     obj: Record<string, unknown>,
-    maxLen: number,
   ): Record<string, unknown> {
+    const BODY_FIELDS = new Set(["text", "html", "body", "content", "snippet", "textBody", "htmlBody"]);
+    const MAX_BODY_LENGTH = 500;
     const result: Record<string, unknown> = {};
+
     for (const [key, value] of Object.entries(obj)) {
-      if (typeof value === "string" && value.length > maxLen) {
-        result[key] = value.slice(0, maxLen) + "...";
-      } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-        // Recurse one level for nested objects (e.g., headers)
-        result[key] = this.trimObjectFields(
-          value as Record<string, unknown>,
-          maxLen,
-        );
+      if (BODY_FIELDS.has(key) && typeof value === "string" && value.length > MAX_BODY_LENGTH) {
+        result[key] = value.slice(0, MAX_BODY_LENGTH) + "...";
       } else {
+        // Preserve ALL non-body fields exactly as-is (no recursive trimming)
         result[key] = value;
       }
     }
