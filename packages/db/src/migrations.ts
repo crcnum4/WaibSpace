@@ -18,6 +18,11 @@ export function runMigrations(db: Database): void {
     migration001(db);
     db.run(`INSERT INTO schema_version (version) VALUES (1)`);
   }
+
+  if (currentVersion < 2) {
+    migration002(db);
+    db.run(`INSERT INTO schema_version (version) VALUES (2)`);
+  }
 }
 
 function migration001(db: Database): void {
@@ -126,4 +131,49 @@ function migration001(db: Database): void {
   db.run(
     `CREATE INDEX IF NOT EXISTS idx_feedback_type ON user_feedback(surface_type, feedback_type)`
   );
+}
+
+function migration002(db: Database): void {
+  // Long-term memory table (three-tier memory model)
+
+  db.run(`CREATE TABLE IF NOT EXISTS longterm_memory (
+    id TEXT PRIMARY KEY,
+    domain TEXT NOT NULL,
+    keywords TEXT NOT NULL,
+    blurb TEXT NOT NULL,
+    source_context TEXT,
+    created_at INTEGER NOT NULL,
+    last_accessed_at INTEGER NOT NULL
+  )`);
+
+  db.run(
+    `CREATE INDEX IF NOT EXISTS idx_longterm_domain ON longterm_memory(domain)`
+  );
+  db.run(
+    `CREATE INDEX IF NOT EXISTS idx_longterm_accessed ON longterm_memory(last_accessed_at)`
+  );
+
+  db.run(`CREATE VIRTUAL TABLE IF NOT EXISTS longterm_memory_fts USING fts5(
+    keywords, blurb,
+    content='longterm_memory',
+    content_rowid='rowid'
+  )`);
+
+  // Sync triggers (same pattern as memory_fts in WaibDatabase.migrate)
+  db.run(`CREATE TRIGGER IF NOT EXISTS longterm_memory_ai AFTER INSERT ON longterm_memory BEGIN
+    INSERT INTO longterm_memory_fts(rowid, keywords, blurb)
+    VALUES (new.rowid, new.keywords, new.blurb);
+  END`);
+
+  db.run(`CREATE TRIGGER IF NOT EXISTS longterm_memory_ad AFTER DELETE ON longterm_memory BEGIN
+    INSERT INTO longterm_memory_fts(longterm_memory_fts, rowid, keywords, blurb)
+    VALUES ('delete', old.rowid, old.keywords, old.blurb);
+  END`);
+
+  db.run(`CREATE TRIGGER IF NOT EXISTS longterm_memory_au AFTER UPDATE ON longterm_memory BEGIN
+    INSERT INTO longterm_memory_fts(longterm_memory_fts, rowid, keywords, blurb)
+    VALUES ('delete', old.rowid, old.keywords, old.blurb);
+    INSERT INTO longterm_memory_fts(rowid, keywords, blurb)
+    VALUES (new.rowid, new.keywords, new.blurb);
+  END`);
 }
