@@ -3,6 +3,7 @@ import type { PolicyEngine, ProposedAction } from "@waibspace/policy";
 import { BaseAgent } from "../base-agent";
 import type { AgentInput, AgentContext } from "../types";
 import type { TriageOutput } from "../triage/types";
+import type { EscalationEngine } from "../trust/escalation-engine";
 
 /**
  * Evaluates proposed actions against the PolicyEngine during the context phase.
@@ -83,6 +84,40 @@ export class PolicyGateAgent extends BaseAgent {
     });
 
     const decision = policyEngine.evaluate(proposedAction);
+
+    // Check trust rules — auto-approve if a matching rule exists
+    const escalationEngine = context.config?.["escalationEngine"] as
+      | EscalationEngine
+      | undefined;
+
+    if (
+      escalationEngine &&
+      decision.verdict === "approval_required" &&
+      escalationEngine.shouldAutoApprove(detected.actionType, (detected.payload as Record<string, unknown>)?.domain as string ?? detected.actionType)
+    ) {
+      this.log("Trust rule auto-approved action", {
+        actionType: detected.actionType,
+      });
+
+      const autoDecision: PolicyDecision = {
+        action: decision.action,
+        verdict: "allowed",
+        riskClass: decision.riskClass,
+        reason: "auto-approved by trust rule",
+      };
+
+      const endMs = Date.now();
+      return {
+        ...this.createOutput(autoDecision, 1.0, {
+          sourceType: "system",
+          sourceId: this.id,
+          dataState: "raw",
+          freshness: "realtime",
+          timestamp: startMs,
+        }),
+        timing: { startMs, endMs, durationMs: endMs - startMs },
+      };
+    }
 
     // Enrich the approval prompt with action context
     if (decision.verdict === "approval_required" && decision.requiredApproval) {
