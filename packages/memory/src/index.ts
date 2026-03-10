@@ -36,3 +36,5 @@ export { MidTermMemory } from "./midterm-memory";
 export type { MidTermEntry } from "./midterm-memory";
 export { LongTermMemory } from "./longterm-memory";
 export type { LongTermEntry } from "./longterm-memory";
+export { resolveMemoryDomains } from "./domain-resolver";
+export { buildMemoryContext, extractKeywords } from "./context-builder";
