@@ -38,6 +38,8 @@ export interface OrchestratorOptions {
   approvalTracker?: unknown;
   /** User trust rules manager — user-defined auto-approve rules and correction feedback */
   userRulesManager?: unknown;
+  /** Trust escalation engine — auto-approves actions based on approval patterns */
+  escalationEngine?: unknown;
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -143,6 +145,9 @@ export class Orchestrator {
             : {}),
           ...(this.options?.triageFeedbackTracker
             ? { triageFeedbackTracker: this.options.triageFeedbackTracker }
+            : {}),
+          ...(this.options?.escalationEngine
+            ? { escalationEngine: this.options.escalationEngine }
             : {}),
         },
       };

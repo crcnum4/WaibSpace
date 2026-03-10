@@ -305,25 +305,25 @@ The total memory overhead is a few background LLM calls per day for compaction. 
 3. ~~Remove debug console.log~~ — Only on feature branch, never reached main
 4. ~~Build background task scheduler~~ — PR #299: TaskScheduler with exponential backoff, system.poll event type
 
-### Phase 2: Three-Tier Memory
-1. Implement short-term memory with task-scoped lifecycle (create on task start, destroy on complete)
-2. Implement mid-term memory with domain scoping and decay scores
-3. Implement long-term memory as keyword-indexed SQLite FTS table
-4. Build compaction pipeline: short→mid (on task complete), mid→long (periodic prune)
-5. Wire memory tiers into agent context — selective injection based on domain relevance
+### Phase 2: Three-Tier Memory ✅ Complete
+1. ~~Implement short-term memory with task-scoped lifecycle~~ — PR #305: ShortTermMemoryManager with in-memory Map, per-traceId scoping, auto-cleanup TTL
+2. ~~Implement mid-term memory with domain scoping and decay scores~~ — PR #307: MidTermMemory with SQLite, relevance decay (0.95^days), reinforcement, domain prefix matching
+3. ~~Implement long-term memory as keyword-indexed SQLite FTS table~~ — PR #306: LongTermMemory with FTS5, keyword search, sync triggers
+4. ~~Build compaction pipeline: short→mid→long~~ — PR #308: MemoryCompactor with decoupled StructuredCompletionFn for LLM summarization
+5. ~~Wire memory tiers into agent context~~ — PR #309: Domain-selective injection via resolveMemoryDomains(), per-trace short-term lifecycle in orchestrator
 
-### Phase 3: Triage Intelligence
-1. Rewrite InboxSurfaceAgent as a generic DataTriageAgent pattern
-2. LLM always classifies incoming data (not opt-in)
-3. Auto-actions for low-risk tier (mark read, categorize, store in memory)
-4. Memory integration — promo summaries to mid-term, contact patterns to long-term
-5. Apply triage pattern to other connectors as they're added (Slack, GitHub, Calendar)
+### Phase 3: Triage Intelligence ✅ Complete
+1. ~~Rewrite InboxSurfaceAgent as a generic DataTriageAgent pattern~~ — PR #313: Pluggable TriageClassifier interface, EmailTriageClassifier wrapping existing heuristics, new triage pipeline phase
+2. ~~LLM always classifies incoming data (not opt-in)~~ — PR #315: Removed WaibScan button, InboxSurfaceAgent consumes triage data first, items sorted by urgency
+3. ~~Auto-actions for low-risk tier~~ — PR #315: AutoActionExecutor for mark_read/archive/store_memory, PolicyGateAgent auto-allows riskClass "A" triage actions
+4. ~~Memory integration — promo summaries to mid-term, contact patterns to long-term~~ — PR #314: TriageMemoryIntegrator writes promo/info to mid-term, contact patterns to long-term FTS5, TriageFeedbackTracker learns from user interactions
+5. ~~Apply triage pattern to other connectors~~ — Architecture ready: any connector can register a TriageClassifier via DataTriageAgent.registerClassifier()
 
-### Phase 4: Briefing UI
-1. Create BriefingCard, ActionCard, InsightCard, StatusCard components
-2. Rewrite LayoutComposer to produce briefings instead of surface grids
-3. Proactive overlay alerts via WebSocket push for high-urgency items
-4. "While you were away" summary generation from accumulated short-term logs
+### Phase 4: Briefing UI ✅ Complete
+1. ~~Create BriefingCard, ActionCard, InsightCard, StatusCard components~~ — PR #320: Four React block components with BEM CSS, urgency indicators, risk class badges, expandable details, memory stats
+2. ~~Rewrite LayoutComposer to produce briefings instead of surface grids~~ — PR #319: Briefing transformation from triage data, time-of-day greeting, action cards for urgent items, insight cards for auto-actions, grid fallback preserved
+3. ~~Proactive overlay alerts via WebSocket push for high-urgency items~~ — PR #321: AlertEmitter with 5-min dedup, orchestrator emits triage results to bus, WebSocket broadcast, OverlayAlerts component with slide-in animation and 30s auto-dismiss
+4. "While you were away" summary — deferred to Phase 6 (requires accumulated background logs over time)
 
 ### Phase 5: Trust Training
 1. Track approval/rejection patterns per action type per domain

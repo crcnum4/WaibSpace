@@ -74,6 +74,8 @@ export {
   UserRulesManager,
   type UserTrustRule,
   type CorrectionFeedback,
+  EscalationEngine,
+  type TrustRule,
   type ApprovalRecord,
   type ApprovalStats,
   type TrustEscalation,

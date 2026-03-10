@@ -41,6 +41,7 @@ import {
   // Trust tracking
   ApprovalTracker,
   UserRulesManager,
+  EscalationEngine,
 } from "@waibspace/agents";
 import {
   ConnectorRegistry,
@@ -207,6 +208,12 @@ log.info("Approval tracker initialized");
 const userRulesManager = new UserRulesManager(longTermMemory, midTermMemory);
 log.info("User trust rules manager initialized");
 
+// ---------- 6. Escalation Engine ----------
+const escalationEngine = new EscalationEngine(approvalTracker, midTermMemory);
+log.info("Escalation engine initialized", {
+  activeRules: escalationEngine.getActiveRules().length,
+});
+
 // ---------- 6a. Engagement Tracker ----------
 const engagementTracker = new EngagementTracker(memoryStore);
 log.info("Engagement tracker initialized");
@@ -237,6 +244,7 @@ const orchestrator = new Orchestrator(bus, agentRegistry, {
   triageFeedbackTracker,
   approvalTracker,
   userRulesManager,
+  escalationEngine,
 });
 
 // ---------- 7b. Alert Emitter ----------
