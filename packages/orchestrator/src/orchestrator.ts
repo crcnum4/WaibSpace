@@ -34,6 +34,8 @@ export interface OrchestratorOptions {
   triageMemoryIntegrator?: unknown;
   /** Triage feedback tracker — learns from user interactions with triaged items */
   triageFeedbackTracker?: unknown;
+  /** Trust escalation engine — auto-approves actions based on approval patterns */
+  escalationEngine?: unknown;
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -139,6 +141,9 @@ export class Orchestrator {
             : {}),
           ...(this.options?.triageFeedbackTracker
             ? { triageFeedbackTracker: this.options.triageFeedbackTracker }
+            : {}),
+          ...(this.options?.escalationEngine
+            ? { escalationEngine: this.options.escalationEngine }
             : {}),
         },
       };
