@@ -1,0 +1,554 @@
+/* ================================================================
+   Briefing Components — BriefingCard, ActionCard, InsightCard, StatusCard
+   BEM naming · CSS custom properties from global design tokens
+   ================================================================ */
+
+/* --------------------------------
+   BriefingCard
+   -------------------------------- */
+.briefing-card {
+  background: var(--color-surface);
+  border: var(--block-card-border);
+  border-radius: var(--block-card-radius);
+  box-shadow: var(--block-card-shadow);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.briefing-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.briefing-card__title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  line-height: var(--leading-tight);
+}
+
+.briefing-card__timestamp {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.briefing-card__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.briefing-card__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.briefing-card__item--actionable {
+  cursor: pointer;
+}
+
+.briefing-card__item--actionable:hover {
+  background: var(--color-surface-hover);
+}
+
+.briefing-card__urgency-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  margin-top: 5px;
+}
+
+.briefing-card__urgency-dot--high {
+  background: var(--color-danger);
+  box-shadow: 0 0 6px var(--color-danger-subtle);
+}
+
+.briefing-card__urgency-dot--medium {
+  background: var(--color-warning);
+}
+
+.briefing-card__urgency-dot--low {
+  background: var(--color-neutral);
+}
+
+.briefing-card__item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.briefing-card__item-label {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}
+
+.briefing-card__item-detail {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.briefing-card__summary {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  line-height: var(--leading-normal);
+  padding-top: var(--space-1);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+/* --------------------------------
+   ActionCard
+   -------------------------------- */
+.action-card {
+  background: var(--color-surface);
+  border: var(--block-card-border);
+  border-radius: var(--block-card-radius);
+  box-shadow: var(--block-card-shadow);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  border-left: 3px solid var(--color-border);
+}
+
+.action-card--risk-a {
+  border-left-color: var(--color-success);
+}
+
+.action-card--risk-b {
+  border-left-color: var(--color-warning);
+}
+
+.action-card--risk-c {
+  border-left-color: var(--color-danger);
+}
+
+.action-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.action-card__title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  line-height: var(--leading-tight);
+}
+
+.action-card__badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.action-card__risk-badge {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.action-card__risk-badge--a {
+  background: var(--color-success-subtle);
+  color: var(--color-success-text);
+}
+
+.action-card__risk-badge--b {
+  background: var(--color-warning-subtle);
+  color: var(--color-warning-text);
+}
+
+.action-card__risk-badge--c {
+  background: var(--color-danger-subtle);
+  color: var(--color-danger-text);
+}
+
+.action-card__source-badge {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  background: var(--color-neutral-subtle);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.action-card__context {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  line-height: var(--leading-normal);
+}
+
+.action-card__draft {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.action-card__draft-label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.action-card__draft-content {
+  font-size: var(--text-base);
+  color: var(--color-text);
+  padding: var(--space-3);
+  line-height: var(--leading-relaxed);
+  white-space: pre-wrap;
+}
+
+.action-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-top: var(--space-1);
+}
+
+.action-card__btn {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.action-card__btn--primary {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+
+.action-card__btn--primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.action-card__btn--secondary {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-strong);
+}
+
+.action-card__btn--secondary:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.action-card__btn--danger {
+  background: transparent;
+  color: var(--color-danger-text);
+  border-color: var(--color-danger-subtle);
+}
+
+.action-card__btn--danger:hover {
+  background: var(--color-danger-subtle);
+}
+
+/* --------------------------------
+   InsightCard
+   -------------------------------- */
+.insight-card {
+  background: var(--color-surface);
+  border: var(--block-card-border);
+  border-radius: var(--block-card-radius);
+  box-shadow: var(--block-card-shadow);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.insight-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.insight-card__check {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-success-subtle);
+  color: var(--color-success-text);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+}
+
+.insight-card__title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  line-height: var(--leading-tight);
+}
+
+.insight-card__actions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.insight-card__action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.insight-card__action-desc {
+  color: var(--color-text-secondary);
+}
+
+.insight-card__action-count {
+  flex-shrink: 0;
+  min-width: 22px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  background: var(--color-accent-subtle);
+  border-radius: var(--radius-full);
+  padding: 0 var(--space-2);
+}
+
+.insight-card__expandable {
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: var(--space-2);
+}
+
+.insight-card__toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-accent);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.insight-card__toggle:hover {
+  color: var(--color-accent-hover);
+}
+
+.insight-card__details {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.insight-card__detail {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  padding-left: var(--space-3);
+  position: relative;
+}
+
+.insight-card__detail::before {
+  content: "\2022";
+  position: absolute;
+  left: 0;
+  color: var(--color-muted);
+}
+
+/* --------------------------------
+   StatusCard
+   -------------------------------- */
+.status-card {
+  background: var(--color-surface);
+  border: var(--block-card-border);
+  border-radius: var(--block-card-radius);
+  box-shadow: var(--block-card-shadow);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.status-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.status-card__title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+}
+
+.status-card__uptime {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.status-card__connectors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-2);
+}
+
+.status-card__connector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  font-size: var(--text-sm);
+}
+
+.status-card__status-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+}
+
+.status-card__status-dot--active {
+  background: var(--color-success);
+  box-shadow: 0 0 6px var(--color-success-subtle);
+}
+
+.status-card__status-dot--error {
+  background: var(--color-danger);
+  box-shadow: 0 0 6px var(--color-danger-subtle);
+}
+
+.status-card__status-dot--idle {
+  background: var(--color-neutral);
+}
+
+.status-card__connector-name {
+  color: var(--color-text);
+  font-weight: var(--weight-medium);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-card__last-poll {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.status-card__memory {
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.status-card__memory-label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-card__memory-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.status-card__memory-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.status-card__memory-name {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  width: 36px;
+  flex-shrink: 0;
+}
+
+.status-card__memory-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.status-card__memory-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--transition-base);
+}
+
+.status-card__memory-fill--short {
+  background: var(--color-accent);
+}
+
+.status-card__memory-fill--mid {
+  background: var(--color-info);
+}
+
+.status-card__memory-fill--long {
+  background: var(--color-success);
+}
+
+.status-card__memory-value {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
