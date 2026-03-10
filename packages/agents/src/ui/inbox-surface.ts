@@ -187,16 +187,14 @@ export class InboxSurfaceAgent extends BaseAgent {
       );
     }
 
-    // Log the first email's actual fields to diagnose MCP format mismatches
+    // Console log the raw email data to diagnose field name mismatches
     if (rawEmails.length > 0) {
       const sample = rawEmails[0];
-      this.log("Sample email field mapping", {
-        availableFields: Object.keys(sample),
-        fromValue: sample.from ?? sample.From ?? sample.sender ?? "(missing)",
-        subjectValue: sample.subject ?? sample.Subject ?? "(missing)",
-        idValue: sample.id ?? sample.uid ?? sample.messageId ?? "(missing)",
-        dateValue: sample.date ?? sample.Date ?? sample.receivedAt ?? "(missing)",
-      });
+      console.log("[InboxSurface] ===== RAW EMAIL DEBUG =====");
+      console.log("[InboxSurface] Email count:", rawEmails.length);
+      console.log("[InboxSurface] First email ALL KEYS:", Object.keys(sample));
+      console.log("[InboxSurface] First email FULL OBJECT:", JSON.stringify(sample).slice(0, 1000));
+      console.log("[InboxSurface] ===========================");
     }
 
     // Default path: map raw email fields directly — no LLM involved

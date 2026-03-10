@@ -88,6 +88,32 @@ export class DataRetrievalAgent extends BaseAgent {
           traceId: context.traceId,
         });
 
+        // Log raw MCP response before any truncation
+        console.log("[DataRetrieval] Raw MCP response shape:", {
+          connectorId: retrieval.connectorId,
+          operation: retrieval.operation,
+          isArray: Array.isArray(response.data),
+          length: Array.isArray(response.data) ? response.data.length : "N/A",
+        });
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          const firstItem = response.data[0] as Record<string, unknown>;
+          console.log("[DataRetrieval] First MCP item:", {
+            type: firstItem?.type,
+            textLength: typeof firstItem?.text === "string" ? firstItem.text.length : "N/A",
+            keys: Object.keys(firstItem ?? {}),
+          });
+          // If it's the {type:"text", text:"..."} MCP format, log the parsed inner content
+          if (firstItem?.type === "text" && typeof firstItem?.text === "string") {
+            try {
+              const inner = JSON.parse(firstItem.text as string);
+              if (Array.isArray(inner) && inner.length > 0) {
+                console.log("[DataRetrieval] First email object FIELDS:", Object.keys(inner[0]));
+                console.log("[DataRetrieval] First email object SAMPLE:", JSON.stringify(inner[0]).slice(0, 500));
+              }
+            } catch { /* not JSON */ }
+          }
+        }
+
         const truncated = this.truncateData(response.data);
 
         // Log response shape for debugging MCP data flow
