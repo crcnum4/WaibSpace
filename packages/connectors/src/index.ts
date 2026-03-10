@@ -8,7 +8,6 @@ export type {
 export { BaseConnector } from "./base-connector";
 export type { BaseConnectorConfig } from "./base-connector";
 export { ConnectorRegistry } from "./registry";
-export { GmailConnector } from "./gmail";
 export { MockGmailConnector } from "./gmail";
 export type {
   EmailSummary,
@@ -19,9 +18,7 @@ export type {
   SendEmailParams,
 } from "./gmail";
 export {
-  GoogleCalendarConnector,
   MockCalendarConnector,
-  type GoogleCalendarConnectorConfig,
   type CalendarEvent,
   type FreeSlot,
 } from "./google-calendar";
