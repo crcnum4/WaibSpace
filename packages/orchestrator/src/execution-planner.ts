@@ -72,7 +72,7 @@ const AGENT_ORDERINGS: Record<string, AgentOrdering[]> = {
     {
       category: "context",
       groups: [
-        ["context.planner"],
+        ["context.planner", "context.memory-recall"],
         ["context.connector-selection"],
         ["context.data-retrieval"],
       ],

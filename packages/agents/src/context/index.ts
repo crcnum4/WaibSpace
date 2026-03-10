@@ -23,3 +23,7 @@ export {
   BehavioralPreferenceAgent,
   type BehavioralPreferenceOutput,
 } from "./behavioral-preference";
+export {
+  MemoryRecallAgent,
+  type MemoryRecallOutput,
+} from "./memory-recall";

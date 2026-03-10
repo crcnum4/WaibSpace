@@ -128,7 +128,23 @@ export class LayoutComposerAgent extends BaseAgent {
 
     this.log("Collected surfaces", { count: surfaces.length });
 
-    // 2. Check for triage data in priorOutputs
+    // 2. Check for away summary data in event payload
+    const eventPayload = input.event.payload as Record<string, unknown> | undefined;
+    const awaySummary = eventPayload?.awaySummary as {
+      durationMs: number;
+      durationFormatted: string;
+      events: Array<{ type: string; summary: string; timestamp: number; connectorId?: string }>;
+    } | undefined;
+
+    if (awaySummary) {
+      this.log("Away summary detected, composing away briefing", {
+        duration: awaySummary.durationFormatted,
+        eventCount: awaySummary.events.length,
+      });
+      return this.composeAwaySummaryLayout(awaySummary, surfaces, context, startMs);
+    }
+
+    // 3. Check for triage data in priorOutputs
     const triageOutput = extractTriageOutput(input.priorOutputs);
 
     if (triageOutput) {
@@ -140,9 +156,101 @@ export class LayoutComposerAgent extends BaseAgent {
       return this.composeBriefingLayout(triageOutput, surfaces, context, startMs);
     }
 
-    // 3. Fallback: grid-based layout (existing behavior)
+    // 4. Fallback: grid-based layout (existing behavior)
     this.log("No triage data, using grid layout");
     return this.composeGridLayout(surfaces, context, startMs);
+  }
+
+  /**
+   * Compose an away-summary layout when the user returns after an absence.
+   *
+   * Generates a "While you were away" briefing card summarizing background
+   * events that occurred during the user's absence.
+   */
+  private composeAwaySummaryLayout(
+    awaySummary: {
+      durationMs: number;
+      durationFormatted: string;
+      events: Array<{ type: string; summary: string; timestamp: number; connectorId?: string }>;
+    },
+    surfaces: SurfaceSpec[],
+    context: AgentContext,
+    startMs: number,
+  ): AgentOutput {
+    const cards: BriefingCardSpec[] = [];
+
+    // Group events by type for a cleaner summary
+    const eventsByType: Record<string, number> = {};
+    for (const event of awaySummary.events) {
+      eventsByType[event.type] = (eventsByType[event.type] ?? 0) + 1;
+    }
+
+    // Build event summaries (deduplicated)
+    const eventSummaries = awaySummary.events.map((e) => e.summary);
+    const uniqueSummaries = [...new Set(eventSummaries)];
+
+    cards.push({
+      cardType: "briefing-card",
+      priority: 100,
+      data: {
+        title: `Welcome back — you were away for ${awaySummary.durationFormatted}`,
+        summary: `${awaySummary.events.length} event${awaySummary.events.length !== 1 ? "s" : ""} occurred while you were away`,
+        eventCount: awaySummary.events.length,
+        eventBreakdown: eventsByType,
+        eventSummaries: uniqueSummaries.slice(0, 10),
+        durationMs: awaySummary.durationMs,
+        durationFormatted: awaySummary.durationFormatted,
+      },
+    });
+
+    // Sort cards by priority descending
+    cards.sort((a, b) => b.priority - a.priority);
+
+    const briefingData: BriefingSurfaceData = {
+      cards,
+      generatedAt: Date.now(),
+      mode: "away-summary",
+    };
+
+    const briefingSurface = SurfaceFactory.briefing(briefingData, {
+      sourceType: "system",
+      sourceId: "layout-composer",
+      trustLevel: "trusted",
+      timestamp: Date.now(),
+      freshness: "realtime",
+      dataState: "transformed",
+      transformations: ["away-summary-to-briefing"],
+    });
+
+    // Keep overlay surfaces alongside the briefing
+    const overlays = surfaces.filter(
+      (s) => s.layoutHints.position === "overlay",
+    );
+
+    const allSurfaces = [briefingSurface, ...overlays];
+    const layout = this.buildDirectives(allSurfaces);
+
+    const endMs = Date.now();
+
+    const composed: ComposedLayout = {
+      surfaces: allSurfaces,
+      layout,
+      timestamp: Date.now(),
+      traceId: context.traceId,
+    };
+
+    return {
+      ...this.createOutput(composed, 1.0, {
+        dataState: "transformed",
+        transformations: ["away-summary-to-briefing", "layout-composition"],
+        timestamp: startMs,
+      }),
+      timing: {
+        startMs,
+        endMs,
+        durationMs: endMs - startMs,
+      },
+    };
   }
 
   /**
