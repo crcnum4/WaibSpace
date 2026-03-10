@@ -10,4 +10,6 @@ export type {
   ConnectionGuideSurfaceData,
   MorningDigestSurfaceData,
   SearchSurfaceData,
+  BriefingCardSpec,
+  BriefingSurfaceData,
 } from "./surface-data";
