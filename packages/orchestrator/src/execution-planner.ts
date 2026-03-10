@@ -46,6 +46,22 @@ const AGENT_ORDERINGS: Record<string, AgentOrdering[]> = {
       ],
     },
   ],
+  "system.poll": [
+    {
+      category: "context",
+      groups: [
+        ["context.connector-selection"],
+        ["context.data-retrieval"],
+      ],
+    },
+    {
+      category: "ui",
+      groups: [
+        ["ui.inbox-surface", "ui.calendar-surface", "ui.generic-data-surface"],
+        ["layout-composer"],
+      ],
+    },
+  ],
   "user.message.received": [
     {
       category: "context",
@@ -83,6 +99,12 @@ function getPipelineForEvent(eventType: string): AgentCategory[] {
 
   if (eventType === "policy.approval.response") {
     return ["execution"];
+  }
+
+  // system.poll events already know the intent (check for updates) — skip
+  // perception and reasoning, go straight to context + ui + safety.
+  if (eventType === "system.poll") {
+    return ["context", "ui", "safety"];
   }
 
   // Default pipeline
