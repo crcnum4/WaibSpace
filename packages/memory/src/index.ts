@@ -36,3 +36,11 @@ export { MidTermMemory } from "./midterm-memory";
 export type { MidTermEntry } from "./midterm-memory";
 export { LongTermMemory } from "./longterm-memory";
 export type { LongTermEntry } from "./longterm-memory";
+export { MemoryCompactor } from "./memory-compactor";
+export type {
+  CompactorMessage,
+  CompactionInsight,
+  LongTermExtract,
+  StructuredCompletionFn,
+  CompactionStats,
+} from "./memory-compactor";
