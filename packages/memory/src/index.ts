@@ -32,5 +32,7 @@ export type {
 } from "./behavioral-model";
 export { ShortTermMemoryManager } from "./short-term-memory";
 export type { ShortTermStore } from "./short-term-memory";
+export { MidTermMemory } from "./midterm-memory";
+export type { MidTermEntry } from "./midterm-memory";
 export { LongTermMemory } from "./longterm-memory";
 export type { LongTermEntry } from "./longterm-memory";

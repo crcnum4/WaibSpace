@@ -134,8 +134,27 @@ function migration001(db: Database): void {
 }
 
 function migration002(db: Database): void {
-  // Long-term memory table (three-tier memory model)
+  // Mid-term memory: domain-scoped working knowledge with relevance decay
+  db.run(`CREATE TABLE IF NOT EXISTS midterm_memory (
+    id TEXT PRIMARY KEY,
+    domain TEXT NOT NULL,
+    key TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    relevance_score REAL DEFAULT 1.0,
+    access_count INTEGER DEFAULT 0,
+    reinforcement_count INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    last_accessed_at INTEGER NOT NULL
+  )`);
+  db.run(
+    `CREATE INDEX IF NOT EXISTS idx_midterm_domain ON midterm_memory(domain)`
+  );
+  db.run(
+    `CREATE INDEX IF NOT EXISTS idx_midterm_relevance ON midterm_memory(relevance_score)`
+  );
 
+  // Long-term memory table (three-tier memory model)
   db.run(`CREATE TABLE IF NOT EXISTS longterm_memory (
     id TEXT PRIMARY KEY,
     domain TEXT NOT NULL,
