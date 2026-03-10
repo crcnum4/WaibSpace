@@ -42,6 +42,8 @@ import {
   ApprovalTracker,
   UserRulesManager,
   EscalationEngine,
+  // Context agents
+  MemoryRecallAgent,
 } from "@waibspace/agents";
 import {
   ConnectorRegistry,
@@ -62,6 +64,7 @@ import { TaskScheduler } from "./scheduler";
 import { startServer } from "./server";
 import { broadcast } from "./ws";
 import { AlertEmitter } from "./alert-emitter";
+import { AwayTracker } from "./away-tracker";
 
 // ---------- 1. Event Bus ----------
 const bus = new EventBus();
@@ -158,6 +161,7 @@ agentRegistry.register(new ConnectorSelectionAgent());
 agentRegistry.register(new DataRetrievalAgent());
 agentRegistry.register(new PolicyGateAgent());
 agentRegistry.register(new BehavioralPreferenceAgent());
+agentRegistry.register(new MemoryRecallAgent());
 
 // Triage agents
 const dataTriageAgent = new DataTriageAgent();
@@ -271,8 +275,19 @@ bus.on("triage.high_urgency", (event: WaibEvent) => {
     connectorId: string;
   };
   alertEmitter.emitAlerts(payload.triageItems, payload.connectorId, event.traceId);
+
+  // Record for away tracker
+  awayTracker.recordBackgroundEvent({
+    type: "triage.high_urgency",
+    summary: `${payload.triageItems.length} high-urgency item(s) from ${payload.connectorId}`,
+    connectorId: payload.connectorId,
+  });
 });
 log.info("Alert emitter initialized");
+
+// ---------- 7c. Away Tracker ----------
+const awayTracker = new AwayTracker();
+log.info("Away tracker initialized");
 
 // ---------- 8. Memory Update Pipeline ----------
 const memoryPipeline = new MemoryUpdatePipeline(memoryStore, bus);
@@ -369,6 +384,28 @@ for (const pattern of USER_EVENT_PATTERNS) {
     // ObservationProcessor and should not re-trigger the full pipeline.
     if (PASSIVE_OBSERVATION_TYPES.has(event.type)) return;
 
+    // Record user activity for away tracking
+    awayTracker.recordActivity();
+
+    // On user.message.received, check if user was away and inject summary
+    if (event.type === "user.message.received") {
+      const awaySummary = awayTracker.checkAndGetAwaySummary();
+      if (awaySummary) {
+        const duration = AwayTracker.formatDuration(awaySummary.durationMs);
+        log.info("User returned after absence", {
+          duration,
+          eventCount: awaySummary.events.length,
+        });
+        // Inject away summary into the event payload for LayoutComposer
+        const payload = event.payload as Record<string, unknown>;
+        payload.awaySummary = {
+          durationMs: awaySummary.durationMs,
+          durationFormatted: duration,
+          events: awaySummary.events,
+        };
+      }
+    }
+
     const traceId = event.traceId;
     log.child({ traceId }).info("Routing event to orchestrator", { eventType: event.type });
     try {
@@ -427,6 +464,15 @@ bus.on("background.task.complete", (event: WaibEvent) => {
     durationMs: number;
     error?: string;
   };
+
+  // Record for away tracker
+  if (payload.success) {
+    awayTracker.recordBackgroundEvent({
+      type: "task.complete",
+      summary: `Background task "${payload.taskName}" completed`,
+    });
+  }
+
   const message: ServerMessage = {
     type: "task.complete",
     payload,

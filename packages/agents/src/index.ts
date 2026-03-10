@@ -36,6 +36,8 @@ export {
   PolicyGateAgent,
   BehavioralPreferenceAgent,
   type BehavioralPreferenceOutput,
+  MemoryRecallAgent,
+  type MemoryRecallOutput,
 } from "./context";
 export {
   InboxSurfaceAgent,
