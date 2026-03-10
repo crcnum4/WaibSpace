@@ -7,6 +7,7 @@ import { BaseAgent } from "../base-agent";
 import type { AgentInput, AgentContext } from "../types";
 import type { DataRetrievalOutput } from "../context/data-retrieval";
 import { classifyEmailUrgency } from "./email-urgency";
+import type { TriageOutput, TriagedItem } from "../triage/types";
 
 interface EmailSummary {
   id: string;
@@ -82,7 +83,15 @@ export class InboxSurfaceAgent extends BaseAgent {
     const startMs = Date.now();
 
     // Detect WaibScan action — triggered when user clicks the WaibScan button
+    // @deprecated WaibScan is no longer needed — triage is always-on.
+    // Kept for backward compatibility with existing button interactions.
     const isWaibScan = this.isWaibScanAction(input);
+
+    // Check for triage output first — AI always triages now
+    const triageData = this.findTriageOutput(input);
+    if (triageData) {
+      return this.executeWithTriageData(triageData, input, startMs);
+    }
 
     const retrievalOutput = this.findDataRetrieval(input);
     if (!retrievalOutput) {
@@ -225,19 +234,149 @@ export class InboxSurfaceAgent extends BaseAgent {
 
     const surfaceSpec = SurfaceFactory.inbox(surfaceData, provenance);
 
-    // Add WaibScan action for on-demand LLM analysis
-    surfaceSpec.actions.push({
-      id: "waib-scan",
-      label: "WaibScan Inbox",
-      actionType: "agent.invoke",
-      riskClass: "A",
-      payload: { scope: "all" },
-    });
+    // WaibScan button removed — triage is always-on now.
+    // The triage phase runs automatically in the pipeline.
 
     return {
       ...this.createOutput(
         { surfaceSpec, summary },
         0.85,
+        provenance,
+      ),
+      timing: {
+        startMs,
+        endMs,
+        durationMs: endMs - startMs,
+      },
+    };
+  }
+
+  /**
+   * Find triage output from prior pipeline outputs.
+   * Returns the first TriageOutput[] from the triage phase.
+   */
+  private findTriageOutput(input: AgentInput): TriageOutput[] | undefined {
+    for (const prior of input.priorOutputs) {
+      if (prior.category === "triage" && prior.output) {
+        const output = prior.output as unknown;
+        // DataTriageAgent outputs TriageOutput[] via createOutput
+        if (Array.isArray(output) && output.length > 0) {
+          return output as TriageOutput[];
+        }
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Build inbox surface from triage data — items are pre-classified with
+   * urgency, category, and suggested actions. Sorted by urgency (high first).
+   */
+  private executeWithTriageData(
+    triageOutputs: TriageOutput[],
+    input: AgentInput,
+    startMs: number,
+  ): AgentOutput {
+    // Flatten all triaged items from all connectors
+    const allItems: TriagedItem[] = [];
+    for (const triageOutput of triageOutputs) {
+      allItems.push(...triageOutput.items);
+    }
+
+    if (allItems.length === 0) {
+      this.log("Triage produced no items, returning empty inbox surface");
+      const emptySurfaceData: InboxSurfaceData = {
+        emails: [],
+        totalCount: 0,
+        unreadCount: 0,
+      };
+      const provenance = {
+        sourceType: "agent" as const,
+        sourceId: this.id,
+        trustLevel: "trusted" as const,
+        timestamp: startMs,
+        freshness: "realtime" as const,
+        dataState: "transformed" as const,
+      };
+      const surfaceSpec = SurfaceFactory.inbox(emptySurfaceData, provenance);
+      return {
+        ...this.createOutput(
+          { surfaceSpec, summary: "Your inbox is empty" },
+          0.85,
+          provenance,
+        ),
+        timing: {
+          startMs,
+          endMs: Date.now(),
+          durationMs: Date.now() - startMs,
+        },
+      };
+    }
+
+    // Sort by urgency: high → medium → low
+    const urgencyOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
+    const sortedItems = [...allItems].sort(
+      (a, b) =>
+        (urgencyOrder[a.triage.urgency] ?? 2) -
+        (urgencyOrder[b.triage.urgency] ?? 2),
+    );
+
+    // Map triaged items to inbox email format
+    const emails: InboxSurfaceData["emails"] = sortedItems.map((item, i) => {
+      const raw = item.raw as Record<string, unknown>;
+      const normalized = this.normalizeEmailFields(raw, i);
+      return {
+        ...normalized,
+        urgency: item.triage.urgency,
+        // Include category as a badge hint for the UI
+        category: item.triage.category as string,
+        suggestedReply:
+          item.triage.suggestedAction === "reply"
+            ? "Reply suggested"
+            : undefined,
+      };
+    });
+
+    const unreadCount = emails.filter((e) => e.isUnread).length;
+
+    // Compute stats summary
+    const stats = triageOutputs[0]?.stats;
+    const highCount = stats?.byUrgency.high ?? 0;
+    const mediumCount = stats?.byUrgency.medium ?? 0;
+    const lowCount = stats?.byUrgency.low ?? 0;
+
+    const summary = `${emails.length} emails triaged: ${highCount} urgent, ${mediumCount} medium, ${lowCount} low`;
+
+    const surfaceData: InboxSurfaceData = {
+      emails,
+      totalCount: emails.length,
+      unreadCount,
+    };
+
+    const provenance = {
+      sourceType: "agent" as const,
+      sourceId: this.id,
+      trustLevel: "trusted" as const,
+      timestamp: startMs,
+      freshness: "realtime" as const,
+      dataState: "transformed" as const,
+    };
+
+    const surfaceSpec = SurfaceFactory.inbox(surfaceData, provenance);
+
+    const endMs = Date.now();
+
+    this.log("Built inbox surface from triage data", {
+      total: emails.length,
+      highUrgency: highCount,
+      mediumUrgency: mediumCount,
+      lowUrgency: lowCount,
+    });
+
+    return {
+      ...this.createOutput(
+        { surfaceSpec, summary },
+        0.9,
         provenance,
       ),
       timing: {

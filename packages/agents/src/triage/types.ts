@@ -37,6 +37,18 @@ export interface TriageContext {
   domains?: string[];
 }
 
+export interface AutoAction {
+  type: string; // "mark_read", "archive", "store_memory", "unsubscribe_recommend"
+  target: string; // item ID or identifier
+  metadata?: Record<string, unknown>;
+}
+
+export interface MemoryCandidate {
+  domain: string;
+  key: string;
+  summary: string;
+}
+
 export interface TriageOutput {
   items: TriagedItem[];
   stats: {
@@ -46,4 +58,8 @@ export interface TriageOutput {
   };
   classifierId: string;
   connectorId: string;
+  /** Auto-tier actions safe to execute without user approval. */
+  autoActions?: AutoAction[];
+  /** Summaries extracted for mid-term memory storage. */
+  memoryCandidates?: MemoryCandidate[];
 }

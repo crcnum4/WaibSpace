@@ -17,9 +17,11 @@ import type {
   UrgencyLevel,
   TriageCategory,
 } from "./types";
+import { AutoActionExecutor } from "./auto-actions";
 
 export class DataTriageAgent extends BaseAgent {
   private classifiers = new Map<string, TriageClassifier>();
+  private autoActionExecutor = new AutoActionExecutor();
 
   constructor() {
     super({
@@ -119,6 +121,12 @@ export class DataTriageAgent extends BaseAgent {
           byCategory[item.triage.category]++;
         }
 
+        // Compute auto-actions and memory candidates for low-risk items
+        const autoActions = this.autoActionExecutor.processAutoActions(items);
+        const promoMemory = this.autoActionExecutor.extractPromoSummaries(items);
+        const infoMemory = this.autoActionExecutor.extractInfoSummaries(items);
+        const memoryCandidates = [...promoMemory, ...infoMemory];
+
         triageOutputs.push({
           items,
           stats: {
@@ -128,6 +136,8 @@ export class DataTriageAgent extends BaseAgent {
           },
           classifierId: classifier.id,
           connectorId: result.connectorId,
+          autoActions: autoActions.length > 0 ? autoActions : undefined,
+          memoryCandidates: memoryCandidates.length > 0 ? memoryCandidates : undefined,
         });
 
         this.log("Triage complete for connector", {
@@ -135,6 +145,8 @@ export class DataTriageAgent extends BaseAgent {
           classifierId: classifier.id,
           total: items.length,
           highUrgency: byUrgency.high,
+          autoActions: autoActions.length,
+          memoryCandidates: memoryCandidates.length,
         });
       } catch (err) {
         this.log("Classifier error", {

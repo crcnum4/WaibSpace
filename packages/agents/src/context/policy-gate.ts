@@ -2,6 +2,7 @@ import type { AgentOutput, PolicyDecision } from "@waibspace/types";
 import type { PolicyEngine, ProposedAction } from "@waibspace/policy";
 import { BaseAgent } from "../base-agent";
 import type { AgentInput, AgentContext } from "../types";
+import type { TriageOutput } from "../triage/types";
 
 /**
  * Evaluates proposed actions against the PolicyEngine during the context phase.
@@ -38,6 +39,25 @@ export class PolicyGateAgent extends BaseAgent {
         1.0,
         { dataState: "raw", timestamp: startMs },
       );
+    }
+
+    // Check triage outputs for auto-tier action hints
+    const triageAutoDecision = this.checkTriageAutoActions(input);
+    if (triageAutoDecision) {
+      this.log("Triage auto-tier actions allowed without approval", {
+        autoActionCount: triageAutoDecision.autoActionCount,
+      });
+      const endMs = Date.now();
+      return {
+        ...this.createOutput(triageAutoDecision.decision, 1.0, {
+          sourceType: "system",
+          sourceId: this.id,
+          dataState: "raw",
+          freshness: "realtime",
+          timestamp: startMs,
+        }),
+        timing: { startMs, endMs, durationMs: endMs - startMs },
+      };
     }
 
     // Detect if this event implies a policy-relevant action
@@ -136,6 +156,53 @@ export class PolicyGateAgent extends BaseAgent {
             return { actionType: action, payload: output };
           }
         }
+      }
+    }
+
+    return undefined;
+  }
+
+  /** Auto-tier actions from triage that need no approval. */
+  private static readonly AUTO_TIER_ACTIONS = new Set([
+    "mark_read",
+    "archive",
+    "store_memory",
+  ]);
+
+  /**
+   * Check triage outputs for auto-tier actions.
+   * Items with suggestedAction in ["mark_read", "archive", "store_memory"]
+   * are Auto-tier — no approval needed.
+   */
+  private checkTriageAutoActions(
+    input: AgentInput,
+  ): { decision: PolicyDecision; autoActionCount: number } | undefined {
+    for (const prior of input.priorOutputs) {
+      if (prior.category !== "triage" || !prior.output) continue;
+
+      const triageOutputs = prior.output as unknown;
+      if (!Array.isArray(triageOutputs)) continue;
+
+      let autoActionCount = 0;
+      for (const triageOutput of triageOutputs as TriageOutput[]) {
+        if (!triageOutput.autoActions) continue;
+        for (const action of triageOutput.autoActions) {
+          if (PolicyGateAgent.AUTO_TIER_ACTIONS.has(action.type)) {
+            autoActionCount++;
+          }
+        }
+      }
+
+      if (autoActionCount > 0) {
+        return {
+          autoActionCount,
+          decision: {
+            action: "triage.auto-actions",
+            verdict: "allowed",
+            riskClass: "A",
+            reason: `${autoActionCount} auto-tier triage action(s) — no approval needed`,
+          } as PolicyDecision,
+        };
       }
     }
 

@@ -52,6 +52,7 @@ export {
 export {
   DataTriageAgent,
   EmailTriageClassifier,
+  AutoActionExecutor,
   type TriageOutput,
   type TriageResult,
   type TriagedItem,
@@ -59,5 +60,7 @@ export {
   type TriageContext,
   type UrgencyLevel,
   type TriageCategory,
+  type AutoAction,
+  type MemoryCandidate,
 } from "./triage";
 export { ActionExecutorAgent } from "./execution";

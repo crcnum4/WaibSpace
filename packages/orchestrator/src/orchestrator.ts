@@ -2,7 +2,7 @@ import type { WaibEvent, AgentOutput, AgentCategory, IPendingActionStore } from 
 import { EventBus, createEvent } from "@waibspace/event-bus";
 import { executeAgent } from "@waibspace/agents";
 import type { ModelProviderRegistry } from "@waibspace/model-provider";
-import type { MemoryStore, ConversationContextStore } from "@waibspace/memory";
+import type { MemoryStore, ConversationContextStore, MidTermMemory } from "@waibspace/memory";
 import type { ConnectorRegistry } from "@waibspace/connectors";
 import type { PolicyEngine } from "@waibspace/policy";
 import type { WaibDatabase } from "@waibspace/db";
@@ -11,6 +11,7 @@ import { AgentRegistry } from "./agent-registry";
 import { buildExecutionPlan } from "./execution-planner";
 import { createPipelineTrace, logTrace } from "./trace";
 import { BenchmarkCollector } from "./benchmark";
+import type { TriageOutput, MemoryCandidate } from "@waibspace/agents";
 
 export interface OrchestratorOptions {
   timeoutMs?: number;
@@ -214,6 +215,11 @@ export class Orchestrator {
       // Accumulate outputs for the next phase
       priorOutputs = [...priorOutputs, ...phaseOutputs];
 
+      // After triage phase: store memory candidates in mid-term memory
+      if (phase.category === "triage" && this.options?.midTermMemory) {
+        this.storeTriageMemoryCandidates(phaseOutputs, traceId);
+      }
+
       // Emit phase progress so the frontend can show incremental loading state
       const agentStatuses = phase.agents.map((agent, i) => {
         const result = results[i];
@@ -343,5 +349,51 @@ export class Orchestrator {
 
     // Clean up per-trace short-term memory
     this.options?.shortTermMemoryManager?.destroy(traceId);
+  }
+
+  /**
+   * Store triage memory candidates in mid-term memory.
+   * Promotional and informational summaries are stored automatically
+   * without user approval (Auto-tier trust level).
+   */
+  private storeTriageMemoryCandidates(
+    phaseOutputs: AgentOutput[],
+    traceId: string,
+  ): void {
+    const midTermMemory = this.options?.midTermMemory as MidTermMemory | undefined;
+    if (!midTermMemory || typeof midTermMemory.store !== "function") return;
+
+    let storedCount = 0;
+
+    for (const output of phaseOutputs) {
+      const triageOutputs = output.output as unknown;
+      if (!Array.isArray(triageOutputs)) continue;
+
+      for (const triageOutput of triageOutputs as TriageOutput[]) {
+        if (!triageOutput.memoryCandidates) continue;
+
+        for (const candidate of triageOutput.memoryCandidates) {
+          try {
+            midTermMemory.store(candidate.domain, candidate.key, candidate.summary);
+            storedCount++;
+          } catch (err) {
+            this.log.child({ traceId }).warn("Failed to store triage memory candidate", {
+              domain: candidate.domain,
+              key: candidate.key,
+              error: String(err),
+            });
+          }
+        }
+      }
+    }
+
+    if (storedCount > 0) {
+      this.log.child({ traceId }).info("Stored triage memory candidates", {
+        count: storedCount,
+      });
+      this.logToDb("triage.memory.stored", "orchestrator", traceId, {
+        storedCount,
+      });
+    }
   }
 }
