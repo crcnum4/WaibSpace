@@ -71,6 +71,9 @@ export {
 export { ActionExecutorAgent } from "./execution";
 export {
   ApprovalTracker,
+  UserRulesManager,
+  type UserTrustRule,
+  type CorrectionFeedback,
   EscalationEngine,
   type TrustRule,
   type ApprovalRecord,
