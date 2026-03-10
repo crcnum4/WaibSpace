@@ -7,65 +7,6 @@
  */
 
 // ---------------------------------------------------------------------------
-// GmailEmailCard fixtures
-// ---------------------------------------------------------------------------
-
-export const gmailEmailCard = {
-  /** Standard unread email with urgency badge */
-  unread: {
-    emailId: "msg-001",
-    threadId: "thread-001",
-    from: "Alice Johnson",
-    subject: "Q3 Revenue Report — Action Required",
-    snippet:
-      "Hey team, please review the attached Q3 numbers before Friday's board meeting. Key highlights…",
-    date: "Mar 7",
-    isUnread: true,
-    labels: ["IMPORTANT", "INBOX"],
-    urgency: "high" as const,
-  },
-
-  /** Read email, no urgency */
-  read: {
-    emailId: "msg-002",
-    threadId: "thread-002",
-    from: "Bob Martinez",
-    subject: "Lunch next week?",
-    snippet:
-      "Are you free Tuesday or Wednesday? There's a new ramen spot downtown I've been wanting to try.",
-    date: "Mar 5",
-    isUnread: false,
-    labels: ["INBOX"],
-  },
-
-  /** Starred email with suggested reply */
-  starred: {
-    emailId: "msg-003",
-    threadId: "thread-003",
-    from: "Carol Wei",
-    subject: "Design review feedback",
-    snippet:
-      "Overall looks great! A few minor tweaks on the navigation component — see inline comments.",
-    date: "Mar 6",
-    isUnread: true,
-    labels: ["STARRED", "INBOX"],
-    urgency: "medium" as const,
-    suggestedReply: "Thanks Carol, I'll address those comments today.",
-  },
-
-  /** Minimal — no labels, no urgency */
-  minimal: {
-    emailId: "msg-004",
-    from: "notifications@github.com",
-    subject: "",
-    snippet: "You were mentioned in a comment on issue #42.",
-    date: "Mar 4",
-    isUnread: false,
-    labels: [],
-  },
-};
-
-// ---------------------------------------------------------------------------
 // CalendarEventCard fixtures
 // ---------------------------------------------------------------------------
 
@@ -177,39 +118,3 @@ export const calendarDayTimeline = {
   },
 };
 
-// ---------------------------------------------------------------------------
-// GmailInboxList fixtures
-// ---------------------------------------------------------------------------
-
-export const gmailInboxList = {
-  /** Normal inbox with unread emails */
-  normal: {
-    unreadCount: 3,
-    totalCount: 5,
-    isScanned: true,
-  },
-
-  /** Inbox not yet scanned */
-  unscanned: {
-    unreadCount: 0,
-    totalCount: 10,
-    isScanned: false,
-  },
-
-  /** Inbox with error */
-  error: {
-    unreadCount: 0,
-    totalCount: 0,
-    isScanned: false,
-    error: "Failed to connect to Gmail. Please re-authenticate.",
-  },
-
-  /** Truncated inbox */
-  truncated: {
-    unreadCount: 5,
-    totalCount: 25,
-    isScanned: true,
-    isTruncated: true,
-    fullCount: 142,
-  },
-};
