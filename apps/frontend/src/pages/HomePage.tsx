@@ -94,31 +94,30 @@ export default function HomePage() {
 
   const actionHistory = useActionHistory(handleUndoAction, handleRedoAction);
 
-  // Keyboard navigation for email lists
+  // Keyboard navigation for briefing cards
   const hasSurfaces = layout && layout.surfaces.length > 0;
 
-  const handleEmailSelect = useCallback(
+  const handleCardSelect = useCallback(
     (_index: number, element: HTMLElement) => {
-      // Simulate a click on the selected card
       element.click();
     },
     [],
   );
 
-  const handleEmailArchive = useCallback(
+  const handleCardArchive = useCallback(
     (_index: number, _element: HTMLElement) => {
       const payload = {
         interaction: "archive",
         target: "keyboard-shortcut",
-        surfaceId: "gmail-inbox",
-        surfaceType: "gmail",
+        surfaceId: "daily-briefing",
+        surfaceType: "briefing",
         context: { source: "keyboard" },
         timestamp: Date.now(),
       };
       send("user.interaction", payload);
       actionHistory.push({
         type: "archive",
-        label: "archive on gmail",
+        label: "archive on briefing",
         forwardPayload: payload,
         undoPayload: { ...payload, interaction: "unarchive" },
       });
@@ -126,13 +125,13 @@ export default function HomePage() {
     [send, actionHistory],
   );
 
-  const handleEmailReply = useCallback(
+  const handleCardReply = useCallback(
     (_index: number, _element: HTMLElement) => {
       send("user.interaction", {
         interaction: "reply",
         target: "keyboard-shortcut",
-        surfaceId: "gmail-inbox",
-        surfaceType: "gmail",
+        surfaceId: "daily-briefing",
+        surfaceType: "briefing",
         context: { source: "keyboard" },
         timestamp: Date.now(),
       });
@@ -141,11 +140,11 @@ export default function HomePage() {
   );
 
   useKeyboardNavigation({
-    containerSelector: ".gmail-inbox-list__cards",
-    itemSelector: ".gmail-email-card",
-    onSelect: handleEmailSelect,
-    onArchive: handleEmailArchive,
-    onReply: handleEmailReply,
+    containerSelector: ".block-container",
+    itemSelector: ".block-card",
+    onSelect: handleCardSelect,
+    onArchive: handleCardArchive,
+    onReply: handleCardReply,
     enabled: !!hasSurfaces,
   });
 
@@ -178,9 +177,7 @@ export default function HomePage() {
         const parts: string[] = [];
         for (const svc of connected) {
           const lower = svc.name.toLowerCase();
-          if (lower.includes("gmail") || lower.includes("mail") || lower.includes("email")) {
-            parts.push("my latest emails");
-          } else if (lower.includes("calendar")) {
+          if (lower.includes("calendar")) {
             parts.push("my upcoming calendar events");
           } else if (lower.includes("github")) {
             parts.push("my recent GitHub activity");
