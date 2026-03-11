@@ -94,7 +94,7 @@ connectorRegistry.register(webFetchConnector);
 log.info("WebFetch connector registered");
 
 // Mock connectors — use fixture data when MOCK_CONNECTORS is enabled
-// Real Gmail/Calendar connections are handled via MCP servers (Settings → Marketplace)
+// Real email/calendar connections are handled via MCP servers (Settings → Marketplace)
 if (process.env.MOCK_CONNECTORS === "true") {
   const mockGmail = new MockGmailConnector();
   await mockGmail.connect();

@@ -4,7 +4,7 @@
 
 /* ---- Focus indicator for list items ---- */
 
-.gmail-email-card.kb-focused {
+.email-card.kb-focused {
   outline: 2px solid var(--color-accent);
   outline-offset: -2px;
   background: var(--color-surface-hover);
