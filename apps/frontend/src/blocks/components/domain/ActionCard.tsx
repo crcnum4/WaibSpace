@@ -6,6 +6,7 @@ interface ActionCardData {
   subject: string;
   snippet?: string;
   category: string;
+  urgency?: string;
   reasoning?: string;
   suggestedAction?: string;
   confidence?: number;
@@ -39,6 +40,7 @@ export function ActionCard({ block, onEvent }: BlockProps) {
     subject,
     snippet,
     category,
+    urgency,
     reasoning,
     suggestedAction,
     confidence,
@@ -46,9 +48,10 @@ export function ActionCard({ block, onEvent }: BlockProps) {
   } = block.props as ActionCardData;
 
   const actionList = actions ?? ["approve", "dismiss"];
+  const urgencyClass = urgency === "high" ? "urgent" : "review";
 
   return (
-    <div className="action-card action-card--urgent">
+    <div className={`action-card action-card--${urgencyClass}`}>
       <div className="action-card__header">
         <h3 className="action-card__title">{subject || "No subject"}</h3>
         <div className="action-card__badges">

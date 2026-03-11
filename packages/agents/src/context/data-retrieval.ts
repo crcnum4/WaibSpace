@@ -184,7 +184,7 @@ export class DataRetrievalAgent extends BaseAgent {
    */
   private truncateData(data: unknown): unknown {
     const MAX_DATA_SIZE = 50_000;
-    const MAX_ITEMS = 10;
+    const MAX_ITEMS = 50;
     const MAX_FIELD_LENGTH = 500;
 
     // MCP tools return [{type: "text", text: "..."}] — truncate the text content

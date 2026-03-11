@@ -300,26 +300,58 @@ export class LayoutComposerAgent extends BaseAgent {
       },
     });
 
-    // --- Action Cards for high-urgency items ---
-    const urgentItems = items.filter(
-      (item: TriagedItem) => item.triage.urgency === "high",
+    // --- Action Cards for items needing attention ---
+    // Show high and medium urgency items as action cards.
+    // High-urgency items get priority 90, medium get 70.
+    const actionableItems = items.filter(
+      (item: TriagedItem) =>
+        item.triage.urgency === "high" || item.triage.urgency === "medium",
     );
 
-    for (const item of urgentItems) {
+    for (const item of actionableItems) {
       const raw = item.raw as Record<string, unknown>;
+      const isHigh = item.triage.urgency === "high";
       cards.push({
         cardType: "action-card",
-        priority: 90,
+        priority: isHigh ? 90 : 70,
         data: {
           itemId: item.triage.itemId,
           from: raw["from"] ?? raw["sender"] ?? "Unknown",
           subject: raw["subject"] ?? raw["title"] ?? "No subject",
           snippet: raw["snippet"] ?? raw["body"] ?? "",
           category: item.triage.category,
+          urgency: item.triage.urgency,
           reasoning: item.triage.reasoning,
           suggestedAction: item.triage.suggestedAction,
           confidence: item.triage.confidence,
-          actions: ["approve", "edit", "dismiss"],
+          actions: isHigh
+            ? ["approve", "edit", "dismiss"]
+            : ["dismiss", "archive"],
+        },
+      });
+    }
+
+    // --- Briefing list for low-urgency items ---
+    // Show remaining items as a compact list so nothing is hidden.
+    const lowItems = items.filter(
+      (item: TriagedItem) => item.triage.urgency === "low",
+    );
+
+    if (lowItems.length > 0) {
+      cards.push({
+        cardType: "briefing-card",
+        priority: 50,
+        data: {
+          title: `${lowItems.length} low-priority item${lowItems.length !== 1 ? "s" : ""}`,
+          summary: "These don't need immediate attention",
+          lowItems: lowItems.map((item: TriagedItem) => {
+            const raw = item.raw as Record<string, unknown>;
+            return {
+              from: raw["from"] ?? raw["sender"] ?? "Unknown",
+              subject: raw["subject"] ?? raw["title"] ?? "No subject",
+              category: item.triage.category,
+            };
+          }),
         },
       });
     }
