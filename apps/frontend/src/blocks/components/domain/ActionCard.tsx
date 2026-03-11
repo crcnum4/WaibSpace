@@ -1,71 +1,96 @@
 import type { BlockProps } from "../../registry";
 
-interface ActionButton {
-  id: string;
-  label: string;
-  variant: "primary" | "secondary" | "danger";
-}
-
 interface ActionCardData {
-  title: string;
-  context: string;
-  draftContent?: string;
-  riskClass: "A" | "B" | "C";
-  actions: ActionButton[];
-  source?: string;
+  itemId: string;
+  from: string;
+  subject: string;
+  snippet?: string;
+  category: string;
+  reasoning?: string;
+  suggestedAction?: string;
+  confidence?: number;
+  actions?: string[];
 }
 
-const RISK_LABELS: Record<string, string> = {
-  A: "Low risk",
-  B: "Medium risk",
-  C: "High risk",
+const ACTION_LABELS: Record<string, string> = {
+  approve: "Approve",
+  edit: "Edit",
+  dismiss: "Dismiss",
+  reply: "Reply",
+  archive: "Archive",
+};
+
+const ACTION_VARIANTS: Record<string, string> = {
+  approve: "primary",
+  edit: "secondary",
+  dismiss: "danger",
+  reply: "primary",
+  archive: "secondary",
 };
 
 /**
- * Action card where Waib has drafted something and needs user approval.
- * Accent border colour reflects the risk classification.
+ * Action card for high-urgency triaged items that need user attention.
+ * Shows sender, subject, reasoning, and action buttons.
  */
 export function ActionCard({ block, onEvent }: BlockProps) {
-  const { title, context, draftContent, riskClass, actions, source } =
-    block.props as ActionCardData;
+  const {
+    itemId,
+    from,
+    subject,
+    snippet,
+    category,
+    reasoning,
+    suggestedAction,
+    confidence,
+    actions,
+  } = block.props as ActionCardData;
+
+  const actionList = actions ?? ["approve", "dismiss"];
 
   return (
-    <div className={`action-card action-card--risk-${riskClass.toLowerCase()}`}>
+    <div className="action-card action-card--urgent">
       <div className="action-card__header">
-        <h3 className="action-card__title">{title}</h3>
+        <h3 className="action-card__title">{subject || "No subject"}</h3>
         <div className="action-card__badges">
-          <span
-            className={`action-card__risk-badge action-card__risk-badge--${riskClass.toLowerCase()}`}
-          >
-            {RISK_LABELS[riskClass] ?? riskClass}
-          </span>
-          {source && <span className="action-card__source-badge">{source}</span>}
+          <span className="action-card__category-badge">{category}</span>
+          {confidence != null && (
+            <span className="action-card__confidence">
+              {Math.round(confidence * 100)}%
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="action-card__context">{context}</div>
+      <div className="action-card__sender">From: {from || "Unknown"}</div>
 
-      {draftContent && (
-        <div className="action-card__draft">
-          <div className="action-card__draft-label">Draft</div>
-          <div className="action-card__draft-content">{draftContent}</div>
+      {snippet && <div className="action-card__snippet">{snippet}</div>}
+
+      {reasoning && (
+        <div className="action-card__reasoning">
+          <span className="action-card__reasoning-label">Why:</span> {reasoning}
+        </div>
+      )}
+
+      {suggestedAction && (
+        <div className="action-card__suggestion">
+          Suggested: {suggestedAction}
         </div>
       )}
 
       <div className="action-card__actions">
-        {actions.map((action) => (
+        {actionList.map((action) => (
           <button
-            key={action.id}
+            key={action}
             type="button"
-            className={`action-card__btn action-card__btn--${action.variant}`}
+            className={`action-card__btn action-card__btn--${ACTION_VARIANTS[action] ?? "secondary"}`}
             onClick={() =>
               onEvent?.("action-card-click", {
-                actionId: action.id,
-                label: action.label,
+                actionId: action,
+                itemId,
               })
             }
           >
-            {action.label}
+            {ACTION_LABELS[action] ?? action}
           </button>
         ))}
       </div>

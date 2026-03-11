@@ -218,30 +218,30 @@ export function BlockSurfaceRenderer({
       ? PHASE_LABELS[pipelinePhase] ?? pipelinePhase
       : "Connecting to services...";
 
-    // If we know which services are loading, show a card per service
+    // Show a single briefing loading card while the AI pipeline works
     if (loadingServices && loadingServices.length > 0) {
+      const serviceNames = loadingServices.map((s) => s.name).join(", ");
       return (
         <div className="surface-grid">
-          {loadingServices.map((svc) => (
-            <div key={svc.id} className="surface-cell half">
-              <div className="surface-wrapper">
-                <div className="surface loading-service-card">
-                  <div className="loading-service-header">
-                    <h3>Loading {svc.name}...</h3>
-                  </div>
-                  <div className="loading-service-body">
-                    <div className="loading-spinner" />
-                    <p className="loading-label">{phaseLabel}</p>
-                  </div>
-                  <div className="loading-service-skeleton">
-                    <div className="skeleton-line" />
-                    <div className="skeleton-line short" />
-                    <div className="skeleton-line" />
-                  </div>
+          <div className="surface-cell full">
+            <div className="surface-wrapper">
+              <div className="surface loading-service-card">
+                <div className="loading-service-header">
+                  <h3>Preparing your briefing...</h3>
+                </div>
+                <div className="loading-service-body">
+                  <div className="loading-spinner" />
+                  <p className="loading-label">{phaseLabel}</p>
+                  <p className="loading-services-list">Scanning {serviceNames}</p>
+                </div>
+                <div className="loading-service-skeleton">
+                  <div className="skeleton-line" />
+                  <div className="skeleton-line short" />
+                  <div className="skeleton-line" />
                 </div>
               </div>
             </div>
-          ))}
+          </div>
         </div>
       );
     }
