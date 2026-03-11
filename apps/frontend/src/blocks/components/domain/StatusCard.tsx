@@ -1,94 +1,66 @@
 import type { BlockProps } from "../../registry";
 
-interface ConnectorStatus {
-  name: string;
-  status: "active" | "error" | "idle";
-  lastPoll?: string;
-}
-
-interface MemoryStats {
-  shortTerm: number;
-  midTerm: number;
-  longTerm: number;
-}
-
 interface StatusCardData {
-  title: string;
-  connectors: ConnectorStatus[];
-  memoryStats?: MemoryStats;
-  uptime?: string;
+  connectorId: string;
+  classifierId: string;
+  itemsProcessed: number;
+  categoryBreakdown?: Record<string, number>;
+  timestamp?: number;
 }
 
 /**
- * System status card showing connector health and memory statistics.
+ * System status card showing triage processing stats.
  * Compact, information-dense layout.
  */
 export function StatusCard({ block }: BlockProps) {
-  const { title, connectors, memoryStats, uptime } =
+  const { connectorId, classifierId, itemsProcessed, categoryBreakdown, timestamp } =
     block.props as StatusCardData;
+
+  const formattedTime = timestamp
+    ? new Date(timestamp).toLocaleTimeString(undefined, {
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : null;
+
+  const categories = categoryBreakdown
+    ? Object.entries(categoryBreakdown)
+    : [];
 
   return (
     <div className="status-card">
       <div className="status-card__header">
-        <h3 className="status-card__title">{title}</h3>
-        {uptime && <span className="status-card__uptime">Up {uptime}</span>}
+        <h3 className="status-card__title">Processing Status</h3>
+        {formattedTime && (
+          <span className="status-card__timestamp">{formattedTime}</span>
+        )}
       </div>
 
-      <div className="status-card__connectors">
-        {connectors.map((conn) => (
-          <div key={conn.name} className="status-card__connector">
-            <span
-              className={`status-card__status-dot status-card__status-dot--${conn.status}`}
-              aria-label={conn.status}
-            />
-            <span className="status-card__connector-name">{conn.name}</span>
-            {conn.lastPoll && (
-              <span className="status-card__last-poll">{conn.lastPoll}</span>
-            )}
-          </div>
-        ))}
+      <div className="status-card__stats">
+        <div className="status-card__stat">
+          <span className="status-card__stat-value">{itemsProcessed}</span>
+          <span className="status-card__stat-label">items processed</span>
+        </div>
+        <div className="status-card__stat">
+          <span className="status-card__stat-value">{connectorId}</span>
+          <span className="status-card__stat-label">source</span>
+        </div>
+        <div className="status-card__stat">
+          <span className="status-card__stat-value">{classifierId}</span>
+          <span className="status-card__stat-label">classifier</span>
+        </div>
       </div>
 
-      {memoryStats && (
-        <div className="status-card__memory">
-          <div className="status-card__memory-label">Memory</div>
-          <div className="status-card__memory-bars">
-            <div className="status-card__memory-item">
-              <span className="status-card__memory-name">Short</span>
-              <div className="status-card__memory-bar">
-                <div
-                  className="status-card__memory-fill status-card__memory-fill--short"
-                  style={{ width: `${Math.min(memoryStats.shortTerm, 100)}%` }}
-                />
+      {categories.length > 0 && (
+        <div className="status-card__categories">
+          <div className="status-card__categories-label">Categories</div>
+          <div className="status-card__category-list">
+            {categories.map(([cat, count]) => (
+              <div key={cat} className="status-card__category">
+                <span className="status-card__category-name">{cat}</span>
+                <span className="status-card__category-count">{count}</span>
               </div>
-              <span className="status-card__memory-value">
-                {memoryStats.shortTerm}%
-              </span>
-            </div>
-            <div className="status-card__memory-item">
-              <span className="status-card__memory-name">Mid</span>
-              <div className="status-card__memory-bar">
-                <div
-                  className="status-card__memory-fill status-card__memory-fill--mid"
-                  style={{ width: `${Math.min(memoryStats.midTerm, 100)}%` }}
-                />
-              </div>
-              <span className="status-card__memory-value">
-                {memoryStats.midTerm}%
-              </span>
-            </div>
-            <div className="status-card__memory-item">
-              <span className="status-card__memory-name">Long</span>
-              <div className="status-card__memory-bar">
-                <div
-                  className="status-card__memory-fill status-card__memory-fill--long"
-                  style={{ width: `${Math.min(memoryStats.longTerm, 100)}%` }}
-                />
-              </div>
-              <span className="status-card__memory-value">
-                {memoryStats.longTerm}%
-              </span>
-            </div>
+            ))}
           </div>
         </div>
       )}

@@ -1,25 +1,39 @@
 import type { BlockProps } from "../../registry";
 
-interface BriefingItem {
-  label: string;
-  detail?: string;
-  urgency: "high" | "medium" | "low";
-  actionId?: string;
-}
-
 interface BriefingCardData {
   title: string;
-  items: BriefingItem[];
   summary?: string;
   timestamp?: number;
+  // Stats from LayoutComposer triage briefing
+  urgentCount?: number;
+  mediumCount?: number;
+  lowCount?: number;
+  handledCount?: number;
+  // Away summary fields
+  eventCount?: number;
+  eventBreakdown?: Record<string, number>;
+  eventSummaries?: string[];
+  durationFormatted?: string;
 }
 
 /**
  * Briefing card summarising what needs the user's attention.
- * Renders a list of items with urgency indicators.
+ * Renders triage stats or away-summary data from the LayoutComposer.
  */
-export function BriefingCard({ block, onEvent }: BlockProps) {
-  const { title, items, summary, timestamp } = block.props as BriefingCardData;
+export function BriefingCard({ block }: BlockProps) {
+  const {
+    title,
+    summary,
+    timestamp,
+    urgentCount,
+    mediumCount,
+    lowCount,
+    handledCount,
+    eventCount,
+    eventBreakdown,
+    eventSummaries,
+    durationFormatted,
+  } = block.props as BriefingCardData;
 
   const formattedTime = timestamp
     ? new Date(timestamp).toLocaleTimeString(undefined, {
@@ -27,6 +41,10 @@ export function BriefingCard({ block, onEvent }: BlockProps) {
         minute: "2-digit",
       })
     : null;
+
+  const hasTriageStats =
+    urgentCount != null || mediumCount != null || lowCount != null;
+  const hasAwayData = eventCount != null || eventSummaries != null;
 
   return (
     <div className="briefing-card">
@@ -37,43 +55,62 @@ export function BriefingCard({ block, onEvent }: BlockProps) {
         )}
       </div>
 
-      <ul className="briefing-card__items">
-        {items.map((item, idx) => (
-          <li
-            key={idx}
-            className={`briefing-card__item${item.actionId ? " briefing-card__item--actionable" : ""}`}
-            role={item.actionId ? "button" : undefined}
-            tabIndex={item.actionId ? 0 : undefined}
-            onClick={
-              item.actionId
-                ? () => onEvent?.("briefing-action", { actionId: item.actionId })
-                : undefined
-            }
-            onKeyDown={
-              item.actionId
-                ? (e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      onEvent?.("briefing-action", { actionId: item.actionId });
-                    }
-                  }
-                : undefined
-            }
-          >
-            <span
-              className={`briefing-card__urgency-dot briefing-card__urgency-dot--${item.urgency}`}
-              aria-label={`${item.urgency} urgency`}
-            />
-            <div className="briefing-card__item-content">
-              <span className="briefing-card__item-label">{item.label}</span>
-              {item.detail && (
-                <span className="briefing-card__item-detail">{item.detail}</span>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
-
       {summary && <p className="briefing-card__summary">{summary}</p>}
+
+      {hasTriageStats && (
+        <div className="briefing-card__stats">
+          {urgentCount != null && urgentCount > 0 && (
+            <div className="briefing-card__stat briefing-card__stat--urgent">
+              <span className="briefing-card__stat-count">{urgentCount}</span>
+              <span className="briefing-card__stat-label">urgent</span>
+            </div>
+          )}
+          {mediumCount != null && mediumCount > 0 && (
+            <div className="briefing-card__stat briefing-card__stat--medium">
+              <span className="briefing-card__stat-count">{mediumCount}</span>
+              <span className="briefing-card__stat-label">needs review</span>
+            </div>
+          )}
+          {lowCount != null && lowCount > 0 && (
+            <div className="briefing-card__stat briefing-card__stat--low">
+              <span className="briefing-card__stat-count">{lowCount}</span>
+              <span className="briefing-card__stat-label">low priority</span>
+            </div>
+          )}
+          {handledCount != null && handledCount > 0 && (
+            <div className="briefing-card__stat briefing-card__stat--handled">
+              <span className="briefing-card__stat-count">{handledCount}</span>
+              <span className="briefing-card__stat-label">auto-handled</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {hasAwayData && (
+        <div className="briefing-card__away">
+          {durationFormatted && (
+            <p className="briefing-card__away-duration">
+              Away for {durationFormatted}
+            </p>
+          )}
+          {eventBreakdown && Object.keys(eventBreakdown).length > 0 && (
+            <div className="briefing-card__away-breakdown">
+              {Object.entries(eventBreakdown).map(([type, count]) => (
+                <span key={type} className="briefing-card__away-type">
+                  {count} {type.replace(/\./g, " ")}
+                </span>
+              ))}
+            </div>
+          )}
+          {eventSummaries && eventSummaries.length > 0 && (
+            <ul className="briefing-card__away-events">
+              {eventSummaries.map((s, i) => (
+                <li key={i} className="briefing-card__away-event">{s}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }
