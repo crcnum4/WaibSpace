@@ -1,5 +1,11 @@
 import type { BlockProps } from "../../registry";
 
+interface LowItem {
+  from: string;
+  subject: string;
+  category: string;
+}
+
 interface BriefingCardData {
   title: string;
   summary?: string;
@@ -9,6 +15,8 @@ interface BriefingCardData {
   mediumCount?: number;
   lowCount?: number;
   handledCount?: number;
+  // Low-priority items list
+  lowItems?: LowItem[];
   // Away summary fields
   eventCount?: number;
   eventBreakdown?: Record<string, number>;
@@ -29,6 +37,7 @@ export function BriefingCard({ block }: BlockProps) {
     mediumCount,
     lowCount,
     handledCount,
+    lowItems,
     eventCount,
     eventBreakdown,
     eventSummaries,
@@ -84,6 +93,18 @@ export function BriefingCard({ block }: BlockProps) {
             </div>
           )}
         </div>
+      )}
+
+      {lowItems && lowItems.length > 0 && (
+        <ul className="briefing-card__low-items">
+          {lowItems.map((item, i) => (
+            <li key={i} className="briefing-card__low-item">
+              <span className="briefing-card__low-item-from">{item.from}</span>
+              <span className="briefing-card__low-item-subject">{item.subject}</span>
+              <span className="briefing-card__low-item-category">{item.category}</span>
+            </li>
+          ))}
+        </ul>
       )}
 
       {hasAwayData && (

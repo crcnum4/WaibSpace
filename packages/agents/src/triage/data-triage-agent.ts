@@ -86,10 +86,10 @@ export class DataTriageAgent extends BaseAgent {
         continue;
       }
 
-      // Normalize data to an array
-      const rawItems = Array.isArray(result.data)
-        ? (result.data as unknown[])
-        : [result.data];
+      // Normalize data to an array of individual items.
+      // MCP connectors return [{type: "text", text: "[...json...]"}],
+      // so we need to extract and parse the JSON content.
+      const rawItems = this.extractItems(result.data);
 
       if (rawItems.length === 0) continue;
 
@@ -165,6 +165,56 @@ export class DataTriageAgent extends BaseAgent {
       durationMs: endMs - startMs,
     };
     return output;
+  }
+
+  /**
+   * Extract individual items from connector data.
+   *
+   * MCP connectors return data as [{type: "text", text: "[...json...]"}].
+   * This method parses the JSON text content into individual items.
+   * Non-MCP data that's already an array of objects is returned as-is.
+   */
+  private extractItems(data: unknown): unknown[] {
+    if (!data) return [];
+
+    if (Array.isArray(data)) {
+      // Check if this is MCP content blocks: [{type: "text", text: "..."}]
+      if (
+        data.length > 0 &&
+        typeof data[0] === "object" &&
+        data[0] !== null &&
+        (data[0] as Record<string, unknown>).type === "text" &&
+        typeof (data[0] as Record<string, unknown>).text === "string"
+      ) {
+        // Parse the JSON text content from each content block
+        const items: unknown[] = [];
+        for (const block of data) {
+          const text = (block as Record<string, string>).text;
+          try {
+            const parsed = JSON.parse(text);
+            if (Array.isArray(parsed)) {
+              items.push(...parsed);
+            } else {
+              items.push(parsed);
+            }
+          } catch {
+            // Not JSON — treat the text block as a single item
+            items.push({ text });
+          }
+        }
+        this.log("Extracted items from MCP content blocks", {
+          contentBlocks: data.length,
+          extractedItems: items.length,
+        });
+        return items;
+      }
+
+      // Already an array of items (non-MCP connector)
+      return data;
+    }
+
+    // Single object
+    return [data];
   }
 
   private isDataRetrievalOutput(output: unknown): output is DataRetrievalOutput {
