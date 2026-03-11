@@ -29,6 +29,7 @@ Guidelines:
 - For email/inbox intents, prioritize fetching multiple recent or unread messages, not just one.
 - Set priority=1 for the most important data source, higher numbers for supplementary sources.
 - Set required=true for essential data, false for nice-to-have context.
+- For "briefing" intents: query ALL available connectors to build a comprehensive overview. Every connected service should have at least one data retrieval operation planned. This is a full scan.
 
 For each data source needed, specify:
 - connectorId: which connector to use (MUST match an ID from the available connectors list above)

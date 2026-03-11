@@ -151,8 +151,10 @@ export default function HomePage() {
   const { helpVisible, dismissHelp } = useGlobalShortcuts();
   const { notifications, dismiss: dismissNotification } = useNotifications(lastMessage);
 
-  // On initial connection, check what services are connected
-  // Show WelcomeState immediately, then trigger data fetch in background
+  // On initial connection, verify connectors and request a briefing.
+  // The backend's AwayTracker automatically injects away-summary data
+  // into the user.message.received event when the user has been gone.
+  // The pipeline handles everything: scan connectors → triage → briefing.
   useEffect(() => {
     if (status !== "connected" || hasCheckedConnections) return;
     setHasCheckedConnections(true);
@@ -173,23 +175,11 @@ export default function HomePage() {
 
         if (connected.length === 0) return; // Stay on WelcomeState
 
-        // Build a targeted request for connected services only
-        const parts: string[] = [];
-        for (const svc of connected) {
-          const lower = svc.name.toLowerCase();
-          if (lower.includes("calendar")) {
-            parts.push("my upcoming calendar events");
-          } else if (lower.includes("github")) {
-            parts.push("my recent GitHub activity");
-          } else if (lower.includes("slack")) {
-            parts.push("my recent Slack messages");
-          } else {
-            parts.push(`my latest data from ${svc.name}`);
-          }
-        }
-
+        // Single briefing request — the AI pipeline decides what to show.
+        // AwayTracker on the backend injects "while you were away" data
+        // automatically. No per-service prompt building needed.
         setIsLoading(true);
-        send("user.message", { text: `Show me ${parts.join(" and ")}` });
+        send("user.message", { text: "Brief me" });
       })
       .catch(() => {
         // API unavailable — stay on WelcomeState

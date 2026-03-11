@@ -29,13 +29,20 @@ WaibSpace has the following built-in capabilities:
 const CLASSIFICATION_INSTRUCTIONS = `
 
 For each input, determine:
-1. The primary intent (e.g., "check_email", "find_movie", "schedule_meeting", "create_task", "connect_service", "query_data")
-2. The intent category (one of: "email", "calendar", "discovery", "search", "task", "connection", "data", "general")
+1. The primary intent (e.g., "briefing", "check_email", "find_movie", "schedule_meeting", "create_task", "connect_service", "query_data")
+2. The intent category (one of: "briefing", "email", "calendar", "discovery", "search", "task", "connection", "data", "general")
+   - Use "briefing" when the user wants an overview, summary, or catch-up across all their connected services (e.g., "brief me", "what's new", "catch me up", "what did I miss", "morning briefing"). This should query ALL connected data sources.
    - Use "search" when the user wants to search/find specific content across their connected services (e.g., "search for emails about project X", "find calendar events with Alice")
    - Use "discovery" for general information discovery (movies, restaurants, web lookups)
    - Use "data" when the request relates to a connected service that doesn't fit the standard categories
 3. Any entities mentioned (e.g., genre, date, time, person, subject, service name)
 4. Which downstream agents should handle this (e.g., "context.email", "context.calendar", "ui.discovery", "ui.connection-surface")
+
+When the user says "brief me", "what's new", "catch me up", or similar, classify as:
+- primaryIntent: "briefing"
+- intentCategory: "briefing"
+- entities: {}
+- suggestedAgents: [] (the pipeline will query all connected services automatically)
 
 When the user wants to connect, link, or set up a service (Gmail, Calendar, email, etc.), classify as:
 - primaryIntent: "connect_service"
