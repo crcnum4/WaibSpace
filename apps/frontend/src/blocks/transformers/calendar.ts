@@ -8,7 +8,7 @@ import type { CalendarSurfaceData } from "@waibspace/surfaces";
 
 /**
  * Deterministic color from a string hash — produces an HSL hue,
- * matching the approach used in CalendarEventCard / Gmail avatar logic.
+ * matching the approach used in CalendarEventCard avatar logic.
  */
 function colorFromTitle(title: string): string {
   let hash = 0;

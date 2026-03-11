@@ -101,16 +101,16 @@ export class InboxSurfaceAgent extends BaseAgent {
       });
     }
 
-    const { data: gmailData, totalUnread: gmailTotalUnread, error: gmailError } = this.extractGmailData(retrievalOutput);
+    const { data: emailData, totalUnread: totalUnreadFromSource, error: emailError } = this.extractEmailData(retrievalOutput);
 
     // If data retrieval failed, return an error-state inbox surface
-    if (gmailError) {
-      this.log("Email retrieval failed, returning error surface", { error: gmailError });
+    if (emailError) {
+      this.log("Email retrieval failed, returning error surface", { error: emailError });
       const surfaceData: InboxSurfaceData = {
         emails: [],
         totalCount: 0,
         unreadCount: 0,
-        error: gmailError,
+        error: emailError,
       };
       const provenance = {
         sourceType: "agent" as const,
@@ -123,7 +123,7 @@ export class InboxSurfaceAgent extends BaseAgent {
       const surfaceSpec = SurfaceFactory.inbox(surfaceData, provenance);
       return {
         ...this.createOutput(
-          { surfaceSpec, summary: gmailError },
+          { surfaceSpec, summary: emailError },
           0.3,
           provenance,
         ),
@@ -136,7 +136,7 @@ export class InboxSurfaceAgent extends BaseAgent {
     }
 
     // If no email data found, return an empty inbox surface (not null)
-    if (!gmailData || (Array.isArray(gmailData) && gmailData.length === 0)) {
+    if (!emailData || (Array.isArray(emailData) && emailData.length === 0)) {
       this.log("No email data found, returning empty inbox surface");
 
       const emptySurfaceData: InboxSurfaceData = {
@@ -171,8 +171,8 @@ export class InboxSurfaceAgent extends BaseAgent {
     }
 
     // Truncate to 10 emails max
-    const originalCount = Array.isArray(gmailData) ? gmailData.length : 1;
-    const truncatedData = this.truncateEmailData(gmailData);
+    const originalCount = Array.isArray(emailData) ? emailData.length : 1;
+    const truncatedData = this.truncateEmailData(emailData);
 
     const rawEmails = (Array.isArray(truncatedData) ? truncatedData : [truncatedData]) as Record<string, unknown>[];
     const isTruncated = originalCount > rawEmails.length;
@@ -180,16 +180,16 @@ export class InboxSurfaceAgent extends BaseAgent {
     this.log("Building inbox surface from raw email data", {
       rawEmailCount: originalCount,
       truncatedEmailCount: rawEmails.length,
-      totalUnreadFromMCP: gmailTotalUnread,
+      totalUnreadFromMCP: totalUnreadFromSource,
       isWaibScan,
     });
 
     // If WaibScan was triggered, run LLM analysis for urgency classification
     if (isWaibScan) {
       return this.executeWithLLMAnalysis(
-        gmailData,
+        emailData,
         rawEmails,
-        gmailTotalUnread,
+        totalUnreadFromSource,
         input,
         context,
         startMs,
@@ -208,7 +208,7 @@ export class InboxSurfaceAgent extends BaseAgent {
     });
 
     const batchUnreadCount = emails.filter((e) => e.isUnread).length;
-    const unreadCount = gmailTotalUnread ?? batchUnreadCount;
+    const unreadCount = totalUnreadFromSource ?? batchUnreadCount;
 
     const surfaceData: InboxSurfaceData = {
       emails,
@@ -406,12 +406,12 @@ export class InboxSurfaceAgent extends BaseAgent {
 
   /**
    * Execute the LLM analysis path: classify urgency, generate suggested replies,
-   * and produce an enriched inbox surface with a GmailScanResult summary.
+   * and produce an enriched inbox surface with a scan result summary.
    */
   private async executeWithLLMAnalysis(
-    gmailData: unknown,
+    emailData: unknown,
     rawEmails: Record<string, unknown>[],
-    gmailTotalUnread: number | undefined,
+    totalUnreadFromSource: number | undefined,
     input: AgentInput,
     context: AgentContext,
     startMs: number,
@@ -419,7 +419,7 @@ export class InboxSurfaceAgent extends BaseAgent {
     this.log("WaibScan triggered — running LLM analysis on inbox");
 
     const calendarData = this.extractCalendarData(input);
-    const analysis = await this.analyzeWithLLM(gmailData, calendarData, context);
+    const analysis = await this.analyzeWithLLM(emailData, calendarData, context);
 
     // Build enriched email list with urgency and suggested replies from LLM
     const emails: InboxSurfaceData["emails"] = analysis.emails.map((email) => ({
@@ -434,7 +434,7 @@ export class InboxSurfaceAgent extends BaseAgent {
     }));
 
     const batchUnreadCount = emails.filter((e) => e.isUnread).length;
-    const unreadCount = gmailTotalUnread ?? batchUnreadCount;
+    const unreadCount = totalUnreadFromSource ?? batchUnreadCount;
 
     const surfaceData: InboxSurfaceData = {
       emails,
@@ -674,7 +674,7 @@ export class InboxSurfaceAgent extends BaseAgent {
     return undefined;
   }
 
-  private extractGmailData(retrieval: DataRetrievalOutput): { data: unknown; totalUnread: number | undefined; error?: string } {
+  private extractEmailData(retrieval: DataRetrievalOutput): { data: unknown; totalUnread: number | undefined; error?: string } {
     const isEmailRelated = (r: { connectorId: string; operation: string }) =>
       r.connectorId.includes("gmail") ||
       r.connectorId.includes("mail") ||
@@ -702,7 +702,7 @@ export class InboxSurfaceAgent extends BaseAgent {
       return {
         data: [],
         totalUnread: undefined,
-        error: `Gmail service unavailable (${rejectedEmailResults.length} request${rejectedEmailResults.length > 1 ? "s" : ""} failed)`,
+        error: `Email service unavailable (${rejectedEmailResults.length} request${rejectedEmailResults.length > 1 ? "s" : ""} failed)`,
       };
     }
 

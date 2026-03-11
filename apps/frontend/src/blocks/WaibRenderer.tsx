@@ -110,7 +110,7 @@ function BlockNode({ block, send }: BlockNodeProps) {
   );
 
   /**
-   * onEvent callback for domain components (e.g. GmailInboxList's WaibScan button).
+   * onEvent callback for domain components (e.g. InboxList's WaibScan button).
    * Bridges the BlockProps.onEvent API to the WebSocket event bus so domain
    * components can emit named events without needing to define emit actions.
    */
